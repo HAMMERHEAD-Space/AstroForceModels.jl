@@ -18,7 +18,9 @@
     #TODO: RESOLVE SUN'S POSITION WITH HIGHER FIDELITY MODEL
     sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
 
-    srp_model = SRPAstroModel(satellite_srp_model, sun_model, eop_data, Conical())
+    srp_model = SRPAstroModel(;
+        satellite_srp_model=satellite_srp_model, sun_data=sun_model, eop_data=eop_data
+    )
 
     srp_accel = acceleration(state, p, 0.0, srp_model)
 
