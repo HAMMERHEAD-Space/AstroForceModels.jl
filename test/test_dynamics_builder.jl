@@ -14,10 +14,7 @@
 
     satellite_srp_model = CannonballFixedSRP(0.2)
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model,
-        sun_data=sun_third_body,
-        eop_data=eop_data,
-        shadow_model=Conical(),
+        satellite_srp_model=satellite_srp_model, sun_data=sun_third_body, eop_data=eop_data
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)

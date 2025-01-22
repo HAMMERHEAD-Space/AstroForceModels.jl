@@ -123,19 +123,21 @@ function srp_accel(
     Ψ::Number=SOLAR_FLUX,
     AU::Number=ASTRONOMICAL_UNIT,
 ) where {UT}
-    sat_pos = SVector{3,UT}(u[1:3])
+    sat_pos = SVector{3,UT}(u[1], u[2], u[3])
 
     # Compute the lighting factor
     F = shadow_model(sat_pos, sun_pos, ShadowModel; R_Sun=R_Sun, R_Occulting=R_Occulting)
 
     # Compute the Vector Between the Satellite and Sun
     R_spacecraft_Sun = sat_pos - sun_pos
+    R_spacecraft_Sun = R_spacecraft_Sun / norm(R_spacecraft_Sun)
+
+    F_srp = F * RC * Ψ * (AU / R_spacecraft_Sun)^2 / 1E3
 
     #Compute the SRP Force
     return SVector{3}(
-        (
-            F * RC * Ψ * (AU / norm(R_spacecraft_Sun))^2 * R_spacecraft_Sun /
-            norm(R_spacecraft_Sun)
-        ) / 1E3,
+        F_srp * R_spacecraft_Sun[1] / R_spacecraft_Sun,
+        F_srp * R_spacecraft_Sun[2] / R_spacecraft_Sun,
+        F_srp * R_spacecraft_Sun[3] / R_spacecraft_Sun,
     )
 end
