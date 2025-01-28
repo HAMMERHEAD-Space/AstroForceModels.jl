@@ -16,7 +16,7 @@
 
     satellite_drag_model = CannonballFixedDrag(0.2)
 
-    drag_model = DragAstroModel(satellite_drag_model, JB2008(), eop_data)
+    drag_model = DragAstroModel(;satellite_drag_model=satellite_drag_model, atmosphere_model=JB2008(), eop_data=eop_data)
 
     drag_accel = acceleration(state, p, 0.0, drag_model)
 

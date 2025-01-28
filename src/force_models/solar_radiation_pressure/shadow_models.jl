@@ -21,13 +21,13 @@ struct No_Shadow <: ShadowModelType end
 
 export shadow_model
 """
-    shadow_model(sat_pos::AbstractArray, sun_pos::AbstractArray, R_Sun::Number, R_Occulting::Number, t::Number, ShadowModel::ShadowModelType)
+    shadow_model(sat_pos::AbstractVector, sun_pos::AbstractVector, R_Sun::Number, R_Occulting::Number, t::Number, ShadowModel::ShadowModelType)
 Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Earth's Shadow
 
 # Arguments
 
-- `sat_pos::AbstractArray`: The current satellite position.
-- `sun_pos::AbstractArray`: The current Sun position.
+- `sat_pos::AbstractVector`: The current satellite position.
+- `sun_pos::AbstractVector`: The current Sun position.
 - `R_Sun::Number`: The radius of the Sun.
 - `R_Occulting::Number`: The radius of the Occulting Body.
 - `ShadowModel::ShadowModelType`: The Earth shadow model to use. Current Options -- Cylindrical, Conical, Conical_Simplified, None
@@ -37,8 +37,8 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
 - `SVector{3}{Number}`: Inertial acceleration from the 3rd body
 """
 @inline function shadow_model(
-    sat_pos::AbstractArray,
-    sun_pos::AbstractArray,
+    sat_pos::AbstractVector,
+    sun_pos::AbstractVector,
     ShadowModel::Cylindrical;
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
@@ -59,8 +59,8 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
 end
 
 @inline function shadow_model(
-    sat_pos::AbstractArray,
-    sun_pos::AbstractArray,
+    sat_pos::AbstractVector,
+    sun_pos::AbstractVector,
     ShadowModel::Conical;
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
@@ -98,8 +98,8 @@ end
 end
 
 @inline function shadow_model(
-    sat_pos::AbstractArray,
-    sun_pos::AbstractArray,
+    sat_pos::AbstractVector,
+    sun_pos::AbstractVector,
     ShadowModel::No_Shadow;
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,

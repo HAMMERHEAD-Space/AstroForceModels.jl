@@ -2,13 +2,18 @@ using AllocCheck
 using Aqua
 using AstroForceModels
 using ComponentArrays
+using JET
 using LinearAlgebra
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxCelestialBodies
 using SatelliteToolboxGravityModels
 using SatelliteToolboxTransformations
 using SpaceIndices
+using StaticArraysCore
 using Test
+
+using DifferentiationInterface
+using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
 
 @testset "AstroForceModels.jl" begin
     # Drag Tests
@@ -36,12 +41,28 @@ using Test
     include("test_dynamics_builder.jl")
 end
 
-@testset "Aqua.jl" begin
-    Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
+const _BACKENDS = (
+    ("ForwardDiff", AutoForwardDiff()),
+    ("Enzyme", AutoEnzyme()),
+    ("Mooncake", AutoMooncake(; config=nothing)),
+    ("PolyesterForwardDiff", AutoPolyesterForwardDiff()),
+    ("Zygote", AutoZygote()),
+)
+
+@testset "Differentiability" begin
+    include("differentiability/test_model_parameters.jl")
+    include("differentiability/test_drag.jl")
+    include("differentiability/test_srp.jl")
+    include("differentiability/test_gravity.jl")
+    include("differentiability/test_relativity.jl")
+    include("differentiability/test_third_body.jl")
+    include("differentiability/test_dynamics_builder.jl")
 end
 
-#TODO: GET THESE WORKING
-#@testset "AllocCheck.jl" begin
-#    # Force Model Allocation Check
-#    include("test_allocations.jl")
-#end
+@testset "Performance" begin
+    # Force Model Allocation Check
+    include("test_allocations.jl")
+    include("test_JET.jl")
+    
+    Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
+end

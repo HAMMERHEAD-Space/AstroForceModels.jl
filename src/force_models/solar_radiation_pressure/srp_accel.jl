@@ -43,13 +43,13 @@ Contains information to compute the acceleration of a SRP a spacecraft.
 end
 
 """
-    acceleration(u::AbstractArray, p::ComponentVector, t::Number, srp_model::SRPAstroModel)
+    acceleration(u::AbstractVector, p::ComponentVector, t::Number, srp_model::SRPAstroModel)
 
 Computes the srp acceleration acting on a spacecraft given a srp model and current state and 
 parameters of an object.
 
 # Arguments
-- `u::AbstractArray`: Current State of the simulation.
+- `u::AbstractVector`: Current State of the simulation.
 - `p::ComponentVector`: Current parameters of the simulation.
 - `t::Number`: Current time of the simulation.
 - `srp_model::SRPAstroModel`: SRP model struct containing the relevant information to compute the acceleration.
@@ -59,7 +59,7 @@ parameters of an object.
 
 """
 function acceleration(
-    u::AbstractArray, p::ComponentVector, t::Number, srp_model::SRPAstroModel
+    u::AbstractVector, p::ComponentVector, t::Number, srp_model::SRPAstroModel
 )
     # Compute the Sun's Position
     sun_pos = srp_model.sun_data(p.JD + t / 86400.0, Position())
@@ -81,7 +81,7 @@ function acceleration(
 end
 
 """
-    srp_accel(u::AbstractArray, sun_pos::AbstractArray, R_Sun::Number, R_Occulting::Number, Ψ::Number, RC::Number, t::Number; ShadowModel::ShadowModelType)
+    srp_accel(u::AbstractVector, sun_pos::AbstractVector, R_Sun::Number, R_Occulting::Number, Ψ::Number, RC::Number, t::Number; ShadowModel::ShadowModelType)
 
 Compute the Acceleration from Solar Radiaiton Pressure
 
@@ -97,8 +97,8 @@ force can be computed using the a Cannonball model with the following equation
 
 # Arguments
 
-- `u::AbstractArray`: The current state of the spacecraft in the central body's inertial frame.
-- `sun_pos::AbstractArray`: The current position of the Sun.
+- `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame.
+- `sun_pos::AbstractVector`: The current position of the Sun.
 - `R_Sun::Number`: The radius of the Sun.
 - `R_Occulting::Number`: The radius of the Earth.
 - `Ψ::Number`: Solar Constant at 1 Astronomical Unit.
@@ -114,8 +114,8 @@ force can be computed using the a Cannonball model with the following equation
 - `SVector{3}{Number}`: Inertial acceleration from the 3rd body
 """
 function srp_accel(
-    u::AbstractArray{UT},
-    sun_pos::AbstractArray,
+    u::AbstractVector{UT},
+    sun_pos::AbstractVector,
     RC::Number;
     ShadowModel::ShadowModelType=Conical(),
     R_Sun::Number=R_SUN,
@@ -130,14 +130,14 @@ function srp_accel(
 
     # Compute the Vector Between the Satellite and Sun
     R_spacecraft_Sun = sat_pos - sun_pos
-    R_spacecraft_Sun = R_spacecraft_Sun / norm(R_spacecraft_Sun)
+    R_sc_sun_norm = norm(R_spacecraft_Sun)
 
-    F_srp = F * RC * Ψ * (AU / R_spacecraft_Sun)^2 / 1E3
+    F_srp = F * RC * Ψ * (AU / R_sc_sun_norm)^2 / 1E3
 
     #Compute the SRP Force
     return SVector{3}(
-        F_srp * R_spacecraft_Sun[1] / R_spacecraft_Sun,
-        F_srp * R_spacecraft_Sun[2] / R_spacecraft_Sun,
-        F_srp * R_spacecraft_Sun[3] / R_spacecraft_Sun,
+        F_srp * R_spacecraft_Sun[1] / R_sc_sun_norm,
+        F_srp * R_spacecraft_Sun[2] / R_sc_sun_norm,
+        F_srp * R_spacecraft_Sun[3] / R_sc_sun_norm,
     )
 end

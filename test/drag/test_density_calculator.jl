@@ -25,7 +25,7 @@
     @test rho == ρ
 
     # MSIS2000 Check
-    rho = AtmosphericModels.nrlmsise00(JD, ϕ_gd, λ_gd, h).total_density
+    rho = AtmosphericModels.nrlmsise00(JD, h, ϕ_gd, λ_gd).total_density
     ρ = compute_density(JD, pos_eci, eop_data, MSIS2000())
     @test rho == ρ
 
