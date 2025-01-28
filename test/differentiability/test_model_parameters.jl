@@ -30,8 +30,7 @@ const _satellite_drag_model = CannonballFixedDrag(0.2)
 const _drag_model = DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=JB2008(), eop_data=_eop_data)
 const _BC = 0.2
 
-#! See SatelliteToolboxAtmosphericModels.jl for details
-const _SKIP_TESTS_ENZYME = ["MSIS2000"]
+const _ENZYME_RUNTIME_ACTIVITY = ["MSIS2000"]
 
 const _relativity_model = RelativityModel()
 

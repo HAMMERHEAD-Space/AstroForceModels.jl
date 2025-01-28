@@ -4,8 +4,8 @@
         testname = "Drag Differentiability " * backend[1]
         @testset "$testname" begin
             for atmo in _ATMOSPHERE_MODELS
-                if backend[1] == "Enzyme" && atmo[1] ∈ _SKIP_TESTS_ENZYME
-                    continue
+                if (backend[1] == "Enzyme" && atmo[1] ∈ _ENZYME_RUNTIME_ACTIVITY)
+                    backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
                 end
 
                 f_fd, df_fd = value_and_jacobian(
@@ -31,7 +31,7 @@ end
         testname = "Drag Differentiability " * backend[1]
         @testset "$testname" begin
             for atmo in _ATMOSPHERE_MODELS
-                if (backend[1] == "Enzyme" && atmo[1] ∈ _SKIP_TESTS_ENZYME)
+                if (backend[1] == "Enzyme" && atmo[1] ∈ _ENZYME_RUNTIME_ACTIVITY)
                     backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
                 end
                 f_fd, df_fd = value_and_derivative(
