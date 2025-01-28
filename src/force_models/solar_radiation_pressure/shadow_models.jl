@@ -71,9 +71,7 @@ end
     # Section 3.4.2
 
     R_spacecraft_Sun = SVector{3}(
-        sat_pos[1] - sun_pos[1],
-        sat_pos[2] - sun_pos[2],
-        sat_pos[3] - sun_pos[3],
+        sat_pos[1] - sun_pos[1], sat_pos[2] - sun_pos[2], sat_pos[3] - sun_pos[3]
     )
 
     a = asin(R_Sun / norm(R_spacecraft_Sun))
