@@ -91,7 +91,7 @@ end
 
 """
 reflectivity_ballistic_coefficient(
-    u::AbstractArray, 
+    u::AbstractVector, 
     p::ComponentVector, 
     t::Number, 
     model::CannonballFixedSRP)
@@ -99,7 +99,7 @@ reflectivity_ballistic_coefficient(
 Returns the ballistic coefficient for a SRP model given the model and current state of the simulation.
 
 # Arguments
-    - `u::AbstractArray`: The current state of the simulation.
+    - `u::AbstractVector`: The current state of the simulation.
     - `p::ComponentVector`: The parameters of the simulation.
     - `t::Number`: The current time of the simulation.
     - `model::CannonballFixedSRP`: SRP model for the spacecraft.
@@ -109,7 +109,7 @@ Returns the ballistic coefficient for a SRP model given the model and current st
 
 """
 @inline function reflectivity_ballistic_coefficient(
-    u::AbstractArray, p::AbstractVector, t::Number, model::CannonballFixedSRP
+    u::AbstractVector, p::AbstractVector, t::Number, model::CannonballFixedSRP
 )
     return model.reflectivity_ballistic_coeff
 end
@@ -122,7 +122,7 @@ struct StateSRPModel <: AbstractSatelliteSRPModel end
 
 """
 ballistic_coefficient(
-    u::AbstractArray, 
+    u::AbstractVector, 
     p::ComponentVector, 
     t::Number, 
     model::StateSRPModel)
@@ -131,7 +131,7 @@ Returns the ballistic coefficient for a SRP model given the model and current st
 of the simulation.
 
 # Arguments
-    - `u::AbstractArray`: The current state of the simulation.
+    - `u::AbstractVector`: The current state of the simulation.
     - `p::ComponentVector`: The parameters of the simulation.
     - `t::Number`: The current time of the simulation.
     - `model::StateSRPModel`: The SRP model for the spacecraft.
@@ -140,7 +140,7 @@ of the simulation.
     -`ballistic_coeff::Number`: The current ballistic coefficient of the spacecraft.
 """
 @inline function reflectivity_ballistic_coefficient(
-    u::AbstractArray, p::AbstractVector, t::Number, model::StateSRPModel
+    u::AbstractVector, p::AbstractVector, t::Number, model::StateSRPModel
 )
     #TODO: GENERALIZE THE INDEX, COMPONENT VECTOR?
     return u[8]

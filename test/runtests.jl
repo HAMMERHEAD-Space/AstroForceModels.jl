@@ -9,10 +9,11 @@ using SatelliteToolboxCelestialBodies
 using SatelliteToolboxGravityModels
 using SatelliteToolboxTransformations
 using SpaceIndices
+using StaticArraysCore
 using Test
 
 using DifferentiationInterface
-using FiniteDiff, ForwardDiff, Diffractor, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
+using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
 
 @testset "AstroForceModels.jl" begin
     # Drag Tests
@@ -40,11 +41,8 @@ using FiniteDiff, ForwardDiff, Diffractor, Enzyme, Mooncake, PolyesterForwardDif
     include("test_dynamics_builder.jl")
 end
 
-using DifferentiationInterface, ForwardDiff, FiniteDiff, Mooncake
-
 const _BACKENDS = (
     ("ForwardDiff", AutoForwardDiff()),
-    ("Diffractor", AutoDiffractor()),
     ("Enzyme", AutoEnzyme()),
     ("Mooncake", AutoMooncake(; config=nothing)),
     ("PolyesterForwardDiff", AutoPolyesterForwardDiff()),
@@ -52,6 +50,7 @@ const _BACKENDS = (
 )
 
 @testset "Differentiability" begin
+    include("differentiability/test_model_parameters.jl")
     include("differentiability/test_drag.jl")
     include("differentiability/test_srp.jl")
     include("differentiability/test_gravity.jl")
@@ -60,18 +59,10 @@ const _BACKENDS = (
     include("differentiability/test_dynamics_builder.jl")
 end
 
-@testset "Aqua.jl" begin
+@testset "Performance" begin
+    # Force Model Allocation Check
+    include("test_allocations.jl")
+    include("test_JET.jl")
+    
     Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
 end
-
-@testset "JET Testing" begin
-    rep = JET.test_package(
-        AstroForceModels; toplevel_logger=nothing, target_modules=(@__MODULE__,)
-    )
-end
-
-#TODO: GET THESE WORKING
-#@testset "AllocCheck.jl" begin
-#    # Force Model Allocation Check
-#    include("test_allocations.jl")
-#end

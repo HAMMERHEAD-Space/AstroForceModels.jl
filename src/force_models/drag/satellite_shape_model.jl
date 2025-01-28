@@ -84,7 +84,7 @@ end
 
 """
 ballistic_coefficient(
-    u::AbstractArray, 
+    u::AbstractVector, 
     p::ComponentVector, 
     t::Number, 
     model::CannonballFixedDrag)
@@ -92,7 +92,7 @@ ballistic_coefficient(
 Returns the ballistic coefficient for a drag model given the model and current state of the simulation.
 
 # Arguments
-    - `u::AbstractArray`: The current state of the simulation.
+    - `u::AbstractVector`: The current state of the simulation.
     - `p::ComponentVector`: The parameters of the simulation.
     - `t::Number`: The current time of the simulation.
     - `model::CannonballFixedDrag`: Drag model for the spacecraft.
@@ -102,7 +102,7 @@ Returns the ballistic coefficient for a drag model given the model and current s
 
 """
 @inline function ballistic_coefficient(
-    u::AbstractArray, p::AbstractVector, t::Number, model::CannonballFixedDrag
+    u::AbstractVector, p::AbstractVector, t::Number, model::CannonballFixedDrag
 )
     return model.ballistic_coeff
 end
@@ -115,7 +115,7 @@ struct StateDragModel <: AbstractSatelliteDragModel end
 
 """
 ballistic_coefficient(
-    u::AbstractArray, 
+    u::AbstractVector, 
     p::ComponentVector, 
     t::Number, 
     model::StateDragModel)
@@ -124,7 +124,7 @@ Returns the ballistic coefficient for a drag model given the model and current s
 of the simulation.
 
 # Arguments
-    - `u::AbstractArray`: The current state of the simulation.
+    - `u::AbstractVector`: The current state of the simulation.
     - `p::ComponentVector`: The parameters of the simulation.
     - `t::Number`: The current time of the simulation.
     - `model::StateDragModel`: The drag model for the spacecraft.
@@ -133,7 +133,7 @@ of the simulation.
     -`ballistic_coeff::Number`: The current ballistic coefficient of the spacecraft.
 """
 @inline function ballistic_coefficient(
-    u::AbstractArray, p::AbstractVector, t::Number, model::StateDragModel
+    u::AbstractVector, p::AbstractVector, t::Number, model::StateDragModel
 )
     #TODO: GENERALIZE THE INDEX, COMPONENT VECTOR?
     return u[7]
