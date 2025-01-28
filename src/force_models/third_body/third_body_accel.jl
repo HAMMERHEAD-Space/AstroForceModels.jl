@@ -73,8 +73,11 @@ spacecraft 𝐀 in the orbiting body's 𝐂 is part of the force not acting on t
     r_body = norm(body_pos)
 
     return SVector{3,RT}(
-        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[1] - (μ_body / (r_body^3)) * body_pos[1],
-        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[2] - (μ_body / (r_body^3)) * body_pos[2],
-        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[3] - (μ_body / (r_body^3)) * body_pos[3],
+        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[1] -
+        (μ_body / (r_body^3)) * body_pos[1],
+        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[2] -
+        (μ_body / (r_body^3)) * body_pos[2],
+        (μ_body / (r_sc_body^3)) * r_spacecraft_to_body[3] -
+        (μ_body / (r_body^3)) * body_pos[3],
     )
 end

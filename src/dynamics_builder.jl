@@ -22,5 +22,7 @@ Convenience funcction to compute the overall acceleration acting on the spacecra
     models::NTuple{N,AbstractAstroForceModel},
 ) where {N}
     exprs = [:(acceleration(u, p, t, models[$i])) for i in 1:N]
-    return :(SVector{3}($(foldl((a, b) -> :($a[1] + $b[1], $a[2] + $b[2], $a[3] + $b[3]), exprs))))
+    return :(SVector{3}(
+        $(foldl((a, b) -> :($a[1] + $b[1], $a[2] + $b[2], $a[3] + $b[3]), exprs))
+    ))
 end

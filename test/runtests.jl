@@ -63,6 +63,6 @@ end
     # Force Model Allocation Check
     include("test_allocations.jl")
     include("test_JET.jl")
-    
+
     Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
 end

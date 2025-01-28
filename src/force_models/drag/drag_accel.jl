@@ -30,7 +30,7 @@ Contains information to compute the acceleration of a drag force on a spacecraft
     AT<:AtmosphericModelType,
     EoT<:Union{EopIau1980,EopIau2000A},
     RT<:Union{Nothing,AbstractVector},
-    PT<:Union{Nothing,AbstractMatrix}
+    PT<:Union{Nothing,AbstractMatrix},
 }
     satellite_drag_model::ST
     atmosphere_model::AT
@@ -61,7 +61,12 @@ function acceleration(
 )
     # Compute density at the satellite's current position
     rho = compute_density(
-        p.JD + t / 86400.0, u, drag_model.eop_data, drag_model.atmosphere_model; roots_container=drag_model.rts, P=drag_model.P
+        p.JD + t / 86400.0,
+        u,
+        drag_model.eop_data,
+        drag_model.atmosphere_model;
+        roots_container=drag_model.rts,
+        P=drag_model.P,
     )
 
     #TODO: OFFER OPTION TO COMPUTE FROM EOP or SPICE EPHEMERIS 
@@ -116,7 +121,7 @@ The acceleration from drag is then computed with a cannonball model as
     # Scaled by 1E3 to convert to km/s
     drag_force = -0.5 * BC * rho * norm(apparent_vel) / 1E3
     # TODO: HANDLE UNITS BETTER
-    accel = SVector{3, AT}(
+    accel = SVector{3,AT}(
         drag_force * apparent_vel[1],
         drag_force * apparent_vel[2],
         drag_force * apparent_vel[3],

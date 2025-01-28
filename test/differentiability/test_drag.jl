@@ -1,20 +1,46 @@
 @testset "Drag Differentiability State" begin
     SpaceIndices.init()
-    for backend in _BACKENDS    
+    for backend in _BACKENDS
         testname = "Drag Differentiability " * backend[1]
         @testset "$testname" begin
             for atmo in _ATMOSPHERE_MODELS
                 if (backend[1] == "Enzyme" && atmo[1] ∈ _ENZYME_RUNTIME_ACTIVITY)
-                    backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
+                    backend = (
+                        "Enzyme",
+                        AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+                    )
                 end
 
                 f_fd, df_fd = value_and_jacobian(
-                    (x) -> acceleration(x, _p, _t, DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo[2], eop_data=_eop_data)), AutoFiniteDiff(), _state
+                    (x) -> acceleration(
+                        x,
+                        _p,
+                        _t,
+                        DragAstroModel(;
+                            satellite_drag_model=_satellite_drag_model,
+                            atmosphere_model=atmo[2],
+                            eop_data=_eop_data,
+                        ),
+                    ),
+                    AutoFiniteDiff(),
+                    _state,
                 )
 
-
                 f_ad, df_ad = value_and_jacobian(
-                    (x) -> Array(acceleration(x, _p, _t, DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo[2], eop_data=_eop_data))), backend[2], _state
+                    (x) -> Array(
+                        acceleration(
+                            x,
+                            _p,
+                            _t,
+                            DragAstroModel(;
+                                satellite_drag_model=_satellite_drag_model,
+                                atmosphere_model=atmo[2],
+                                eop_data=_eop_data,
+                            ),
+                        ),
+                    ),
+                    backend[2],
+                    _state,
                 )
 
                 @test f_fd ≈ f_ad
@@ -32,27 +58,72 @@ end
         @testset "$testname" begin
             for atmo in _ATMOSPHERE_MODELS
                 if (backend[1] == "Enzyme" && atmo[1] ∈ _ENZYME_RUNTIME_ACTIVITY)
-                    backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
+                    backend = (
+                        "Enzyme",
+                        AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+                    )
                 end
                 f_fd, df_fd = value_and_derivative(
-                    (x) -> acceleration(_state, _p, x, DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo[2], eop_data=_eop_data)), AutoFiniteDiff(), _t
+                    (x) -> acceleration(
+                        _state,
+                        _p,
+                        x,
+                        DragAstroModel(;
+                            satellite_drag_model=_satellite_drag_model,
+                            atmosphere_model=atmo[2],
+                            eop_data=_eop_data,
+                        ),
+                    ),
+                    AutoFiniteDiff(),
+                    _t,
                 )
 
                 if !(backend[1] == "Zygote" && atmo[1] == "None")
                     f_ad, df_ad = value_and_derivative(
-                        (x) -> Array(acceleration(_state, _p, x, DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo[2], eop_data=_eop_data))), backend[2], _t
+                        (x) -> Array(
+                            acceleration(
+                                _state,
+                                _p,
+                                x,
+                                DragAstroModel(;
+                                    satellite_drag_model=_satellite_drag_model,
+                                    atmosphere_model=atmo[2],
+                                    eop_data=_eop_data,
+                                ),
+                            ),
+                        ),
+                        backend[2],
+                        _t,
                     )
                     @test f_fd ≈ f_ad
                     @test df_fd ≈ df_ad atol = 2e-1
                 else
                     try
                         f_ad, df_ad = value_and_derivative(
-                            (x) -> Array(acceleration(_state, _p, x, DragAstroModel(;satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo[2], eop_data=_eop_data))), backend[2], _t
+                            (x) -> Array(
+                                acceleration(
+                                    _state,
+                                    _p,
+                                    x,
+                                    DragAstroModel(;
+                                        satellite_drag_model=_satellite_drag_model,
+                                        atmosphere_model=atmo[2],
+                                        eop_data=_eop_data,
+                                    ),
+                                ),
+                            ),
+                            backend[2],
+                            _t,
                         )
                     catch err
                         @test err isa Exception
-                        @test startswith(sprint(showerror, err), "Zygote failed to differentiate function")
-                        @test endswith(sprint(showerror, err), "(the pullback returned `nothing`).")
+                        @test startswith(
+                            sprint(showerror, err),
+                            "Zygote failed to differentiate function",
+                        )
+                        @test endswith(
+                            sprint(showerror, err), "(the pullback returned `nothing`)."
+                        )
                     end
                 end
             end
@@ -64,42 +135,45 @@ end
 @testset "Drag Differentiability Model Parameters" begin
     SpaceIndices.init()
 
-    for backend in _BACKENDS    
+    for backend in _BACKENDS
         testname = "Drag Differentiability " * backend[1]
         @testset "$testname" begin
             for atmo in _ATMOSPHERE_MODELS
                 if (backend[1] == "Enzyme")
-                    backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
+                    backend = (
+                        "Enzyme",
+                        AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+                    )
                 end
 
                 f_fd, df_fd = value_and_derivative(
-                    (x) -> 
-                        acceleration(
-                            _state, 
-                            _p, 
-                            _t, 
-                            DragAstroModel(
-                                ;satellite_drag_model=CannonballFixedDrag(x), 
-                                atmosphere_model=atmo[2], 
-                                eop_data=_eop_data
-                            )
-                        ), 
+                    (x) -> acceleration(
+                        _state,
+                        _p,
+                        _t,
+                        DragAstroModel(;
+                            satellite_drag_model=CannonballFixedDrag(x),
+                            atmosphere_model=atmo[2],
+                            eop_data=_eop_data,
+                        ),
+                    ),
                     AutoFiniteDiff(),
                     _BC,
                 )
 
                 f_ad, df_ad = value_and_derivative(
-                    (x) -> 
-                        Array(acceleration(
-                            _state, 
-                            _p, 
-                            _t, 
-                            DragAstroModel(
-                                ;satellite_drag_model=CannonballFixedDrag(x), 
-                                atmosphere_model=atmo[2], 
-                                eop_data=_eop_data
-                            )
-                        )),
+                    (x) -> Array(
+                        acceleration(
+                            _state,
+                            _p,
+                            _t,
+                            DragAstroModel(;
+                                satellite_drag_model=CannonballFixedDrag(x),
+                                atmosphere_model=atmo[2],
+                                eop_data=_eop_data,
+                            ),
+                        ),
+                    ),
                     backend[2],
                     _BC,
                 )

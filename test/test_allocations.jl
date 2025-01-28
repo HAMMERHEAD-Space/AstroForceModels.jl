@@ -17,7 +17,11 @@
 
     satellite_drag_model = CannonballFixedDrag(0.2)
 
-    drag_model = DragAstroModel(; satellite_drag_model=satellite_drag_model, atmosphere_model=ExpAtmo(), eop_data=eop_data)
+    drag_model = DragAstroModel(;
+        satellite_drag_model=satellite_drag_model,
+        atmosphere_model=ExpAtmo(),
+        eop_data=eop_data,
+    )
 
     @check_allocs dg_accel(state, p, t, model) = acceleration(state, p, t, model)
     @test dg_accel(state, p, t, drag_model) isa SVector
@@ -32,7 +36,12 @@ end
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, eop_data=eop_data, order=36, degree=36, P=MMatrix{37, 37, Float64}(zeros(37, 37)), dP=MMatrix{37, 37, Float64}(zeros(37, 37)),
+        gravity_model=grav_coeffs,
+        eop_data=eop_data,
+        order=36,
+        degree=36,
+        P=MMatrix{37,37,Float64}(zeros(37, 37)),
+        dP=MMatrix{37,37,Float64}(zeros(37, 37)),
     )
 
     state = [
@@ -44,11 +53,9 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    @check_allocs zon_accel(state, p, t, grav_model) =
-        acceleration(state, p, t, grav_model)
-    
-    @test zon_accel(state, p, t, grav_model) isa SVector
+    @check_allocs zon_accel(state, p, t, grav_model) = acceleration(state, p, t, grav_model)
 
+    @test zon_accel(state, p, t, grav_model) isa SVector
 end
 
 @testset "Relativity Allocations" begin
@@ -156,7 +163,12 @@ end
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, eop_data=eop_data, order=36, degree=36,  P=MMatrix{37, 37, Float64}(zeros(37, 37)), dP=MMatrix{37, 37, Float64}(zeros(37, 37)),
+        gravity_model=grav_coeffs,
+        eop_data=eop_data,
+        order=36,
+        degree=36,
+        P=MMatrix{37,37,Float64}(zeros(37, 37)),
+        dP=MMatrix{37,37,Float64}(zeros(37, 37)),
     )
     sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
     moon_third_body = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
@@ -167,7 +179,11 @@ end
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)
-    drag_model = DragAstroModel(;satellite_drag_model=satellite_drag_model, atmosphere_model=JB2008(), eop_data=eop_data)
+    drag_model = DragAstroModel(;
+        satellite_drag_model=satellite_drag_model,
+        atmosphere_model=JB2008(),
+        eop_data=eop_data,
+    )
 
     state = [
         -1076.225324679696

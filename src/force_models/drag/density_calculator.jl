@@ -36,7 +36,12 @@ Computes the atmospheric density at a point given the date, position, eop_data, 
 function compute_density end
 
 @inline function compute_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, AtmosphereType::JB2008; roots_container::Union{Nothing, AbstractVector}=nothing, P::Union{Nothing, AbstractMatrix}=nothing
+    JD::Number,
+    u::AbstractVector,
+    eop_data::EopIau1980,
+    AtmosphereType::JB2008;
+    roots_container::Union{Nothing,AbstractVector}=nothing,
+    P::Union{Nothing,AbstractMatrix}=nothing,
 )
     # Compute the geodetic position of the provided point
     R_J20002ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, eop_data)
@@ -49,7 +54,12 @@ function compute_density end
 end
 
 @inline function compute_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, AtmosphereType::JR1971; roots_container::Union{Nothing, AbstractVector}=nothing, P::Union{Nothing, AbstractMatrix}=nothing
+    JD::Number,
+    u::AbstractVector,
+    eop_data::EopIau1980,
+    AtmosphereType::JR1971;
+    roots_container::Union{Nothing,AbstractVector}=nothing,
+    P::Union{Nothing,AbstractMatrix}=nothing,
 )
     # Compute the geodetic position of the provided point
     R_J20002ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, eop_data)
@@ -58,11 +68,18 @@ end
 
     # Compute the JR1971 density if the point is less than 2500km altitude otherwise it's 0.0
     return (geodetic_pos[3] < 2500E3) *
-           AtmosphericModels.jr1971(JD, geodetic_pos...; verbose=Val(false), roots_container=roots_container).total_density
+           AtmosphericModels.jr1971(
+        JD, geodetic_pos...; verbose=Val(false), roots_container=roots_container
+    ).total_density
 end
 
 @inline function compute_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, AtmosphereType::MSIS2000; roots_container::Union{Nothing, AbstractVector}=nothing, P::Union{Nothing, AbstractMatrix}=nothing
+    JD::Number,
+    u::AbstractVector,
+    eop_data::EopIau1980,
+    AtmosphereType::MSIS2000;
+    roots_container::Union{Nothing,AbstractVector}=nothing,
+    P::Union{Nothing,AbstractMatrix}=nothing,
 )
     # Compute the geodetic position of the provided point
     R_J20002ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, eop_data)
@@ -76,7 +93,12 @@ end
 end
 
 @inline function compute_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, AtmosphereType::ExpAtmo; roots_container::Union{Nothing, AbstractVector}=nothing, P::Union{Nothing, AbstractMatrix}=nothing
+    JD::Number,
+    u::AbstractVector,
+    eop_data::EopIau1980,
+    AtmosphereType::ExpAtmo;
+    roots_container::Union{Nothing,AbstractVector}=nothing,
+    P::Union{Nothing,AbstractMatrix}=nothing,
 )
     # Compute the JR1971 density if the point is less than 2500km altitude otherwise it's 0.0
     R_J20002ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, eop_data)
@@ -88,7 +110,12 @@ end
 end
 
 @inline function compute_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, AtmosphereType::None; roots_container::Union{Nothing, AbstractVector}=nothing, P::Union{Nothing, AbstractMatrix}=nothing
+    JD::Number,
+    u::AbstractVector,
+    eop_data::EopIau1980,
+    AtmosphereType::None;
+    roots_container::Union{Nothing,AbstractVector}=nothing,
+    P::Union{Nothing,AbstractMatrix}=nothing,
 )
     # If None atmosphere provided return 0.0
     return 0.0

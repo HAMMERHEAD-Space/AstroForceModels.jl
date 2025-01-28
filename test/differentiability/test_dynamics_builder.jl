@@ -5,11 +5,15 @@
         testname = "Dynamics Builder State Differentiability " * backend[1]
         @testset "$testname" begin
             f_fd, df_fd = value_and_jacobian(
-                (x) -> build_dynamics_model(x, _p, _t, _model_list), AutoFiniteDiff(), _state
+                (x) -> build_dynamics_model(x, _p, _t, _model_list),
+                AutoFiniteDiff(),
+                _state,
             )
 
             f_ad, df_ad = value_and_jacobian(
-                (x) -> Array(build_dynamics_model(x, _p, _t, _model_list)), backend[2], _state
+                (x) -> Array(build_dynamics_model(x, _p, _t, _model_list)),
+                backend[2],
+                _state,
             )
 
             @test f_fd ≈ f_ad
@@ -26,11 +30,15 @@ end
         testname = "Dynamics Builder Time Differentiability " * backend[1]
         @testset "$testname" begin
             f_fd, df_fd = value_and_derivative(
-                (x) -> build_dynamics_model(_state, _p, x, _model_list), AutoFiniteDiff(), _t
+                (x) -> build_dynamics_model(_state, _p, x, _model_list),
+                AutoFiniteDiff(),
+                _t,
             )
 
             f_ad, df_ad = value_and_derivative(
-                (x) -> Array(build_dynamics_model(_state, _p, x, _model_list)), backend[2], _t
+                (x) -> Array(build_dynamics_model(_state, _p, x, _model_list)),
+                backend[2],
+                _t,
             )
 
             @test f_fd ≈ f_ad
@@ -53,7 +61,11 @@ end
         )
 
         satellite_drag_model = CannonballFixedDrag(x[2])
-        drag_model = DragAstroModel(;satellite_drag_model=satellite_drag_model, atmosphere_model=JB2008(), eop_data=_eop_data)
+        drag_model = DragAstroModel(;
+            satellite_drag_model=satellite_drag_model,
+            atmosphere_model=JB2008(),
+            eop_data=_eop_data,
+        )
 
         model_list = (_grav_model, _sun_model, _moon_model, srp_model, drag_model)
 
@@ -66,7 +78,9 @@ end
         testname = "Dynamics Builder Parameter Differentiability " * backend[1]
         @testset "$testname" begin
             if backend[1] == "Enzyme"
-                backend = ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)))
+                backend = (
+                    "Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))
+                )
             end
             f_fd, df_fd = value_and_jacobian(
                 dynamics_params, AutoFiniteDiff(), p_spacecraft

@@ -81,7 +81,9 @@ function acceleration(
         ITRF(), J2000(), current_time, relativity_model.eop_data
     )
 
-    J = SVector{3}(R_ITRF2J2000[1, 3], R_ITRF2J2000[2, 3], R_ITRF2J2000[3, 3]) * EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS
+    J =
+        SVector{3}(R_ITRF2J2000[1, 3], R_ITRF2J2000[2, 3], R_ITRF2J2000[3, 3]) *
+        EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS
 
     sun_pos = relativity_model.sun_body(current_time, Position()) ./ 1E3
     sun_vel = relativity_model.sun_body(current_time, Velocity()) ./ 1E3
@@ -155,9 +157,12 @@ function relativity_accel(
 ) where {UT,RT,VT,MT,MT2,JT,CT,GT,BT}
     AT = promote_type(UT, RT, VT, MT, MT2, JT, CT, GT, BT)
 
-    schwartzchild_accel = schwartzchild_effect .* schwartzchild_acceleration(u, μ_body; c=c, γ=γ, β=β)
-    lense_thirring_accel = lense_thirring_effect .* lense_thirring_acceleration(u, μ_body, J; c=c, γ=γ)
-    de_Sitter_accel = de_Sitter_effect .* de_Sitter_acceleration(u, r_sun, v_sun, μ_Sun; c=c, γ=γ)
+    schwartzchild_accel =
+        schwartzchild_effect .* schwartzchild_acceleration(u, μ_body; c=c, γ=γ, β=β)
+    lense_thirring_accel =
+        lense_thirring_effect .* lense_thirring_acceleration(u, μ_body, J; c=c, γ=γ)
+    de_Sitter_accel =
+        de_Sitter_effect .* de_Sitter_acceleration(u, r_sun, v_sun, μ_Sun; c=c, γ=γ)
 
     return SVector{3,AT}(
         schwartzchild_accel[1] + lense_thirring_accel[1] + de_Sitter_accel[1],
@@ -195,7 +200,9 @@ parameters of an object.
     ṙ = SVector{3,UT}(u[4], u[5], u[6])
 
     schwartzchild_pos_force = μ_body / ((c^2.0) * (r_norm^3.0))
-    schwartzchild_dir = ((2.0 * (β + γ)) * (μ_body / r_norm) - γ * dot(ṙ, ṙ)) * r + 2.0 * (1.0 + γ) * dot(r, ṙ) * ṙ
+    schwartzchild_dir =
+        ((2.0 * (β + γ)) * (μ_body / r_norm) - γ * dot(ṙ, ṙ)) * r +
+        2.0 * (1.0 + γ) * dot(r, ṙ) * ṙ
 
     schwartzchild = SVector{3,RT}(
         schwartzchild_pos_force * schwartzchild_dir[1],
@@ -230,7 +237,11 @@ parameters of an object.
 
 """
 @inline function lense_thirring_acceleration(
-    u::AbstractVector{UT}, μ_body::MT, J::AbstractVector{JT}; c::CT=SPEED_OF_LIGHT, γ::GT=1.0
+    u::AbstractVector{UT},
+    μ_body::MT,
+    J::AbstractVector{JT};
+    c::CT=SPEED_OF_LIGHT,
+    γ::GT=1.0,
 ) where {UT,MT,JT,CT,GT}
     RT = promote_type(UT, MT, JT, CT, GT)
 
@@ -287,7 +298,7 @@ parameters of an object.
 
     ṙ = SVector{3,UT}(u[4], u[5], u[6])
 
-    de_sitter_force =  (1.0 + 2.0 * γ) * (-μ_Sun / ((c^2.0) * (norm(-r_sun)^3.0)))
+    de_sitter_force = (1.0 + 2.0 * γ) * (-μ_Sun / ((c^2.0) * (norm(-r_sun)^3.0)))
     de_sitter_dir = cross(cross(-v_sun, -r_sun), ṙ)
 
     de_sitter = SVector{3,RT}(

@@ -27,8 +27,13 @@ Contains information to compute the acceleration of a Gravitational Harmonics Mo
 - `order::Int`: The maximum order to compute the graviational potential to, a value of -1 compute the maximum order of the supplied model. (Default=-1)
 - `degree::Int`: The maximum degree to compute the graviational potential to, a value of -1 compute the maximum degree of the supplied model. (Default=-1)
 """
-@with_kw struct GravityHarmonicsAstroModel{GT,EoT,V,PT,DPT} <: AbstractGravityAstroModel where {
-    GT<:AbstractGravityModel{<:Number, NT} where NT,EoT<:Union{EopIau1980,EopIau2000A},V<:Int, PT<:Union{AbstractVector, Nothing}, DPT<:Union{AbstractVector, Nothing}
+@with_kw struct GravityHarmonicsAstroModel{GT,EoT,V,PT,DPT} <:
+                AbstractGravityAstroModel where {
+    GT<:AbstractGravityModel{<:Number,NT} where {NT},
+    EoT<:Union{EopIau1980,EopIau2000A},
+    V<:Int,
+    PT<:Union{AbstractVector,Nothing},
+    DPT<:Union{AbstractVector,Nothing},
 }
     gravity_model::GT
     eop_data::EoT
