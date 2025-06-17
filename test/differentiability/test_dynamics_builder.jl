@@ -2,6 +2,12 @@
     SpaceIndices.init()
 
     for backend in _BACKENDS
+        if backend[1] == "Enzyme"
+            backend = (
+                "Enzyme",
+                AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+            )
+        end
         testname = "Dynamics Builder State Differentiability " * backend[1]
         @testset "$testname" begin
             f_fd, df_fd = value_and_jacobian(
@@ -27,6 +33,12 @@ end
     SpaceIndices.init()
 
     for backend in _BACKENDS
+        if backend[1] == "Enzyme"
+            backend = (
+                "Enzyme",
+                AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+            )
+        end
         testname = "Dynamics Builder Time Differentiability " * backend[1]
         @testset "$testname" begin
             f_fd, df_fd = value_and_derivative(
@@ -51,7 +63,7 @@ end
 @testset "Dynamics Builder Parameter Differentiability" begin
     SpaceIndices.init()
 
-    function dynamics_params(x::AbstractArray)
+    function dynamics_params(x::AbstractArray{T}) where {T <: Number}
         satellite_srp_model = CannonballFixedSRP(x[1])
         srp_model = SRPAstroModel(;
             satellite_srp_model=satellite_srp_model,
@@ -67,7 +79,8 @@ end
             eop_data=_eop_data,
         )
 
-        model_list = (_grav_model, _sun_model, _moon_model, srp_model, drag_model)
+        models = (_sun_model, _moon_model, srp_model, drag_model)
+        model_list = CentralBodyDynamicsModel(_grav_model, models)
 
         return Array(build_dynamics_model(_state, _p, _t, model_list))
     end

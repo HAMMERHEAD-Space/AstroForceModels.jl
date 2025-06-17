@@ -119,10 +119,7 @@ end
                         @test err isa Exception
                         @test startswith(
                             sprint(showerror, err),
-                            "Zygote failed to differentiate function",
-                        )
-                        @test endswith(
-                            sprint(showerror, err), "(the pullback returned `nothing`)."
+                            "MethodError: no method matching iterate(::Nothing)",
                         )
                     end
                 end

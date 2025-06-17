@@ -195,7 +195,7 @@ end
     ] #km, km/s
 
     t = 0.0
-    model_list = (grav_model, sun_third_body, moon_third_body, srp_model, drag_model)
+    model_list = CentralBodyDynamicsModel(grav_model, (sun_third_body, moon_third_body, srp_model, drag_model))
 
     @check_allocs accel(u, p, t, models) = build_dynamics_model(u, p, t, models)
     @test accel(state, p, t, model_list) isa SVector

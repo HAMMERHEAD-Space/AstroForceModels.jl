@@ -15,6 +15,8 @@ abstract type AbstractAstroForceModel end
 abstract type AbstractNonPotentialBasedForce <: AbstractAstroForceModel end
 abstract type AbstractPotentialBasedForce <: AbstractAstroForceModel end
 
+abstract type AbstractDynamicsModel end
+
 include("./constants.jl")
 include("./utils.jl")
 
