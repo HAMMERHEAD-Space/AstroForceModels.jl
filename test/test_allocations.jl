@@ -77,8 +77,9 @@ end
         schwartzchild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
     )
 
-    @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) =
-        acceleration(state, p, t, satellite_lense_thirring_model)
+    @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) = acceleration(
+        state, p, t, satellite_lense_thirring_model
+    )
 
     @test lense_thirr_accel(state, p, t, satellite_lense_thirring_model) isa SVector
 
@@ -86,16 +87,18 @@ end
         schwartzchild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
     )
 
-    @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) =
-        acceleration(state, p, t, satellite_de_sitter_model)
+    @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) = acceleration(
+        state, p, t, satellite_de_sitter_model
+    )
     @test de_sitt_accel(state, p, t, satellite_de_sitter_model) isa SVector
 
     satellite_schwartzchild_model = RelativityModel(;
         schwartzchild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
     )
 
-    @check_allocs schwartz_accel(state, p, t, satellite_schwartzchild_model) =
-        acceleration(state, p, t, satellite_schwartzchild_model)
+    @check_allocs schwartz_accel(state, p, t, satellite_schwartzchild_model) = acceleration(
+        state, p, t, satellite_schwartzchild_model
+    )
     @test schwartz_accel(state, p, t, satellite_schwartzchild_model) isa SVector
 end
 
@@ -145,10 +148,12 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    @check_allocs sun_3body_accel(state, p, t, sun_third_body) =
-        acceleration(state, p, t, sun_third_body)
-    @check_allocs moon_3body_accel(state, p, t, moon_third_body) =
-        acceleration(state, p, t, moon_third_body)
+    @check_allocs sun_3body_accel(state, p, t, sun_third_body) = acceleration(
+        state, p, t, sun_third_body
+    )
+    @check_allocs moon_3body_accel(state, p, t, moon_third_body) = acceleration(
+        state, p, t, moon_third_body
+    )
 
     @test sun_3body_accel(state, p, t, sun_third_body) isa SVector
     @test moon_3body_accel(state, p, t, moon_third_body) isa SVector
@@ -195,7 +200,9 @@ end
     ] #km, km/s
 
     t = 0.0
-    model_list = CentralBodyDynamicsModel(grav_model, (sun_third_body, moon_third_body, srp_model, drag_model))
+    model_list = CentralBodyDynamicsModel(
+        grav_model, (sun_third_body, moon_third_body, srp_model, drag_model)
+    )
 
     @check_allocs accel(u, p, t, models) = build_dynamics_model(u, p, t, models)
     @test accel(state, p, t, model_list) isa SVector

@@ -4,8 +4,7 @@
     for backend in _BACKENDS
         if backend[1] == "Enzyme"
             backend = (
-                "Enzyme",
-                AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+                "Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))
             )
         end
         testname = "Dynamics Builder State Differentiability " * backend[1]
@@ -35,8 +34,7 @@ end
     for backend in _BACKENDS
         if backend[1] == "Enzyme"
             backend = (
-                "Enzyme",
-                AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward)),
+                "Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))
             )
         end
         testname = "Dynamics Builder Time Differentiability " * backend[1]
@@ -63,7 +61,7 @@ end
 @testset "Dynamics Builder Parameter Differentiability" begin
     SpaceIndices.init()
 
-    function dynamics_params(x::AbstractArray{T}) where {T <: Number}
+    function dynamics_params(x::AbstractArray{T}) where {T<:Number}
         satellite_srp_model = CannonballFixedSRP(x[1])
         srp_model = SRPAstroModel(;
             satellite_srp_model=satellite_srp_model,

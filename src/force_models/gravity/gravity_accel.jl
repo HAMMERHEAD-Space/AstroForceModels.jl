@@ -123,9 +123,5 @@ function acceleration(
 
     grav_force = -grav_model.μ / (r_norm^3)
 
-    return SVector{3}(
-        grav_force * r[1],
-        grav_force * r[2],
-        grav_force * r[3]
-    )
+    return SVector{3}(grav_force * r[1], grav_force * r[2], grav_force * r[3])
 end

@@ -67,8 +67,7 @@ end
     geodetic_pos = ecef_to_geodetic(ecef_pos .* 1E3)
 
     # Compute the JR1971 density if the point is less than 2500km altitude otherwise it's 0.0
-    return (geodetic_pos[3] < 2500E3) *
-           AtmosphericModels.jr1971(
+    return (geodetic_pos[3] < 2500E3) * AtmosphericModels.jr1971(
         JD, geodetic_pos...; verbose=Val(false), roots_container=roots_container
     ).total_density
 end

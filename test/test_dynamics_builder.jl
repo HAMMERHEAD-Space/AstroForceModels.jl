@@ -34,7 +34,9 @@
     ] #km, km/s
 
     t = 0.0
-    model_list = CentralBodyDynamicsModel(grav_model, (sun_third_body, moon_third_body, srp_model, drag_model))
+    model_list = CentralBodyDynamicsModel(
+        grav_model, (sun_third_body, moon_third_body, srp_model, drag_model)
+    )
 
     total_accel = build_dynamics_model(state, p, t, model_list)
 
