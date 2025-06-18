@@ -35,6 +35,10 @@ function CentralBodyDynamicsModel(models::NTuple{N,AbstractAstroForceModel}) whe
     return CentralBodyDynamicsModel(gravity_model, models)
 end
 
+function CentralBodyDynamicsModel(gravity_model::AbstractGravityAstroModel)
+    return CentralBodyDynamicsModel(gravity_model, ())
+end
+
 """
     build_dynamics_model(u::AbstractVector, p::ComponentVector, t::Number, models::AbstractVector{AbstractAstroForceModel})
 
