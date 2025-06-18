@@ -38,6 +38,10 @@ include("./force_models/gravity/gravity_accel.jl")
 
 include("./dynamics_builder.jl")
 
-export acceleration
+export acceleration,
+    AbstractAstroForceModel,
+    AbstractDynamicsModel,
+    AbstractNonPotentialBasedForce,
+    AbstractPotentialBasedForce
 
 end
