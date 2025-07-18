@@ -124,7 +124,7 @@ function potential(
         max_degree=grav_model.degree,
         max_order=grav_model.order,
         P=grav_model.P,
-    )
+    ) / 1E6
 
     return U
 end
@@ -163,7 +163,7 @@ function potential_time_derivative(
 
     #TODO: Should This Be Done with AutoDiff?
     ∇Uₜ =
-        err_iau2006(jd_tt) * GravityModels.gravitational_field_derivative(
+        -err_iau2006(jd_tt) * GravityModels.gravitational_field_derivative(
             grav_model.gravity_model,
             itrf_pos,
             time;
@@ -171,7 +171,7 @@ function potential_time_derivative(
             max_order=grav_model.order,
             P=grav_model.P,
             dP=grav_model.dP,
-        )[3]
+        )[3] / 1E6
 
     return ∇Uₜ
 end
