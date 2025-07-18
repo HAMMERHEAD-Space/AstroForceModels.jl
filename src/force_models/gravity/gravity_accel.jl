@@ -163,7 +163,7 @@ function potential_time_derivative(
 
     #TODO: Should This Be Done with AutoDiff?
     ∇Uₜ =
-        -err_iau2006(jd_tt) * GravityModels.gravitational_field_derivative(
+        err_iau2006(jd_tt) * GravityModels.gravitational_field_derivative(
             grav_model.gravity_model,
             itrf_pos,
             time;
