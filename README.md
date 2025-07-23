@@ -32,5 +32,5 @@ julia> Pkg.add("AstroForceModels")
 
 For more information, see the [documentation][docs-dev-url].
 
-[docs-dev-url]: https://jmurphy6895.github.io/AstroForceModels.jl/stable/
-[docs-stable-url]: https://jmurphy6895.github.io/AstroForceModels.jl/stable/
+[docs-dev-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/
+[docs-stable-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/
