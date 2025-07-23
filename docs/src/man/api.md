@@ -1,1 +1,261 @@
-#TODO
+# API Reference
+
+This page provides a comprehensive reference for the AstroForceModels.jl API. All force models implement the common `acceleration` interface and can be combined to create comprehensive orbital dynamics simulations.
+
+## Core Interface
+
+### acceleration Function
+
+The primary interface for all force models:
+
+```@docs
+acceleration
+```
+
+## Abstract Types
+
+AstroForceModels defines a hierarchy of abstract types to organize different force models:
+
+```@docs
+AbstractAstroForceModel
+AbstractNonPotentialBasedForce  
+AbstractPotentialBasedForce
+```
+
+## Gravity Models
+
+### Types
+
+```@docs
+GravityHarmonicsAstroModel
+KeplerianGravityAstroModel
+```
+
+### Functions
+
+```@docs  
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::GravityHarmonicsAstroModel)
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::KeplerianGravityAstroModel)
+```
+
+## Atmospheric Drag Models
+
+### Types
+
+```@docs
+DragAstroModel
+```
+
+### Satellite Shape Models
+
+```@docs
+AbstractSatelliteDragModel
+CannonballDragModel
+BoxWingDragModel
+```
+
+### Functions
+
+```@docs
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::DragAstroModel)
+density_calculator
+ballistic_coefficient
+```
+
+## Solar Radiation Pressure Models
+
+### Types
+
+```@docs
+SRPAstroModel
+```
+
+### Satellite Shape Models
+
+```@docs
+AbstractSatelliteSRPModel
+CannonballFixedSRP
+StateSRPModel
+```
+
+### Shadow Models
+
+```@docs
+ShadowModelType
+Conical
+Cylindrical
+DualCone
+```
+
+### Functions
+
+```@docs
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::SRPAstroModel)
+shadow_function
+radiation_pressure_coefficient
+```
+
+## Third Body Gravity Models
+
+### Types
+
+```@docs
+ThirdBodyAstroModel
+ThirdBodyModel
+CelestialBody
+```
+
+### Functions
+
+```@docs
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::ThirdBodyAstroModel)
+third_body_position
+```
+
+## Relativistic Effects Models
+
+### Types
+
+```@docs
+RelativisticAstroModel
+```
+
+### Functions
+
+```@docs
+acceleration(::AbstractArray, ::ComponentVector, ::Number, ::RelativisticAstroModel)
+schwarzschild_acceleration  
+lense_thirring_acceleration
+de_sitter_acceleration
+```
+
+## Dynamics Builder
+
+The dynamics builder provides utilities for combining multiple force models:
+
+```@docs
+DynamicsBuilder
+build_dynamics_function
+```
+
+## Utility Functions
+
+### Constants
+
+```@docs
+# Physical constants used throughout the package
+G_UNIVERSAL
+C_LIGHT
+R_EARTH
+R_SUN
+SOLAR_FLUX
+ASTRONOMICAL_UNIT
+```
+
+### Helper Functions
+
+```@docs
+rotation_matrix
+coordinate_transformation
+time_conversion
+earth_orientation_parameters
+```
+
+## Type Definitions
+
+### Component Arrays
+
+The package uses ComponentArrays.jl for structured parameter handling:
+
+```julia
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+p = ComponentVector(; JD=JD)
+```
+
+### State Vectors
+
+State vectors are typically 6-element arrays representing position and velocity:
+
+```julia
+# State vector format: [rx, ry, rz, vx, vy, vz]
+state = [
+    6.378137e3 + 400,    # x position [km]
+    0.0,                 # y position [km]  
+    0.0,                 # z position [km]
+    0.0,                 # x velocity [km/s]
+    7.660,               # y velocity [km/s]
+    0.0                  # z velocity [km/s]
+]
+```
+
+## Integration with SatelliteToolbox.jl
+
+AstroForceModels is designed to work seamlessly with other packages in the SatelliteToolbox.jl ecosystem:
+
+### Required Dependencies
+
+```julia
+using SatelliteToolboxBase           # Base types and constants
+using SatelliteToolboxGravityModels  # Gravity field models
+using SatelliteToolboxAtmosphericModels  # Atmospheric density models
+using SatelliteToolboxCelestialBodies    # Celestial body ephemeris
+using SatelliteToolboxTransformations    # Coordinate transformations
+```
+
+### Earth Orientation Parameters
+
+```julia
+# Fetch latest EOP data
+eop_data = fetch_iers_eop()
+
+# Use with force models
+gravity_model = GravityHarmonicsAstroModel(
+    gravity_model = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96)),
+    eop_data = eop_data,
+    order = 20,
+    degree = 20
+)
+```
+
+## Examples and Tutorials
+
+For practical examples and step-by-step tutorials, see:
+
+- [Usage Guide](usage.md): Comprehensive usage examples
+- [Force Model Documentation](../force_models/): Detailed descriptions of each force model
+- Test suite: Working examples in the `/test` directory
+- Benchmarks: Performance comparisons in the `/benchmark` directory
+
+## Support and Development
+
+### Contributing
+
+Contributions are welcome! Please see the development guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Write tests** for new functionality
+3. **Follow coding style** conventions
+4. **Document new features** with docstrings
+5. **Submit a pull request** with a clear description
+
+### Reporting Issues
+
+Please report bugs and feature requests on the GitHub issue tracker:
+
+- **Provide a minimal working example** that demonstrates the issue
+- **Include version information** for Julia and all packages
+- **Describe expected vs. actual behavior**
+- **Include error messages** and stack traces if applicable
+
+### Getting Help
+
+For questions and support:
+
+- **Check the documentation** first
+- **Search existing issues** on GitHub
+- **Ask questions** in the Julia Discourse forum with the "satellite-toolbox" tag
+- **Review the source code** for implementation details
+
+## Version History
+
+See [CHANGELOG.md](../../../CHANGELOG.md) for detailed version history and breaking changes.
