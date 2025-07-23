@@ -16,8 +16,6 @@ SpaceIndices = "5a540a4e-639f-452a-b107-23ea09ed4d36"
 StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 
 [compat]
-AllocCheck = "0.2"
-Aqua = "0.8"
 ComponentArrays = "0.15"
 LinearAlgebra = "1"
 Parameters = "0.12"

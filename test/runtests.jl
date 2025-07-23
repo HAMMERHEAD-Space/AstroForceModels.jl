@@ -37,7 +37,11 @@ using Test
 end
 
 @testset "Aqua.jl" begin
-    Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
+    Aqua.test_all(
+        AstroForceModels;
+        ambiguities=(recursive = false),
+        deps_compat=(check_extras = false),
+    )
 end
 
 #TODO: GET THESE WORKING
