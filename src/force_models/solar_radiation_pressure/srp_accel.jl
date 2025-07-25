@@ -38,7 +38,7 @@ Contains information to compute the acceleration of a SRP a spacecraft.
 
     R_Sun::RST = R_SUN
     R_Occulting::ROT = R_EARTH
-    Ψ::PT = SOLAR_FLUX
+    Ψ::PT = SOLAR_FLUX / SPEED_OF_LIGHT
     AU::AUT = ASTRONOMICAL_UNIT
 end
 
@@ -120,7 +120,7 @@ function srp_accel(
     ShadowModel::ShadowModelType=Conical(),
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
-    Ψ::Number=SOLAR_FLUX,
+    Ψ::Number=SOLAR_FLUX / SPEED_OF_LIGHT,
     AU::Number=ASTRONOMICAL_UNIT,
 ) where {UT}
     sat_pos = SVector{3,UT}(u[1], u[2], u[3])

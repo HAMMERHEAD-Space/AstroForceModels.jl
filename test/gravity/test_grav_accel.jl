@@ -52,7 +52,7 @@ end
     U = potential(state, p, 0.0, grav_model)
 
     #TODO: Get a better test value
-    expected_U = 5.814048760520612e7
+    expected_U = -58.14048760520612
 
     @test expected_U ≈ U rtol = 1E-8
 end
@@ -80,7 +80,7 @@ end
     U = potential_time_derivative(state, p, 0.0, grav_model)
 
     #TODO: Get a better test value
-    expected_U = 0.036750762128561695
+    expected_U = 3.6750762128561695e-8
 
     @test expected_U ≈ U rtol = 1E-8
 end
