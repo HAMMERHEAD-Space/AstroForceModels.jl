@@ -22,7 +22,7 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-export AlbedoAstroModel, albedo_accel
+export AlbedoAstroModel, albedo_accel, initialize_albedo_cache!
 export AbstractAlbedoModel, UniformAlbedoModel, VariableAlbedoModel
 
 # Set up integration domain in radians
@@ -69,7 +69,7 @@ Contains information to compute the acceleration from Earth albedo radiation pre
 - `integral_reltol::Number`: Relative tolerance for numerical integration.
 - `integral_abstol::Number`: Absolute tolerance for numerical integration.
 """
-@with_kw mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG} <:
+@with_kw mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT} <:
                 AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
@@ -81,6 +81,7 @@ Contains information to compute the acceleration from Earth albedo radiation pre
     IRT<:AbstractFloat,
     IAT<:AbstractFloat,
     ALG<:SciMLBase.AbstractIntegralAlgorithm,
+    CAT<:Union{Nothing, Integrals.IntegralCache},
 }
     satellite_shape_model::ST
     sun_data::SDT
@@ -93,6 +94,7 @@ Contains information to compute the acceleration from Earth albedo radiation pre
     integral_algorithm::ALG = HCubatureJL()
     integral_reltol::IRT = 1e-4
     integral_abstol::IAT = 1e-8
+    integral_cache::Ref{CAT} = Ref{Union{Nothing, Integrals.IntegralCache}}(nothing)  # Pre-allocated integration cache in a Ref
 end
 
 struct AlbedoFunctor{
@@ -143,6 +145,42 @@ end
 
 SciMLBase.isinplace(::AlbedoFunctor, args...; kwargs...) = false
 SciMLBase.numargs(::AlbedoFunctor) = 2
+
+"""
+Initialize the integration cache for the albedo model to avoid allocations during runtime.
+This should be called once after creating the AlbedoAstroModel and before using it for integration.
+"""
+function initialize_albedo_cache!(albedo_model::AlbedoAstroModel)
+    # Create a dummy functor to initialize the cache
+    dummy_sat_pos = SVector{3,Float64}(7000.0, 0.0, 0.0)  # km
+    dummy_R_ECEF2ECI = DCM(1.0I)  # Identity matrix
+    dummy_sun_pos = SVector{3,Float64}(1.496e8, 0.0, 0.0)  # km (1 AU)
+    dummy_RC = 0.1  # m²/kg
+    dummy_time = 0.0  # Julian days
+    
+    dummy_functor = AlbedoFunctor(
+        dummy_sat_pos, 
+        dummy_R_ECEF2ECI, 
+        dummy_sun_pos, 
+        dummy_RC, 
+        albedo_model.body_albedo_model, 
+        dummy_time, 
+        albedo_model.solar_flux, 
+        albedo_model.speed_of_light, 
+        albedo_model.AU
+    )
+    
+    # Create integration problem
+    prob = IntegralProblem(dummy_functor, ALBEDO_INTEGRATION_DOMAIN)
+    
+    # Initialize cache using init function
+    cache = init(prob, albedo_model.integral_algorithm)
+    
+    # Store the cache for reuse
+    albedo_model.integral_cache[] = cache
+    
+    return nothing
+end
 
 function albedo_integrand(
     x::AbstractVector{XT}, 
@@ -261,8 +299,8 @@ parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional albedo acceleration acting on the spacecraft.
 """
 function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel
-)
+    u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT}
+) where {ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT}
     # Compute the Sun's position
     sun_pos = albedo_model.sun_data(p.JD + t / 86400.0, Position())
 
@@ -284,6 +322,7 @@ function acceleration(
         integral_algorithm=albedo_model.integral_algorithm,
         reltol=albedo_model.integral_reltol,
         abstol=albedo_model.integral_abstol,
+        integral_cache=albedo_model.integral_cache,
     )
 end
 
@@ -342,19 +381,20 @@ Where:
 # Returns
 - `SVector{3}{Number}`: Inertial acceleration from albedo radiation pressure [km/s²].
 """
-function albedo_accel(
+@inline function albedo_accel(
     u::AbstractVector{UT},
     sun_pos::AbstractVector{ST},
     RC::RCT,
     current_time::TT,
     body_albedo_model::BAM,
-    eop_data::Union{EopIau1980,EopIau2000A};
-    solar_flux::SFT=SOLAR_FLUX,  # Solar flux at 1 AU [W/m²]
-    AU::AUT=ASTRONOMICAL_UNIT,  # Astronomical unit [km]
+    eop_data::EoT;
+    solar_flux::SFT=SOLAR_FLUX,
+    AU::AUT=ASTRONOMICAL_UNIT,
     speed_of_light::CT=SPEED_OF_LIGHT,
-    integral_algorithm::SciMLBase.AbstractIntegralAlgorithm = HCubatureJL(),
+    integral_algorithm::ALG=HCubatureJL(),
     reltol::IRT=1e-4,
     abstol::IAT=1e-8,
+    integral_cache::CAT=Ref(nothing),
 ) where {
     UT<:Number,
     ST<:Number,
@@ -363,11 +403,14 @@ function albedo_accel(
     AT<:Number,
     ET<:Number,
     BAM<:AbstractAlbedoModel{AT,ET},
+    EoT<:Union{EopIau1980,EopIau2000A},
     SFT<:Number,
     AUT<:Number,
     CT<:Number,
+    ALG<:SciMLBase.AbstractIntegralAlgorithm,
     IRT<:AbstractFloat,
     IAT<:AbstractFloat,
+    CAT<:Ref{Union{Nothing, Integrals.IntegralCache}},
 }
 
     RT = promote_type(UT, ST, RCT, TT, AT, ET, SFT, AUT, CT)
@@ -380,7 +423,17 @@ function albedo_accel(
     
     # Create integration problem using optimized function (no struct allocation)
     prob = IntegralProblem(albedo_functor, ALBEDO_INTEGRATION_DOMAIN)
-    sol = solve(prob, integral_algorithm; reltol=reltol, abstol=abstol)
+    
+    # Use cache if provided, otherwise solve normally
+    if integral_cache !== nothing && integral_cache[] !== nothing
+        # Update the cache with the new problem and solve
+        cache = integral_cache[]
+        cache.f = prob.f
+        cache.domain = prob.domain
+        sol = solve!(cache)
+    else
+        sol = solve(prob, integral_algorithm; reltol=reltol, abstol=abstol)
+    end
     
     return sol.u
 end
