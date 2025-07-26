@@ -25,6 +25,10 @@
 export AlbedoAstroModel, albedo_accel
 export AbstractAlbedoModel, UniformAlbedoModel, VariableAlbedoModel
 
+# Set up integration domain in radians
+# Latitude: -π/2 to π/2, Longitude: -π to π
+const ALBEDO_INTEGRATION_DOMAIN = (SVector{2}(-π/2, -π), SVector{2}(π/2, π))
+
 """
 Abstract type for albedo radiation models used in albedo force calculations.
 """
@@ -58,14 +62,14 @@ Contains information to compute the acceleration from Earth albedo radiation pre
 # Fields
 - `satellite_shape_model::AbstractSatelliteSRPModel`: The satellite shape model for computing the ballistic coefficient.
 - `sun_data::ThirdBodyModel`: The data to compute the Sun's position.
-- `earth_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: The Earth albedo radiation model.
+- `body_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: The Earth albedo radiation model.
 - `eop_data::Union{EopIau1980,EopIau2000A}`: Earth orientation parameters.
 - `solar_flux::Number`: Solar flux at 1 AU [W/m²].
 - `speed_of_light::Number`: Speed of light [km/s].
 - `integral_reltol::Number`: Relative tolerance for numerical integration.
 - `integral_abstol::Number`: Absolute tolerance for numerical integration.
 """
-@with_kw struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT} <:
+@with_kw mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG} <:
                 AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
@@ -76,15 +80,17 @@ Contains information to compute the acceleration from Earth albedo radiation pre
     AUT<:Number,
     IRT<:AbstractFloat,
     IAT<:AbstractFloat,
+    ALG<:SciMLBase.AbstractIntegralAlgorithm,
 }
     satellite_shape_model::ST
     sun_data::SDT
-    earth_albedo_model::EAT
+    body_albedo_model::EAT
     eop_data::EoT
     
     solar_flux::SFT = SOLAR_FLUX
     speed_of_light::CT = SPEED_OF_LIGHT
     AU::AUT = ASTRONOMICAL_UNIT
+    integral_algorithm::ALG = HCubatureJL()
     integral_reltol::IRT = 1e-4
     integral_abstol::IAT = 1e-8
 end
@@ -135,9 +141,9 @@ function (f::AlbedoFunctor{ST,RT,SUT,RCT,TT,SFT,CT,AUT,AM})(x, p) where {
                             f.AU)
 end
 
-SciMLBase.isinplace(::AlbedoFunctor,…) = false
+SciMLBase.isinplace(::AlbedoFunctor, args...; kwargs...) = false
 SciMLBase.numargs(::AlbedoFunctor) = 2
-  
+
 function albedo_integrand(
     x::AbstractVector{XT}, 
     sat_pos::AbstractVector{ST}, 
@@ -270,10 +276,12 @@ function acceleration(
         sun_pos,
         RC,
         p.JD + t / 86400.0,
-        albedo_model.earth_albedo_model,
+        albedo_model.body_albedo_model,
         albedo_model.eop_data;
         solar_flux=albedo_model.solar_flux,
         AU=albedo_model.AU,
+        speed_of_light=albedo_model.speed_of_light,
+        integral_algorithm=albedo_model.integral_algorithm,
         reltol=albedo_model.integral_reltol,
         abstol=albedo_model.integral_abstol,
     )
@@ -344,6 +352,7 @@ function albedo_accel(
     solar_flux::SFT=SOLAR_FLUX,  # Solar flux at 1 AU [W/m²]
     AU::AUT=ASTRONOMICAL_UNIT,  # Astronomical unit [km]
     speed_of_light::CT=SPEED_OF_LIGHT,
+    integral_algorithm::SciMLBase.AbstractIntegralAlgorithm = HCubatureJL(),
     reltol::IRT=1e-4,
     abstol::IAT=1e-8,
 ) where {
@@ -360,6 +369,7 @@ function albedo_accel(
     IRT<:AbstractFloat,
     IAT<:AbstractFloat,
 }
+
     RT = promote_type(UT, ST, RCT, TT, AT, ET, SFT, AUT, CT)
     
     sat_pos = SVector{3,RT}(u[1], u[2], u[3])
@@ -368,15 +378,9 @@ function albedo_accel(
 
     albedo_functor = AlbedoFunctor(sat_pos, R_ECEF2ECI, sun_pos, RC, body_albedo_model, current_time, solar_flux, speed_of_light, AU)
     
-    # Set up integration domain in radians
-    # Latitude: -π/2 to π/2, Longitude: -π to π
-    domain = (SVector{2,RT}(-π/2, -π), SVector{2,RT}(π/2, π))
-    
     # Create integration problem using optimized function (no struct allocation)
-    prob = IntegralProblem(albedo_functor, domain)
-    
-    # Solve the integral with specified tolerances
-    sol = solve(prob, HCubatureJL(); reltol=reltol, abstol=abstol)
+    prob = IntegralProblem(albedo_functor, ALBEDO_INTEGRATION_DOMAIN)
+    sol = solve(prob, integral_algorithm; reltol=reltol, abstol=abstol)
     
     return sol.u
 end
