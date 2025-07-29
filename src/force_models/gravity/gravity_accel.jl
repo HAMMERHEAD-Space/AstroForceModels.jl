@@ -117,14 +117,15 @@ function potential(
 
     time = (p.JD - JD_J2000) * 86400 + t
 
-    U = GravityModels.gravitational_potential(
-        grav_model.gravity_model,
-        itrf_pos,
-        time;
-        max_degree=grav_model.degree,
-        max_order=grav_model.order,
-        P=grav_model.P,
-    ) / 1E6
+    U =
+        GravityModels.gravitational_potential(
+            grav_model.gravity_model,
+            itrf_pos,
+            time;
+            max_degree=grav_model.degree,
+            max_order=grav_model.order,
+            P=grav_model.P,
+        ) / 1E6
 
     return U
 end

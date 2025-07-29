@@ -169,7 +169,7 @@ end
     @test moon_3body_accel(state, p, t, moon_third_body) isa SVector
 end
 
-#@testset "Albedo Allocations" begin
+@testset "Albedo Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
     p = ComponentVector(; JD=JD)
@@ -182,7 +182,7 @@ end
     albedo_model = AlbedoAstroModel(;
         satellite_shape_model=satellite_shape_model,
         sun_data=sun_third_body,
-        earth_albedo_model=UniformAlbedoModel(0.3, 0.7),
+        body_albedo_model=UniformAlbedoModel(0.3, 0.7),
         eop_data=eop_data,
     )
 
@@ -195,28 +195,10 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    #@check_allocs albedo_accel(state, p, t, albedo_model) = acceleration(
-    #    state, p, t, albedo_model
-    #)
-    using JET
-    rep = @report_opt acceleration(state, p, t, albedo_model)
-    #rpts = JET.get_reports(rep)
+    albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
 
-    acceleration(state, p, t, albedo_model)
-
-    alloc_vec = check_allocs(acceleration, (typeof(state), typeof(p), typeof(t), typeof(albedo_model)))
+    @test albedo_alloc_accel(state, p, t, albedo_model) isa SVector
 end
-
-function f_test(x, p)
-    return x[1] + x[2]
-end
-using Integrals
-
-prob = IntegralProblem(f_test, ([0.0, 1.0], [1.0, 2.0]))
-sol = solve(prob, HCubatureJL())
-
-typeof(prob)
-typeof(sol)
 
 @testset "Dynamics Builder Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)

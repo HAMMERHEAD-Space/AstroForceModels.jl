@@ -3,7 +3,7 @@ module AstroForceModels
 using ComponentArrays, StaticArraysCore
 using LinearAlgebra
 using Parameters
-using Integrals
+using Lebedev
 using SatelliteToolboxBase
 using SatelliteToolboxCelestialBodies
 using SatelliteToolboxGravityModels

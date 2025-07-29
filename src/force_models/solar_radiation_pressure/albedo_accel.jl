@@ -22,8 +22,8 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-export AlbedoAstroModel, albedo_accel, initialize_albedo_cache!
-export AbstractAlbedoModel, UniformAlbedoModel, VariableAlbedoModel
+export AlbedoAstroModel, albedo_accel
+export AbstractAlbedoModel, UniformAlbedoModel
 
 # Set up integration domain in radians
 # Latitude: -π/2 to π/2, Longitude: -π to π
@@ -32,7 +32,7 @@ const ALBEDO_INTEGRATION_DOMAIN = (SVector{2}(-π/2, -π), SVector{2}(π/2, π))
 """
 Abstract type for albedo radiation models used in albedo force calculations.
 """
-abstract type AbstractAlbedoModel{AT<:Number, ET<:Number} end
+abstract type AbstractAlbedoModel{AT<:Number,ET<:Number} end
 
 """
 Uniform Albedo Model struct
@@ -63,136 +63,120 @@ Contains information to compute the acceleration from Earth albedo radiation pre
 - `satellite_shape_model::AbstractSatelliteSRPModel`: The satellite shape model for computing the ballistic coefficient.
 - `sun_data::ThirdBodyModel`: The data to compute the Sun's position.
 - `body_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: The Earth albedo radiation model.
-- `eop_data::Union{EopIau1980,EopIau2000A}`: Earth orientation parameters.
+- `eop_data::EopIau1980`: Earth orientation parameters.
 - `solar_flux::Number`: Solar flux at 1 AU [W/m²].
 - `speed_of_light::Number`: Speed of light [km/s].
-- `integral_reltol::Number`: Relative tolerance for numerical integration.
-- `integral_abstol::Number`: Absolute tolerance for numerical integration.
+- `lebedev_order::Int`: Order of Lebedev quadrature for spherical integration.
 """
-@with_kw mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT} <:
-                AbstractNonPotentialBasedForce where {
+mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,PT,WT,TT,PhT} <:
+               AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
-    EAT<:AbstractAlbedoModel{AT, ET} where {AT<:Number, ET<:Number},
-    EoT<:Union{EopIau1980,EopIau2000A},
+    EAT<:AbstractAlbedoModel,
+    EoT<:EopIau1980,
     SFT<:Number,
     CT<:Number,
     AUT<:Number,
-    IRT<:AbstractFloat,
-    IAT<:AbstractFloat,
-    ALG<:SciMLBase.AbstractIntegralAlgorithm,
-    CAT<:Union{Nothing, Integrals.IntegralCache},
+    PT<:AbstractVector,
+    WT<:AbstractVector,
+    TT<:AbstractVector,
+    PhT<:AbstractVector,
 }
     satellite_shape_model::ST
     sun_data::SDT
     body_albedo_model::EAT
     eop_data::EoT
-    
-    solar_flux::SFT = SOLAR_FLUX
-    speed_of_light::CT = SPEED_OF_LIGHT
-    AU::AUT = ASTRONOMICAL_UNIT
-    integral_algorithm::ALG = HCubatureJL()
-    integral_reltol::IRT = 1e-4
-    integral_abstol::IAT = 1e-8
-    integral_cache::Ref{CAT} = Ref{Union{Nothing, Integrals.IntegralCache}}(nothing)  # Pre-allocated integration cache in a Ref
-end
 
-struct AlbedoFunctor{
-    ST<:Number,
-    RT<:Number,
-    SUT<:Number,
-    RCT<:Number,
-    TT<:Number,
-    SFT<:Number,
-    CT<:Number,
-    AUT<:Number,
-    AM<:AbstractAlbedoModel{<:Number, <:Number},
-}
-    sat_pos::SVector{3,ST}
-    R_ECEF2ECI::DCM{RT}
-    sun_pos::SVector{3,SUT}
-    RC::RCT
-    body_albedo_model::AM
-    current_time::TT
     solar_flux::SFT
     speed_of_light::CT
     AU::AUT
+
+    # Lebedev quadrature points and weights for unit sphere
+    lebedev_points::PT    # 3D points on unit sphere
+    lebedev_weights::WT   # Integration weights
+
+    # Pre-computed spherical coordinates for efficiency
+    theta_coords::TT      # Colatitude coordinates [0, π]
+    phi_coords::PhT       # Azimuth coordinates [0, 2π]  
+    weights::WT           # Scaled integration weights
 end
 
-# call‐overload invokes your existing albedo_integrand
-function (f::AlbedoFunctor{ST,RT,SUT,RCT,TT,SFT,CT,AUT,AM})(x, p) where {
-    ST<:Number,
-    RT<:Number,
-    SUT<:Number,
-    RCT<:Number,
-    TT<:Number,
-    SFT<:Number,
-    CT<:Number,
-    AUT<:Number,
-    AM<:AbstractAlbedoModel{AT,ET} where {AT<:Number, ET<:Number},
-}
-    return albedo_integrand(x,
-                            f.sat_pos,
-                            f.R_ECEF2ECI,
-                            f.sun_pos,
-                            f.RC,
-                            f.body_albedo_model,
-                            f.current_time,
-                            f.solar_flux,
-                            f.speed_of_light,
-                            f.AU)
-end
+# Constructor
+function AlbedoAstroModel(;
+    satellite_shape_model,
+    sun_data,
+    body_albedo_model,
+    eop_data,
+    solar_flux=SOLAR_FLUX,
+    speed_of_light=SPEED_OF_LIGHT,
+    AU=ASTRONOMICAL_UNIT,
+    lebedev_order::Int=125,  # Order of Lebedev quadrature
+)
+    # Generate Lebedev quadrature nodes and weights for unit sphere
+    x_coords, y_coords, z_coords, lebedev_weights = lebedev_by_order(lebedev_order)
 
-SciMLBase.isinplace(::AlbedoFunctor, args...; kwargs...) = false
-SciMLBase.numargs(::AlbedoFunctor) = 2
+    # Combine coordinates into points vector
+    n_points = length(lebedev_weights)
+    lebedev_points = [
+        SVector{3,Float64}(x_coords[i], y_coords[i], z_coords[i]) for i in 1:n_points
+    ]
 
-"""
-Initialize the integration cache for the albedo model to avoid allocations during runtime.
-This should be called once after creating the AlbedoAstroModel and before using it for integration.
-"""
-function initialize_albedo_cache!(albedo_model::AlbedoAstroModel)
-    # Create a dummy functor to initialize the cache
-    dummy_sat_pos = SVector{3,Float64}(7000.0, 0.0, 0.0)  # km
-    dummy_R_ECEF2ECI = DCM(1.0I)  # Identity matrix
-    dummy_sun_pos = SVector{3,Float64}(1.496e8, 0.0, 0.0)  # km (1 AU)
-    dummy_RC = 0.1  # m²/kg
-    dummy_time = 0.0  # Julian days
-    
-    dummy_functor = AlbedoFunctor(
-        dummy_sat_pos, 
-        dummy_R_ECEF2ECI, 
-        dummy_sun_pos, 
-        dummy_RC, 
-        albedo_model.body_albedo_model, 
-        dummy_time, 
-        albedo_model.solar_flux, 
-        albedo_model.speed_of_light, 
-        albedo_model.AU
+    # Convert Lebedev (x,y,z) points to spherical coordinates (θ, φ)
+    # θ ∈ [0, π] (colatitude), φ ∈ [0, 2π] (azimuth)
+    theta_coords = Vector{Float64}(undef, n_points)
+    phi_coords = Vector{Float64}(undef, n_points)
+
+    @inbounds for i in 1:n_points
+        x, y, z = lebedev_points[i]
+        theta_coords[i] = acos(clamp(z, -1.0, 1.0))  # θ = acos(z)
+        phi_coords[i] = atan(y, x)  # φ = atan2(y, x)
+        # Ensure φ ∈ [0, 2π]
+        phi_coords[i] = rem2pi(phi_coords[i], RoundDown)
+    end
+
+    # Lebedev weights already include 4π normalization for unit sphere
+    # Scale by 4π to get proper integration weights
+    scaled_weights = 4π .* lebedev_weights
+
+    return AlbedoAstroModel{
+        typeof(satellite_shape_model),
+        typeof(sun_data),
+        typeof(body_albedo_model),
+        typeof(eop_data),
+        typeof(solar_flux),
+        typeof(speed_of_light),
+        typeof(AU),
+        typeof(lebedev_points),
+        typeof(lebedev_weights),
+        typeof(theta_coords),
+        typeof(phi_coords),
+    }(
+        satellite_shape_model,
+        sun_data,
+        body_albedo_model,
+        eop_data,
+        solar_flux,
+        speed_of_light,
+        AU,
+        lebedev_points,
+        lebedev_weights,
+        theta_coords,
+        phi_coords,
+        scaled_weights,
     )
-    
-    # Create integration problem
-    prob = IntegralProblem(dummy_functor, ALBEDO_INTEGRATION_DOMAIN)
-    
-    # Initialize cache using init function
-    cache = init(prob, albedo_model.integral_algorithm)
-    
-    # Store the cache for reuse
-    albedo_model.integral_cache[] = cache
-    
-    return nothing
 end
 
 function albedo_integrand(
-    x::AbstractVector{XT}, 
-    sat_pos::AbstractVector{ST}, 
-    R_ECEF2ECI::DCM{RT}, 
-    sun_pos::AbstractVector{SUT}, 
-    RC::RCT, 
-    body_albedo_model::AM, 
-    current_time::TT, 
-    solar_flux::SFT, 
-    speed_of_light::CT, 
-    AU::AUT
+    x::AbstractVector{XT},
+    sat_pos::AbstractVector{ST},
+    R_ECEF2ECI::DCM{RT},
+    sun_pos::AbstractVector{SUT},
+    RC::RCT,
+    body_albedo_model::AM,
+    current_time::TT,
+    solar_flux::SFT,
+    speed_of_light::CT,
+    AU::AUT,
 ) where {
     XT<:Number,
     ST<:Number,
@@ -203,13 +187,18 @@ function albedo_integrand(
     SFT<:Number,
     CT<:Number,
     AUT<:Number,
-    AT<:Number, 
+    AT<:Number,
     ET<:Number,
-    AM<:AbstractAlbedoModel{AT, ET},
+    AM<:AbstractAlbedoModel{AT,ET},
 }
     RET = promote_type(XT, ST, RT, SUT, RCT, TT, SFT, CT, AUT, AT, ET)
 
-    lat_rad, lon_rad = x
+    theta_rad, phi_rad = x  # θ ∈ [0, π] (colatitude), φ ∈ [0, 2π] (azimuth)
+
+    # Convert spherical coordinates to geodetic coordinates
+    # θ = 0 is North pole, θ = π is South pole
+    lat_rad = π/2 - theta_rad  # Convert colatitude to latitude: lat ∈ [-π/2, π/2]
+    lon_rad = phi_rad > π ? phi_rad - 2π : phi_rad  # Convert to longitude: lon ∈ [-π, π]
 
     # Surface element position in ECEF coordinates using SatelliteToolboxTransformations
     # Note: geodetic_to_ecef expects altitude above ellipsoid, so we use h=0 for surface points
@@ -233,9 +222,10 @@ function albedo_integrand(
     end
 
     # Compute surface element area differential (Jacobian for spherical coordinates)
-    # dΩ = R² * cos(lat) * d_lat * d_lon (integrating directly over radians)
+    # For spherical coordinates (θ, φ): dΩ = R² * sin(θ) * dθ * dφ
+    # Note: Lebedev weights already account for this Jacobian, but we need R²
     R_earth = norm(surface_pos)
-    jacobian = R_earth^2 * cos(lat_rad)  # Jacobian in km²
+    jacobian = R_earth^2  # Jacobian in km² (sin(θ) factor included in Lebedev weights)
 
     # Compute solar illumination of surface element
     # Vector from surface element to Sun
@@ -299,8 +289,8 @@ parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional albedo acceleration acting on the spacecraft.
 """
 function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT}
-) where {ST,SDT,EAT,EoT,SFT,CT,AUT,IRT,IAT,ALG,CAT}
+    u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel
+)
     # Compute the Sun's position
     sun_pos = albedo_model.sun_data(p.JD + t / 86400.0, Position())
 
@@ -315,14 +305,13 @@ function acceleration(
         RC,
         p.JD + t / 86400.0,
         albedo_model.body_albedo_model,
-        albedo_model.eop_data;
+        albedo_model.eop_data,
+        albedo_model.theta_coords,
+        albedo_model.phi_coords,
+        albedo_model.weights;
         solar_flux=albedo_model.solar_flux,
         AU=albedo_model.AU,
         speed_of_light=albedo_model.speed_of_light,
-        integral_algorithm=albedo_model.integral_algorithm,
-        reltol=albedo_model.integral_reltol,
-        abstol=albedo_model.integral_abstol,
-        integral_cache=albedo_model.integral_cache,
     )
 end
 
@@ -333,7 +322,7 @@ end
         RC::Number, 
         current_time::Number,
         body_albedo_model::AbstractAlbedoModel,
-        eop_data::Union{EopIau1980,EopIau2000A};
+        eop_data::EopIau1980;
         solar_flux::Number=1360.8,  # Solar flux at 1 AU [W/m²]
         speed_of_light::Number=SPEED_OF_LIGHT,  # Speed of light [m/s]
         AU::Number=149597870.7,  # Astronomical unit [km]
@@ -373,69 +362,76 @@ Where:
 # Optional Arguments
 - `solar_flux::Number`: Solar flux at 1 AU [W/m²].
 - `speed_of_light::Number`: Speed of light [km/s].
-- `eop_data::Union{EopIau1980,EopIau2000A,Nothing}`: Earth orientation parameters.
-- `current_time::Number`: Current time [Julian days].
-- `reltol::Number`: Relative tolerance for numerical integration.
-- `abstol::Number`: Absolute tolerance for numerical integration.
 
 # Returns
 - `SVector{3}{Number}`: Inertial acceleration from albedo radiation pressure [km/s²].
 """
-@inline function albedo_accel(
+function albedo_accel(
     u::AbstractVector{UT},
     sun_pos::AbstractVector{ST},
     RC::RCT,
     current_time::TT,
     body_albedo_model::BAM,
-    eop_data::EoT;
+    eop_data::EoT,
+    theta_coords::TT_C,
+    phi_coords::PT_C,
+    weights::WT;
     solar_flux::SFT=SOLAR_FLUX,
     AU::AUT=ASTRONOMICAL_UNIT,
     speed_of_light::CT=SPEED_OF_LIGHT,
-    integral_algorithm::ALG=HCubatureJL(),
-    reltol::IRT=1e-4,
-    abstol::IAT=1e-8,
-    integral_cache::CAT=Ref(nothing),
 ) where {
     UT<:Number,
     ST<:Number,
     RCT<:Number,
     TT<:Number,
-    AT<:Number,
-    ET<:Number,
-    BAM<:AbstractAlbedoModel{AT,ET},
-    EoT<:Union{EopIau1980,EopIau2000A},
+    BAM<:AbstractAlbedoModel,
+    EoT<:EopIau1980,
+    TT_C<:AbstractVector,
+    PT_C<:AbstractVector,
+    WT<:AbstractVector,
     SFT<:Number,
     AUT<:Number,
     CT<:Number,
-    ALG<:SciMLBase.AbstractIntegralAlgorithm,
-    IRT<:AbstractFloat,
-    IAT<:AbstractFloat,
-    CAT<:Ref{Union{Nothing, Integrals.IntegralCache}},
 }
+    sat_pos = SVector{3,Float64}(u[1], u[2], u[3])
 
-    RT = promote_type(UT, ST, RCT, TT, AT, ET, SFT, AUT, CT)
-    
-    sat_pos = SVector{3,RT}(u[1], u[2], u[3])
-    
     R_ECEF2ECI = r_ecef_to_eci(ITRF(), J2000(), current_time, eop_data)
 
-    albedo_functor = AlbedoFunctor(sat_pos, R_ECEF2ECI, sun_pos, RC, body_albedo_model, current_time, solar_flux, speed_of_light, AU)
-    
-    # Create integration problem using optimized function (no struct allocation)
-    prob = IntegralProblem(albedo_functor, ALBEDO_INTEGRATION_DOMAIN)
-    
-    # Use cache if provided, otherwise solve normally
-    if integral_cache !== nothing && integral_cache[] !== nothing
-        # Update the cache with the new problem and solve
-        cache = integral_cache[]
-        cache.f = prob.f
-        cache.domain = prob.domain
-        sol = solve!(cache)
-    else
-        sol = solve(prob, integral_algorithm; reltol=reltol, abstol=abstol)
+    # Use pre-computed Lebedev coordinates and weights for efficient integration
+    n_points = length(weights)
+
+    # Initialize result
+    result_x = 0.0
+    result_y = 0.0
+    result_z = 0.0
+
+    # Single-sum integration over all Lebedev quadrature points
+    @inbounds for i in 1:n_points
+        theta = theta_coords[i]
+        phi = phi_coords[i]
+        weight = weights[i]
+
+        # Evaluate integrand at Lebedev point
+        x = SVector{2,Float64}(theta, phi)
+        accel = albedo_integrand(
+            x,
+            sat_pos,
+            R_ECEF2ECI,
+            sun_pos,
+            RC,
+            body_albedo_model,
+            current_time,
+            solar_flux,
+            speed_of_light,
+            AU,
+        )
+
+        result_x += weight * accel[1]
+        result_y += weight * accel[2]
+        result_z += weight * accel[3]
     end
-    
-    return sol.u
+
+    return SVector{3,Float64}(result_x, result_y, result_z)
 end
 
 """
@@ -462,18 +458,18 @@ Compute the shortwave (reflected) and longwave (thermal) radiation fluxes from a
 - `(shortwave_flux, longwave_flux)`: Tuple of shortwave and longwave fluxes [W/m²].
 """
 function compute_earth_radiation_fluxes(
-    body_albedo_model::UniformAlbedoModel{AT, ET}, 
-    lat::Number, 
-    lon::Number, 
-    cos_solar_zenith::Number, 
+    body_albedo_model::UniformAlbedoModel{AT,ET},
+    lat::Number,
+    lon::Number,
+    cos_solar_zenith::Number,
     solar_flux_at_earth::Number,
-    current_time::Number
-) where {AT<:Number, ET<:Number}
+    current_time::Number,
+) where {AT<:Number,ET<:Number}
 
     # For uniform model, use constant albedo and emissivity
     albedo = body_albedo_model.visible_albedo
     emissivity = body_albedo_model.infrared_emissivity
-    
+
     # Shortwave flux (reflected solar radiation)
     # Only consider daytime (cos_solar_zenith > 0)
     if cos_solar_zenith > 0
@@ -481,12 +477,12 @@ function compute_earth_radiation_fluxes(
     else
         shortwave_flux = 0.0
     end
-    
+
     # Longwave flux (thermal emission) 
     # Simplified: constant emission proportional to average incoming solar flux
     # More sophisticated models would use temperature calculations
     average_solar_flux = solar_flux_at_earth * 0.25  # 1/4 factor for spherical averaging
     longwave_flux = emissivity * average_solar_flux
-    
+
     return shortwave_flux + longwave_flux
 end
