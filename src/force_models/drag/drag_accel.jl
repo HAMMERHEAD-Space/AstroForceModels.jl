@@ -119,7 +119,7 @@ The acceleration from drag is then computed with a cannonball model as
     apparent_vel = SVector{3}(u[4], u[5], u[6]) - cross(ω_vec, SVector{3}(u[1], u[2], u[3]))
 
     # Scaled by 1E3 to convert to km/s
-    drag_force = -0.5 * BC * rho * norm(apparent_vel) / 1E3
+    drag_force = -0.5 * BC * rho * norm(apparent_vel) * 1E3
     # TODO: HANDLE UNITS BETTER
     accel = SVector{3,AT}(
         drag_force * apparent_vel[1],
