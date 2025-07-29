@@ -1,8 +1,5 @@
-using AllocCheck
-using Aqua
 using AstroForceModels
 using ComponentArrays
-using JET
 using LinearAlgebra
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxCelestialBodies
@@ -11,6 +8,10 @@ using SatelliteToolboxTransformations
 using SpaceIndices
 using StaticArraysCore
 using Test
+
+using AllocCheck
+using Aqua
+using JET
 
 using DifferentiationInterface
 using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
@@ -25,6 +26,7 @@ using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
     include("solar_radiation_pressure/test_satellite_shape_models.jl")
     include("solar_radiation_pressure/test_shadow_models.jl")
     include("solar_radiation_pressure/test_srp_accel.jl")
+    include("solar_radiation_pressure/test_albedo_accel.jl")
 
     # Third Body Tests
     include("third_body/test_celestial_body.jl")
@@ -53,6 +55,7 @@ _BACKENDS = (
     include("differentiability/test_model_parameters.jl")
     include("differentiability/test_drag.jl")
     include("differentiability/test_srp.jl")
+    include("differentiability/test_albedo.jl")
     include("differentiability/test_gravity.jl")
     include("differentiability/test_relativity.jl")
     include("differentiability/test_third_body.jl")
@@ -64,5 +67,9 @@ end
     include("test_allocations.jl")
     include("test_JET.jl")
 
-    Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
+    Aqua.test_all(
+        AstroForceModels;
+        ambiguities=(recursive = false),
+        deps_compat=(check_extras = false),
+    )
 end

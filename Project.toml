@@ -5,6 +5,7 @@ version = "0.3.7"
 
 [deps]
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
+Lebedev = "c5712dd9-2571-4e23-b661-b4a261421493"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 SatelliteToolboxAtmosphericModels = "5718ef0a-a30f-426d-bcd9-4cf31dd12909"
@@ -17,6 +18,7 @@ StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 
 [compat]
 ComponentArrays = "0.15"
+Lebedev = "1.2"
 LinearAlgebra = "1"
 Parameters = "0.12"
 SatelliteToolboxAtmosphericModels = "1.0"
