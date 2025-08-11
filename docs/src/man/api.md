@@ -27,16 +27,9 @@ See the main [AstroForceModels](@ref) module documentation for detailed descript
 
 ### Types
 
-```
+```@docs  
 GravityHarmonicsAstroModel
 KeplerianGravityAstroModel
-```
-
-### Functions
-
-```@docs  
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::GravityHarmonicsAstroModel)
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::KeplerianGravityAstroModel)
 ```
 
 ## Atmospheric Drag Models
@@ -57,7 +50,7 @@ CannonballDragModel
 ### Functions
 
 ```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::DragAstroModel)
+DragAstroModel
 density_calculator
 ballistic_coefficient
 ```
@@ -89,7 +82,7 @@ Cylindrical
 ### Functions
 
 ```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::SRPAstroModel)
+SRPAstroModel
 shadow_function
 radiation_pressure_coefficient
 ```
@@ -107,7 +100,7 @@ CelestialBody
 ### Functions
 
 ```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::ThirdBodyAstroModel)
+ThirdBodyAstroModel
 third_body_position
 ```
 
@@ -122,7 +115,6 @@ RelativisticAstroModel
 ### Functions
 
 ```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::RelativisticAstroModel)
 schwarzschild_acceleration  
 lense_thirring_acceleration
 de_sitter_acceleration
