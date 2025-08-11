@@ -1,9 +1,10 @@
 # AstroForceModels.jl
 
+## IMPORTANT NOTE: While the existing functions will work, for the most performance and differentiation capability, use one of the PR and instructions detailed there.
+
 [![CI](https://github.com/jmurphy6895/AstroForceModels.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/jmurphy6895/AstroForceModels.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![codecov](https://codecov.io/gh/jmurphy6895/AstroForceModels.jl/branch/main/graph/badge.svg?token=47G4OLV6PD)](https://codecov.io/gh/jmurphy6895/AstroForceModels.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)][docs-stable-url]
-[![](https://img.shields.io/badge/docs-dev-blue.svg)][docs-dev-url]
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
@@ -15,8 +16,10 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Relativistic
 - [ ] Albedo
 - [ ] Solid Tides
+- [ ] Spacecraft thermal emission
+- [ ] Magnetic Field Effects
 
-This first implementation is just to get a set of working models, the next steps are to get everything allocation-free and working with automatic differentiation. Furthermore, the plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl. But plans are still under disccusion there.
+The plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl, but this is still under discussion.
 
 ## Installation
 
@@ -29,5 +32,5 @@ julia> Pkg.add("AstroForceModels")
 
 For more information, see the [documentation][docs-dev-url].
 
-[docs-dev-url]: https://jmurphy6895.github.io/AstroForceModels.jl/stable/
-[docs-stable-url]: https://jmurphy6895.github.io/AstroForceModels.jl/stable/
+[docs-dev-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/
+[docs-stable-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/

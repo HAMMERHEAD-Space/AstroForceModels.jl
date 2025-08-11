@@ -130,14 +130,14 @@ function srp_accel(
 
     # Compute the Vector Between the Satellite and Sun
     R_spacecraft_Sun = sat_pos - sun_pos
-    R_sc_sun_norm = norm(R_spacecraft_Sun)
+    R_sc_sun = norm(R_spacecraft_Sun)
 
-    F_srp = F * RC * Ψ * (AU / R_sc_sun_norm)^2 / 1E3
+    F_srp = F * RC * Ψ * (AU / R_sc_sun)^2 / 1E3
 
     #Compute the SRP Force
     return SVector{3}(
-        F_srp * R_spacecraft_Sun[1] / R_sc_sun_norm,
-        F_srp * R_spacecraft_Sun[2] / R_sc_sun_norm,
-        F_srp * R_spacecraft_Sun[3] / R_sc_sun_norm,
+        F_srp * R_spacecraft_Sun[1] / R_sc_sun,
+        F_srp * R_spacecraft_Sun[2] / R_sc_sun,
+        F_srp * R_spacecraft_Sun[3] / R_sc_sun,
     )
 end
