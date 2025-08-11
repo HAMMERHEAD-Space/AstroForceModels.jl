@@ -16,12 +16,12 @@ acceleration
 
 AstroForceModels defines a hierarchy of abstract types to organize different force models:
 
-```@docs
-AbstractAstroForceModel
-AbstractNonPotentialBasedForce  
-AbstractPotentialBasedForce
-AbstractDynamicsModel
-```
+- `AbstractAstroForceModel`: Base type for all force models
+- `AbstractNonPotentialBasedForce`: Non-conservative forces (drag, SRP, etc.)
+- `AbstractPotentialBasedForce`: Conservative forces derivable from potential (gravity)
+- `AbstractDynamicsModel`: Base type for dynamics model combinations
+
+See the main [AstroForceModels](@ref) module documentation for detailed descriptions of these abstract types.
 
 ## Gravity Models
 
@@ -172,8 +172,9 @@ end
 The package uses ComponentArrays.jl for structured parameter handling:
 
 ```julia
-using ComponentVector
-JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+using ComponentArrays
+
+JD = 2.460310e6  # Julian Date for 2024-01-05 12:00:00
 p = ComponentVector(; JD=JD)
 ```
 

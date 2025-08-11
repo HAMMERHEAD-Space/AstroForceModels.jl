@@ -147,7 +147,7 @@ dynamics = CentralBodyDynamicsModel(gravity_model, (drag_model, srp_model))
 
 # Compute acceleration at current state
 state = [6678.137, 0.0, 0.0, 0.0, 7.66, 0.0]  # km, km/s
-params = ComponentVector(JD = date_to_jd(2024, 1, 1, 12, 0, 0))
+params = ComponentVector(JD = 2.460310e6)  # Julian Date
 time = 0.0
 
 total_accel = build_dynamics_model(state, params, time, dynamics)

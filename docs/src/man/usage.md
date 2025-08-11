@@ -82,7 +82,7 @@ spacecraft_params = ComponentArray(
     CR = 1.3     # radiation pressure coefficient
 )
 
-JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+JD = 2.460310e6  # Julian Date for 2024-01-05 12:00:00
 p = ComponentVector(; JD=JD)
 
 ## 1. Gravity Model (with harmonics)

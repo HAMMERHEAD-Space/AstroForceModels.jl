@@ -180,7 +180,7 @@ using ComponentArrays
 
 # Test state (ISS-like orbit)
 state = [6378.137 + 408.0, 0.0, 0.0, 0.0, 7.6600, 0.0]  # [km, km/s]
-JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+JD = 2.460310e6  # Julian Date for 2024-01-05
 p = ComponentVector(; JD=JD)
 time = 0.0
 
