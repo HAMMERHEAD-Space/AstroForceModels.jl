@@ -17,122 +17,16 @@ acceleration
 AstroForceModels defines a hierarchy of abstract types to organize different force models:
 
 - `AbstractAstroForceModel`: Base type for all force models
-- `AbstractNonPotentialBasedForce`: Non-conservative forces (drag, SRP, etc.)
+- `AbstractNonPotentialBasedForce`: Non-conservative forces (drag, SRP, etc.)  
 - `AbstractPotentialBasedForce`: Conservative forces derivable from potential (gravity)
 - `AbstractDynamicsModel`: Base type for dynamics model combinations
-
-See the main [AstroForceModels](@ref) module documentation for detailed descriptions of these abstract types.
-
-## Gravity Models
-
-### Types
-
-```@docs  
-GravityHarmonicsAstroModel
-KeplerianGravityAstroModel
-```
-
-## Atmospheric Drag Models
-
-### Types
-
-```@docs
-DragAstroModel
-```
-
-### Satellite Shape Models
-
-```@docs
-AbstractSatelliteDragModel
-CannonballDragModel
-```
-
-### Functions
-
-```@docs
-DragAstroModel
-density_calculator
-ballistic_coefficient
-```
-
-## Solar Radiation Pressure Models
-
-### Types
-
-```@docs
-SRPAstroModel
-```
-
-### Satellite Shape Models
-
-```@docs
-AbstractSatelliteSRPModel
-CannonballFixedSRP
-StateSRPModel
-```
-
-### Shadow Models
-
-```@docs
-ShadowModelType
-Conical
-Cylindrical
-```
-
-### Functions
-
-```@docs
-SRPAstroModel
-shadow_function
-radiation_pressure_coefficient
-```
-
-## Third Body Gravity Models
-
-### Types
-
-```@docs
-ThirdBodyAstroModel
-ThirdBodyModel
-CelestialBody
-```
-
-### Functions
-
-```@docs
-ThirdBodyAstroModel
-third_body_position
-```
-
-## Relativistic Effects Models
-
-### Types
-
-```@docs
-RelativisticAstroModel
-```
-
-### Functions
-
-```@docs
-schwarzschild_acceleration  
-lense_thirring_acceleration
-de_sitter_acceleration
-```
 
 ## Dynamics Models
 
 The dynamics model system provides efficient ways to combine multiple force models:
 
-### Types
-
 ```@docs
 CentralBodyDynamicsModel
-```
-
-### Functions
-
-```@docs
 build_dynamics_model
 ```
 
@@ -157,6 +51,35 @@ function dynamics!(du, u, p, t)
 end
 ```
 
+## Force Models
+
+AstroForceModels provides several categories of force models:
+
+### Gravity Models
+
+- `GravityHarmonicsAstroModel`: Spherical harmonics gravity model with EGM96/EGM2008 coefficients
+- `KeplerianGravityAstroModel`: Simple point-mass gravity model
+
+### Atmospheric Drag Models
+
+- `DragAstroModel`: Atmospheric drag force model with various atmospheric density models
+- `CannonballFixedDrag`: Fixed ballistic coefficient satellite shape model
+
+### Solar Radiation Pressure Models
+
+- `SRPAstroModel`: Solar radiation pressure force model with shadow modeling
+- `CannonballFixedSRP`: Fixed reflectivity coefficient satellite shape model
+
+### Third Body Models
+
+- `ThirdBodyModel`: Third body ephemeris provider (Sun, Moon, planets)
+
+### Relativistic Effects
+
+- `RelativityModel`: General relativistic effects (Schwarzschild, Lense-Thirring, de Sitter)
+
+All force models implement the common `acceleration(state, params, time, model)` interface.
+
 ## Type Definitions
 
 ### Component Arrays
@@ -165,8 +88,9 @@ The package uses ComponentArrays.jl for structured parameter handling:
 
 ```julia
 using ComponentArrays
+using SatelliteToolboxBase
 
-JD = 2.460310e6  # Julian Date for 2024-01-05 12:00:00
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
 p = ComponentVector(; JD=JD)
 ```
 
@@ -220,31 +144,5 @@ gravity_model = GravityHarmonicsAstroModel(
 For practical examples and step-by-step tutorials, see:
 
 - [Usage Guide](usage.md): Comprehensive usage examples
-- [Force Model Documentation](../force_models/): Detailed descriptions of each force model
 - Test suite: Working examples in the `/test` directory
 - Benchmarks: Performance comparisons in the `/benchmark` directory
-
-## Support and Development
-
-### Contributing
-
-Contributions are welcome! Please see the development guidelines:
-
-1. **Fork the repository** and create a feature branch
-2. **Write tests** for new functionality
-3. **Follow coding style** conventions
-4. **Document new features** with docstrings
-5. **Submit a pull request** with a clear description
-
-### Reporting Issues
-
-Please report bugs and feature requests on the GitHub issue tracker:
-
-- **Provide a minimal working example** that demonstrates the issue
-- **Include version information** for Julia and all packages
-- **Describe expected vs. actual behavior**
-- **Include error messages** and stack traces if applicable
-
-## Version History
-
-See [CHANGELOG.md](../../../CHANGELOG.md) for detailed version history and breaking changes.
