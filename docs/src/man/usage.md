@@ -20,20 +20,35 @@ Where:
 
 ### Combining Force Models
 
-Multiple force models can be combined to create comprehensive orbital dynamics:
+Multiple force models can be combined using the `CentralBodyDynamicsModel` structure and `build_dynamics_model` function for efficient dynamics computation:
 
 ```julia
 using AstroForceModels
 using ComponentArrays
 using DifferentialEquations
 
-# Define multiple force models
-forces = [gravity_model, drag_model, srp_model, third_body_model]
+# Create individual force models
+gravity_model = KeplerianGravityAstroModel()  # or GravityHarmonicsAstroModel
+drag_model = DragAstroModel(...)
+srp_model = SRPAstroModel(...)
+third_body_model = ThirdBodyAstroModel(...)
 
-# System dynamics function
+# Combine into a dynamics model
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model, third_body_model)
+)
+
+# System dynamics function using the dynamics model
 function orbital_dynamics!(du, u, p, t)
     du[1:3] = u[4:6]  # velocity
-    du[4:6] = sum(acceleration(u, p, t, force) for force in forces)
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
+
+# Alternative: Manual combination (less efficient)
+function orbital_dynamics_manual!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = sum(acceleration(u, p, t, force) for force in [gravity_model, drag_model, srp_model, third_body_model])
 end
 ```
 
@@ -129,17 +144,24 @@ moon_perturbation = ThirdBodyAstroModel(
 ## 5. Relativistic Effects
 relativity_model = RelativisticAstroModel()
 
-# Combine all force models
-force_models = [
+# Create a comprehensive dynamics model
+dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    drag_model,
-    srp_model,
-    sun_gravity,
-    moon_gravity,
-    relativity_model
-]
+    (drag_model, srp_model, sun_perturbation, moon_perturbation, relativity_model)
+)
 
-total_accel = reduce(sum, acceleration(u, p, t, force_model) for force_model in force_models)
+# System dynamics function for ODE solver
+function satellite_dynamics!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
+
+# Solve the orbital dynamics
+prob = ODEProblem(satellite_dynamics!, u0, tspan, p)
+sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-12)
+
+# Alternative: Manual acceleration computation
+total_accel = build_dynamics_model(u0, p, 0.0, dynamics_model)
 ```
 
 ## Troubleshooting

@@ -17,13 +17,49 @@
 export DragAstroModel, drag_accel
 
 """
-Drag Astro Model struct
-Contains information to compute the acceleration of a drag force on a spacecraft.
+    DragAstroModel{ST,AT,EoT,RT,PT} <: AbstractNonPotentialBasedForce
+
+Atmospheric drag force model for spacecraft orbital dynamics.
+
+This model computes the acceleration due to atmospheric drag acting on a spacecraft in 
+Earth's atmosphere. The drag force is proportional to the atmospheric density and the 
+square of the relative velocity between the spacecraft and the atmosphere.
+
+# Type Parameters
+- `ST <: AbstractSatelliteDragModel`: Type of the satellite drag model
+- `AT <: AtmosphericModelType`: Type of the atmospheric model
+- `EoT <: Union{EopIau1980,EopIau2000A}`: Type of Earth Orientation Parameters
+- `RT <: Union{Nothing,AbstractVector}`: Type for RTS (optional)
+- `PT <: Union{Nothing,AbstractMatrix}`: Type for P matrix (optional)
 
 # Fields
-- `satellite_drag_model::AbstractSatelliteDragModel`: The satellite drag model for computing the ballistic coefficient.
-- `atmosphere_model::Symbol`: The atmospheric model for computing the density.
-- `eop_data::EopIau1980`: Earth orientation parameters to help compute the density with the atmospheric model.
+- `satellite_drag_model::ST`: The satellite drag model for computing ballistic coefficient (Cd*A/m)
+- `atmosphere_model::AT`: The atmospheric model for computing density (e.g., JR1971, JB2008, NRLMSISE00)
+- `eop_data::EoT`: Earth Orientation Parameters for coordinate transformations and atmospheric modeling
+- `rts::RT`: Optional RTS parameter for atmospheric model (defaults to nothing)
+- `P::PT`: Optional P matrix parameter for atmospheric model (defaults to nothing)
+
+# Example
+```julia
+# Create satellite drag model
+sat_drag = CannonballDragModel(
+    area = 10.0,        # [m²]
+    drag_coeff = 2.2,   # dimensionless
+    mass = 1000.0       # [kg]
+)
+
+# Create drag force model
+drag_model = DragAstroModel(
+    satellite_drag_model = sat_drag,
+    atmosphere_model = JB2008(),
+    eop_data = eop_data
+)
+```
+
+# See Also
+- [`acceleration`](@ref): Compute drag acceleration
+- [`AbstractSatelliteDragModel`](@ref): Satellite drag model interface
+- [`density_calculator`](@ref): Atmospheric density computation
 """
 @with_kw struct DragAstroModel{ST,AT,EoT,RT,PT} <: AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteDragModel,

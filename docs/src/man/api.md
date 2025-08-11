@@ -20,13 +20,14 @@ AstroForceModels defines a hierarchy of abstract types to organize different for
 AbstractAstroForceModel
 AbstractNonPotentialBasedForce  
 AbstractPotentialBasedForce
+AbstractDynamicsModel
 ```
 
 ## Gravity Models
 
 ### Types
 
-```@docs
+```
 GravityHarmonicsAstroModel
 KeplerianGravityAstroModel
 ```
@@ -51,7 +52,6 @@ DragAstroModel
 ```@docs
 AbstractSatelliteDragModel
 CannonballDragModel
-BoxWingDragModel
 ```
 
 ### Functions
@@ -84,7 +84,6 @@ StateSRPModel
 ShadowModelType
 Conical
 Cylindrical
-DualCone
 ```
 
 ### Functions
@@ -129,36 +128,41 @@ lense_thirring_acceleration
 de_sitter_acceleration
 ```
 
-## Dynamics Builder
+## Dynamics Models
 
-The dynamics builder provides utilities for combining multiple force models:
+The dynamics model system provides efficient ways to combine multiple force models:
+
+### Types
 
 ```@docs
-DynamicsBuilder
-build_dynamics_function
+CentralBodyDynamicsModel
 ```
 
-## Utility Functions
-
-### Constants
+### Functions
 
 ```@docs
-# Physical constants used throughout the package
-G_UNIVERSAL
-C_LIGHT
-R_EARTH
-R_SUN
-SOLAR_FLUX
-ASTRONOMICAL_UNIT
+build_dynamics_model
 ```
 
-### Helper Functions
+### Usage Example
 
-```@docs
-rotation_matrix
-coordinate_transformation
-time_conversion
-earth_orientation_parameters
+```julia
+# Create individual force models
+gravity_model = GravityHarmonicsAstroModel(...)
+drag_model = DragAstroModel(...)
+srp_model = SRPAstroModel(...)
+
+# Combine into dynamics model
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model)
+)
+
+# Use in ODE system
+function dynamics!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
 ```
 
 ## Type Definitions
@@ -168,6 +172,7 @@ earth_orientation_parameters
 The package uses ComponentArrays.jl for structured parameter handling:
 
 ```julia
+using ComponentVector
 JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
 p = ComponentVector(; JD=JD)
 ```
@@ -190,7 +195,7 @@ state = [
 
 ## Integration with SatelliteToolbox.jl
 
-AstroForceModels is designed to work seamlessly with other packages in the SatelliteToolbox.jl ecosystem:
+AstroForceModels is designed to be built off packages in the SatelliteToolbox.jl ecosystem:
 
 ### Required Dependencies
 
@@ -246,15 +251,6 @@ Please report bugs and feature requests on the GitHub issue tracker:
 - **Include version information** for Julia and all packages
 - **Describe expected vs. actual behavior**
 - **Include error messages** and stack traces if applicable
-
-### Getting Help
-
-For questions and support:
-
-- **Check the documentation** first
-- **Search existing issues** on GitHub
-- **Ask questions** in the Julia Discourse forum with the "satellite-toolbox" tag
-- **Review the source code** for implementation details
 
 ## Version History
 
