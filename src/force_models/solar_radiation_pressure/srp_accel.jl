@@ -64,8 +64,8 @@ srp_model = SRPAstroModel(
 
 # See Also
 - [`acceleration`](@ref): Compute SRP acceleration
-- [`AbstractSatelliteSRPModel`](@ref): Satellite SRP model interface
-- [`ShadowModelType`](@ref): Shadow model types
+- [`reflectivity_ballistic_coefficient`](@ref): Compute reflectivity coefficient
+- Shadow modeling with Conical, Cylindrical, and other shadow types
 """
 @with_kw struct SRPAstroModel{ST,SDT,EoT,SMT,RST,ROT,PT,AUT} <:
                 AbstractNonPotentialBasedForce where {

@@ -58,8 +58,8 @@ drag_model = DragAstroModel(
 
 # See Also
 - [`acceleration`](@ref): Compute drag acceleration
-- [`AbstractSatelliteDragModel`](@ref): Satellite drag model interface
-- [`density_calculator`](@ref): Atmospheric density computation
+- [`ballistic_coefficient`](@ref): Compute ballistic coefficient
+- Atmospheric density computation via SatelliteToolboxAtmosphericModels.jl
 """
 @with_kw struct DragAstroModel{ST,AT,EoT,RT,PT} <: AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteDragModel,

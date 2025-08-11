@@ -26,9 +26,10 @@ AstroForceModels defines a hierarchy of abstract types to organize different for
 The dynamics model system provides efficient ways to combine multiple force models:
 
 ```@docs
-CentralBodyDynamicsModel
 build_dynamics_model
 ```
+
+The `CentralBodyDynamicsModel` type is documented in the [Library](@ref) section.
 
 ### Usage Example
 
