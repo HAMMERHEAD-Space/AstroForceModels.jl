@@ -16,150 +16,70 @@ acceleration
 
 AstroForceModels defines a hierarchy of abstract types to organize different force models:
 
-```@docs
-AbstractAstroForceModel
-AbstractNonPotentialBasedForce  
-AbstractPotentialBasedForce
-```
+- `AbstractAstroForceModel`: Base type for all force models
+- `AbstractNonPotentialBasedForce`: Non-conservative forces (drag, SRP, etc.)  
+- `AbstractPotentialBasedForce`: Conservative forces derivable from potential (gravity)
+- `AbstractDynamicsModel`: Base type for dynamics model combinations
 
-## Gravity Models
+## Dynamics Models
 
-### Types
-
-```@docs
-GravityHarmonicsAstroModel
-KeplerianGravityAstroModel
-```
-
-### Functions
-
-```@docs  
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::GravityHarmonicsAstroModel)
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::KeplerianGravityAstroModel)
-```
-
-## Atmospheric Drag Models
-
-### Types
+The dynamics model system provides efficient ways to combine multiple force models:
 
 ```@docs
-DragAstroModel
+build_dynamics_model
 ```
 
-### Satellite Shape Models
+The `CentralBodyDynamicsModel` type is documented in the [Library](@ref) section.
 
-```@docs
-AbstractSatelliteDragModel
-CannonballDragModel
-BoxWingDragModel
+### Usage Example
+
+```julia
+# Create individual force models
+gravity_model = GravityHarmonicsAstroModel(...)
+drag_model = DragAstroModel(...)
+srp_model = SRPAstroModel(...)
+
+# Combine into dynamics model
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model)
+)
+
+# Use in ODE system
+function dynamics!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
 ```
 
-### Functions
+## Force Models
 
-```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::DragAstroModel)
-density_calculator
-ballistic_coefficient
-```
+AstroForceModels provides several categories of force models:
 
-## Solar Radiation Pressure Models
+### Gravity Models
 
-### Types
+- `GravityHarmonicsAstroModel`: Spherical harmonics gravity model with EGM96/EGM2008 coefficients
+- `KeplerianGravityAstroModel`: Simple point-mass gravity model
 
-```@docs
-SRPAstroModel
-```
+### Atmospheric Drag Models
 
-### Satellite Shape Models
+- `DragAstroModel`: Atmospheric drag force model with various atmospheric density models
+- `CannonballFixedDrag`: Fixed ballistic coefficient satellite shape model
 
-```@docs
-AbstractSatelliteSRPModel
-CannonballFixedSRP
-StateSRPModel
-```
+### Solar Radiation Pressure Models
 
-### Shadow Models
+- `SRPAstroModel`: Solar radiation pressure force model with shadow modeling
+- `CannonballFixedSRP`: Fixed reflectivity coefficient satellite shape model
 
-```@docs
-ShadowModelType
-Conical
-Cylindrical
-DualCone
-```
+### Third Body Models
 
-### Functions
+- `ThirdBodyModel`: Third body ephemeris provider (Sun, Moon, planets)
 
-```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::SRPAstroModel)
-shadow_function
-radiation_pressure_coefficient
-```
+### Relativistic Effects
 
-## Third Body Gravity Models
+- `RelativityModel`: General relativistic effects (Schwarzschild, Lense-Thirring, de Sitter)
 
-### Types
-
-```@docs
-ThirdBodyAstroModel
-ThirdBodyModel
-CelestialBody
-```
-
-### Functions
-
-```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::ThirdBodyAstroModel)
-third_body_position
-```
-
-## Relativistic Effects Models
-
-### Types
-
-```@docs
-RelativisticAstroModel
-```
-
-### Functions
-
-```@docs
-acceleration(::AbstractArray, ::ComponentVector, ::Number, ::RelativisticAstroModel)
-schwarzschild_acceleration  
-lense_thirring_acceleration
-de_sitter_acceleration
-```
-
-## Dynamics Builder
-
-The dynamics builder provides utilities for combining multiple force models:
-
-```@docs
-DynamicsBuilder
-build_dynamics_function
-```
-
-## Utility Functions
-
-### Constants
-
-```@docs
-# Physical constants used throughout the package
-G_UNIVERSAL
-C_LIGHT
-R_EARTH
-R_SUN
-SOLAR_FLUX
-ASTRONOMICAL_UNIT
-```
-
-### Helper Functions
-
-```@docs
-rotation_matrix
-coordinate_transformation
-time_conversion
-earth_orientation_parameters
-```
+All force models implement the common `acceleration(state, params, time, model)` interface.
 
 ## Type Definitions
 
@@ -168,6 +88,9 @@ earth_orientation_parameters
 The package uses ComponentArrays.jl for structured parameter handling:
 
 ```julia
+using ComponentArrays
+using SatelliteToolboxBase
+
 JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
 p = ComponentVector(; JD=JD)
 ```
@@ -190,7 +113,7 @@ state = [
 
 ## Integration with SatelliteToolbox.jl
 
-AstroForceModels is designed to work seamlessly with other packages in the SatelliteToolbox.jl ecosystem:
+AstroForceModels is designed to be built off packages in the SatelliteToolbox.jl ecosystem:
 
 ### Required Dependencies
 
@@ -222,40 +145,5 @@ gravity_model = GravityHarmonicsAstroModel(
 For practical examples and step-by-step tutorials, see:
 
 - [Usage Guide](usage.md): Comprehensive usage examples
-- [Force Model Documentation](../force_models/): Detailed descriptions of each force model
 - Test suite: Working examples in the `/test` directory
 - Benchmarks: Performance comparisons in the `/benchmark` directory
-
-## Support and Development
-
-### Contributing
-
-Contributions are welcome! Please see the development guidelines:
-
-1. **Fork the repository** and create a feature branch
-2. **Write tests** for new functionality
-3. **Follow coding style** conventions
-4. **Document new features** with docstrings
-5. **Submit a pull request** with a clear description
-
-### Reporting Issues
-
-Please report bugs and feature requests on the GitHub issue tracker:
-
-- **Provide a minimal working example** that demonstrates the issue
-- **Include version information** for Julia and all packages
-- **Describe expected vs. actual behavior**
-- **Include error messages** and stack traces if applicable
-
-### Getting Help
-
-For questions and support:
-
-- **Check the documentation** first
-- **Search existing issues** on GitHub
-- **Ask questions** in the Julia Discourse forum with the "satellite-toolbox" tag
-- **Review the source code** for implementation details
-
-## Version History
-
-See [CHANGELOG.md](../../../CHANGELOG.md) for detailed version history and breaking changes.

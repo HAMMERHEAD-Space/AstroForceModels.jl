@@ -18,7 +18,11 @@
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)
-    drag_model = DragAstroModel(satellite_drag_model, JB2008(), eop_data)
+    drag_model = DragAstroModel(;
+        satellite_drag_model=satellite_drag_model,
+        atmosphere_model=JB2008(),
+        eop_data=eop_data,
+    )
 
     state = [
         -1076.225324679696
@@ -30,7 +34,9 @@
     ] #km, km/s
 
     t = 0.0
-    model_list = (grav_model, sun_third_body, moon_third_body, srp_model, drag_model)
+    model_list = CentralBodyDynamicsModel(
+        grav_model, (sun_third_body, moon_third_body, srp_model, drag_model)
+    )
 
     total_accel = build_dynamics_model(state, p, t, model_list)
 
@@ -41,5 +47,5 @@
         acceleration(state, p, t, srp_model) +
         acceleration(state, p, t, drag_model)
 
-    @test total_accel_summed == total_accel
+    @test total_accel_summed ≈ total_accel rtol=1e-14
 end
