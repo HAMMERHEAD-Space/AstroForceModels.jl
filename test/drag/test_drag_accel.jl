@@ -29,6 +29,19 @@
         -4.987575495487041e-09, 1.8197638453380163e-09, 6.678597193592705e-10
     ] # km/s^2
 
-    # There is no common atmosphere between the two so we just test direction
     @test dot(normalize(drag_accel), normalize(expected_acceleration)) ≈ 1.0
+    
+    # For LEO at ~400 km altitude with typical conditions:
+    # - Atmospheric density: ~1e-11 to 1e-12 kg/m³ 
+    # - Velocity: ~7.6 km/s
+    # - Ballistic coefficient: 0.2 m²/kg (from test setup)
+    # Expected drag acceleration: ~1e-8 to 1e-10 km/s² magnitude
+    
+    drag_magnitude = norm(drag_accel)
+    @test drag_magnitude > 1e-10  # Should be non-negligible
+    @test drag_magnitude < 1e-8   # Should not be unreasonably large
+    
+    # Drag should oppose motion (negative work)
+    velocity = SVector{3}(state[4], state[5], state[6])
+    @test dot(drag_accel, velocity) < 0  # Drag opposes velocity
 end
