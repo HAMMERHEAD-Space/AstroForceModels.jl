@@ -32,5 +32,20 @@ julia> Pkg.add("AstroForceModels")
 
 For more information, see the [documentation][docs-dev-url].
 
+## Citing
+
+If you use `AstroForceModels.jl` in your work, please consider citing it.
+
+```bibtex
+@misc{AstroForceModels.jl,
+    author = {Murphy, Jordan},
+    title = {AstroForceModels.jl},
+    year = {2024},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\\url{https://github.com/HAMMERHEAD-Space/AstroForceModels.jl}}
+}
+```
+
 [docs-dev-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/
 [docs-stable-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/

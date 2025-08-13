@@ -18,3 +18,18 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 julia> using Pkg
 julia> Pkg.add("AstroForceModels")
 ```
+
+## Citing
+
+If you use `AstroForceModels.jl` in your work, please consider citing it.
+
+```bibtex
+@misc{AstroForceModels.jl,
+    author = {Murphy, Jordan},
+    title = {AstroForceModels.jl},
+    year = {2024},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\\url{https://github.com/HAMMERHEAD-Space/AstroForceModels.jl}}
+}
+```
