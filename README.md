@@ -36,13 +36,15 @@ For more information, see the [documentation][docs-dev-url].
 If you use `AstroForceModels.jl` in your work, please consider citing it.
 
 ```bibtex
-@misc{AstroForceModels.jl,
-    author = {Murphy, Jordan},
-    title = {AstroForceModels.jl},
-    year = {2024},
-    publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\\url{https://github.com/HAMMERHEAD-Space/AstroForceModels.jl}}
+@software{jordan_murphy_2025_16954386,
+  author       = {Jordan Murphy},
+  title        = {HAMMERHEAD-Space/AstroForceModels.jl: v0.3.13},
+  month        = aug,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {v0.3.13},
+  doi          = {10.5281/zenodo.16954386},
+  url          = {https://doi.org/10.5281/zenodo.16954386},
 }
 ```
 
