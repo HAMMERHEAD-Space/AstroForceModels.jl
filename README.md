@@ -1,12 +1,11 @@
 # AstroForceModels.jl
 
-## IMPORTANT NOTE: While the existing functions will work, for the most performance and differentiation capability, use one of the PR and instructions detailed there.
-
 [![CI](https://github.com/jmurphy6895/AstroForceModels.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/jmurphy6895/AstroForceModels.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 [![codecov](https://codecov.io/gh/jmurphy6895/AstroForceModels.jl/branch/main/graph/badge.svg?token=47G4OLV6PD)](https://codecov.io/gh/jmurphy6895/AstroForceModels.jl)
 [![](https://img.shields.io/badge/docs-stable-blue.svg)][docs-stable-url]
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+[![DOI](https://zenodo.org/badge/762543633.svg)](https://doi.org/10.5281/zenodo.16954385)
 
 This package contains the dominant astrodynamics forces affecting the orbital trajectory of a satellite. Currently this package implements:
 - [x] Zonal Harmonics
