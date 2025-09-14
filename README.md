@@ -18,7 +18,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [ ] Spacecraft thermal emission
 - [ ] Magnetic Field Effects
 
-The plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl, but this is still under discussion. In the meantime interfaces to the models there will be added.
+The plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl, but this is still under discussion. In the meantime, interfaces to those models will be added.
 
 ## Installation
 
