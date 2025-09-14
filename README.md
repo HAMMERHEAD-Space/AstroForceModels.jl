@@ -7,7 +7,7 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![DOI](https://zenodo.org/badge/762543633.svg)](https://doi.org/10.5281/zenodo.16954385)
 
-This package contains the dominant astrodynamics forces affecting the orbital trajectory of a satellite. Currently this package implements:
+This package contains the dominant astrodynamics forces affecting the orbital trajectory of a satellite. This package implements:
 - [x] Zonal Harmonics
 - [x] Solar Radiation Pressure
 - [x] Drag
