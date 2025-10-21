@@ -128,6 +128,8 @@ include("./force_models/gravity/gravity_accel.jl")
 include("./dynamics_builder.jl")
 
 export acceleration,
+    potential,
+    potential_time_derivative,
     AbstractAstroForceModel,
     AbstractDynamicsModel,
     AbstractNonPotentialBasedForce,
