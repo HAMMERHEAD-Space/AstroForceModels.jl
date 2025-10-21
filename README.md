@@ -38,11 +38,8 @@ If you use `AstroForceModels.jl` in your work, please consider citing it.
 ```bibtex
 @software{jordan_murphy_2025_16954386,
   author       = {Jordan Murphy},
-  title        = {HAMMERHEAD-Space/AstroForceModels.jl: v0.3.13},
-  month        = aug,
-  year         = 2025,
+  title        = {HAMMERHEAD-Space/AstroForceModels.jl},
   publisher    = {Zenodo},
-  version      = {v0.3.13},
   doi          = {10.5281/zenodo.16954386},
   url          = {https://doi.org/10.5281/zenodo.16954386},
 }
