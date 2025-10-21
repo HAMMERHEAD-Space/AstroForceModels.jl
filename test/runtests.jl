@@ -64,5 +64,11 @@ end
     include("test_allocations.jl")
     include("test_JET.jl")
 
-    Aqua.test_all(AstroForceModels; ambiguities=(recursive = false))
+    @testset "Aqua.jl" begin
+        Aqua.test_all(
+            AstroForceModels;
+            ambiguities=(recursive = false),
+            deps_compat=(check_extras = false),
+        )
+    end
 end

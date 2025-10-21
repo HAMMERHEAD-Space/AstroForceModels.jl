@@ -1,7 +1,7 @@
 name = "AstroForceModels"
 uuid = "077569d7-e100-45f3-83e3-c646e23345bd"
 authors = ["Jordan Murphy <jmurphy6895@gmail.com> and contributors"]
-version = "0.3.7"
+version = "0.3.12"
 
 [deps]
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
@@ -19,12 +19,12 @@ StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 ComponentArrays = "0.15"
 LinearAlgebra = "1"
 Parameters = "0.12"
-SatelliteToolboxAtmosphericModels = "1.0"
-SatelliteToolboxBase = "1.0"
-SatelliteToolboxCelestialBodies = "1.0"
-SatelliteToolboxGravityModels = "1.0"
-SatelliteToolboxTransformations = "1.0"
-SpaceIndices = "1.2"
+SatelliteToolboxAtmosphericModels = "1"
+SatelliteToolboxBase = "1"
+SatelliteToolboxCelestialBodies = "1"
+SatelliteToolboxGravityModels = "1"
+SatelliteToolboxTransformations = "1"
+SpaceIndices = "2"
 StaticArraysCore = "1.4"
 julia = "1.10, 1.11"
 
