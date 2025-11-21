@@ -117,14 +117,15 @@ function potential(
 
     time = (p.JD - JD_J2000) * 86400 + t
 
-    U = GravityModels.gravitational_potential(
-        grav_model.gravity_model,
-        itrf_pos,
-        time;
-        max_degree=grav_model.degree,
-        max_order=grav_model.order,
-        P=grav_model.P,
-    ) / 1E6
+    U =
+        -GravityModels.gravitational_potential(
+            grav_model.gravity_model,
+            itrf_pos,
+            time;
+            max_degree=grav_model.degree,
+            max_order=grav_model.order,
+            P=grav_model.P,
+        ) / 1E6
 
     return U
 end
@@ -133,7 +134,7 @@ end
     potential_time_derivative(u::AbstractVector, p::ComponentVector, t::Number, grav_model::GravityHarmonicsAstroModel)
 
 Computes the time derivative of the gravitational potential acting on a spacecraft given a gravity model and current state and 
-parameters of an object. Based on the IAU 2006 precession-nutation model, implemention from [1].
+parameters of an object. Based on the IAU 2006 precession-nutation model, implementation from [1].
 
 [1] Amato, Davide. "THALASSA: Orbit propagator for near-Earth and cislunar space." Astrophysics Source Code Library (2019): ascl-1905.
 
