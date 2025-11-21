@@ -261,4 +261,3 @@ function potential_time_derivative(
 )
     return 0.0
 end
-
