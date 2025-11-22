@@ -1,5 +1,8 @@
+using AllocCheck
+using Aqua
 using AstroForceModels
 using ComponentArrays
+using JET
 using LinearAlgebra
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxCelestialBodies
@@ -11,10 +14,6 @@ using Test
 
 using DifferentiationInterface
 using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
-
-using AllocCheck
-using Aqua
-using JET
 
 @testset "AstroForceModels.jl" begin
     # Drag Tests

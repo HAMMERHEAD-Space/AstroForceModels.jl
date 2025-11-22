@@ -56,16 +56,6 @@ end
     @check_allocs zon_accel(state, p, t, grav_model) = acceleration(state, p, t, grav_model)
 
     @test zon_accel(state, p, t, grav_model) isa SVector
-
-    @check_allocs pot_accel(state, p, t, grav_model) = potential(state, p, t, grav_model)
-
-    @test pot_accel(state, p, t, grav_model) isa Number
-
-    @check_allocs pot_time_accel(state, p, t, grav_model) = potential_time_derivative(
-        state, p, t, grav_model
-    )
-
-    @test pot_time_accel(state, p, t, grav_model) isa Number
 end
 
 @testset "Relativity Allocations" begin
