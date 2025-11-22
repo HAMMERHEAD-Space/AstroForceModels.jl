@@ -75,6 +75,9 @@ end
             f_ad3, df_ad3 = value_and_derivative(
                 (x) -> potential_time_derivative(_state, _p, x, _grav_model), backend[2], _t
             )
+
+            @test f_fd3 ≈ f_ad3
+            @test df_fd3 ≈ df_ad3 atol = 1e-6
         end
     end
 end
