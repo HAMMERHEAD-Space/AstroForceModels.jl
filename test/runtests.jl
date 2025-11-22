@@ -9,6 +9,10 @@ using SpaceIndices
 using StaticArraysCore
 using Test
 
+using AllocCheck
+using Aqua
+using JET
+
 using DifferentiationInterface
 using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
 
@@ -26,6 +30,7 @@ using JET
     include("solar_radiation_pressure/test_satellite_shape_models.jl")
     include("solar_radiation_pressure/test_shadow_models.jl")
     include("solar_radiation_pressure/test_srp_accel.jl")
+    include("solar_radiation_pressure/test_albedo_accel.jl")
 
     # Third Body Tests
     include("third_body/test_celestial_body.jl")
@@ -54,6 +59,7 @@ _BACKENDS = (
     include("differentiability/test_model_parameters.jl")
     include("differentiability/test_drag.jl")
     include("differentiability/test_srp.jl")
+    include("differentiability/test_albedo.jl")
     include("differentiability/test_gravity.jl")
     include("differentiability/test_relativity.jl")
     include("differentiability/test_third_body.jl")

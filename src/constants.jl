@@ -16,7 +16,7 @@ const R_MOON::Float64 = 1738.1
 # Speed of Light [m/s]
 const SPEED_OF_LIGHT::Float64 = 2.99792458E8
 # Solar Flux
-const SOLAR_FLUX::Float64 = 1360.8 / SPEED_OF_LIGHT
+const SOLAR_FLUX::Float64 = 1360.8
 # Graviational Parameter of the Moon [km^2/s^3]
 const μ_MOON::Float64 = 4.902800118457551E3
 # Graviational Parameter of the Sun [km^2/s^3]
