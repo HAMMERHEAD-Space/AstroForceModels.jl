@@ -11,7 +11,14 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Usage" => "man/usage.md",
-        "API" => "man/api.md",
+        "Force Models" => Any[
+            "force_models/gravity.md",
+            "force_models/drag.md",
+            "force_models/solar_radiation_pressure.md",
+            "force_models/third_body.md",
+            "force_models/relativity.md",
+        ],
+        "API Reference" => "man/api.md",
         "Library" => "lib/library.md",
     ],
 )

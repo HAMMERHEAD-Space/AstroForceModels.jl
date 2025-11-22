@@ -16,6 +16,10 @@ using JET
 using DifferentiationInterface
 using FiniteDiff, ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote
 
+using AllocCheck
+using Aqua
+using JET
+
 @testset "AstroForceModels.jl" begin
     # Drag Tests
     include("drag/test_satellite_shape_model.jl")
@@ -67,9 +71,11 @@ end
     include("test_allocations.jl")
     include("test_JET.jl")
 
-    Aqua.test_all(
-        AstroForceModels;
-        ambiguities=(recursive = false),
-        deps_compat=(check_extras = false),
-    )
+    @testset "Aqua.jl" begin
+        Aqua.test_all(
+            AstroForceModels;
+            ambiguities=(recursive = false),
+            deps_compat=(check_extras = false),
+        )
+    end
 end
