@@ -31,9 +31,7 @@
             )
 
             f_ad3, df_ad3 = value_and_gradient(
-                (x) -> potential_time_derivative(x, _p, _t, _grav_model),
-                backend[2],
-                _state,
+                (x) -> potential_time_derivative(x, _p, _t, _grav_model), backend[2], _state
             )
 
             @test f_fd3 ≈ f_ad3
@@ -75,9 +73,7 @@ end
             )
 
             f_ad3, df_ad3 = value_and_derivative(
-                (x) -> potential_time_derivative(_state, _p, x, _grav_model),
-                backend[2],
-                _t,
+                (x) -> potential_time_derivative(_state, _p, x, _grav_model), backend[2], _t
             )
         end
     end
