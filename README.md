@@ -13,7 +13,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Drag
 - [x] Third Body Gravity
 - [x] Relativistic
-- [ ] Albedo
+- [x] Albedo
 - [ ] Solid Tides
 - [ ] Spacecraft thermal emission
 - [ ] Magnetic Field Effects
