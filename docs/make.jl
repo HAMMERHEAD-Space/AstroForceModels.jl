@@ -23,4 +23,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo="github.com/jmurphy6895/AstroForceModels.jl.git", target="build")
+deploydocs(; repo="github.com/HAMMERHEAD-Space/AstroForceModels.jl.git", target="build")
