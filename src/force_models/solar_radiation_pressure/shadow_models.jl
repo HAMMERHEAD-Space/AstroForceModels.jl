@@ -165,9 +165,9 @@ end
 @inline function shadow_model(
     sat_pos::AbstractVector,
     sun_pos::AbstractVector,
-    ShadowModel::No_Shadow;
+    ShadowModel::NoShadow;
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
 )
-    return 1.0
+    return one(eltype(sat_pos))
 end

@@ -1,6 +1,9 @@
 @testset "SRP Differentiability State" begin
     for shadow in _SHADOW_MODELS
         for backend in _BACKENDS
+            if backend[1] == "Enzyme"
+                backend = ("Enzyme", AutoEnzyme(; function_annotation=Enzyme.Duplicated))
+            end
             testname = "SRP State " * shadow[1] * " " * backend[1]
             @testset "$testname" begin
                 srp_model = SRPAstroModel(;
@@ -28,6 +31,9 @@ end
 @testset "SRP Differentiability Time" begin
     for shadow in _SHADOW_MODELS
         for backend in _BACKENDS
+            if backend[1] == "Enzyme"
+                backend = ("Enzyme", AutoEnzyme(; function_annotation=Enzyme.Duplicated))
+            end
             testname = "SRP Time " * shadow[1] * " " * backend[1]
             @testset "$testname" begin
                 srp_model = SRPAstroModel(;
