@@ -10,8 +10,8 @@
 # References
 # ==========================================================================================
 #
-#TODO: REFERENCE
-#   [1] 
+#
+#   [1] Vallado, D. A. (2013). Fundamentals of Astrodynamics and Applications (4th ed.). Microcosm Press.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 export DragAstroModel, drag_accel
@@ -61,13 +61,13 @@ drag_model = DragAstroModel(
 - [`ballistic_coefficient`](@ref): Compute ballistic coefficient
 - Atmospheric density computation via SatelliteToolboxAtmosphericModels.jl
 """
-@with_kw struct DragAstroModel{ST,AT,EoT,RT,PT} <: AbstractNonPotentialBasedForce where {
+Base.@kwdef struct DragAstroModel{
     ST<:AbstractSatelliteDragModel,
     AT<:AtmosphericModelType,
     EoT<:Union{EopIau1980,EopIau2000A},
     RT<:Union{Nothing,AbstractVector},
     PT<:Union{Nothing,AbstractMatrix},
-}
+} <: AbstractNonPotentialBasedForce
     satellite_drag_model::ST
     atmosphere_model::AT
     eop_data::EoT
@@ -92,12 +92,12 @@ parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional drag acceleration acting on the spacecraft.
 
 """
-function acceleration(
+@inline function acceleration(
     u::AbstractVector, p::ComponentVector, t::Number, drag_model::DragAstroModel
 )
     # Compute density at the satellite's current position
     rho = compute_density(
-        p.JD + t / 86400.0,
+        current_jd(p, t),
         u,
         drag_model.eop_data,
         drag_model.atmosphere_model;
@@ -106,7 +106,7 @@ function acceleration(
     )
 
     #TODO: OFFER OPTION TO COMPUTE FROM EOP or SPICE EPHEMERIS 
-    ω_vec = SVector{3,Float64}(0.0, 0.0, EARTH_ANGULAR_SPEED)
+    ω_vec = SVector{3}(0.0, 0.0, EARTH_ANGULAR_SPEED)
 
     # Compute the ballistic coefficient
     BC = ballistic_coefficient(u, p, t, drag_model.satellite_drag_model)

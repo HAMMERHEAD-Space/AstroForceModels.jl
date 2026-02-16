@@ -1,3 +1,10 @@
+"""
+    current_jd(p, t)
+
+Compute the current Julian Date from parameters `p` and elapsed time `t` [s].
+"""
+@inline current_jd(p, t) = p.JD + t / 86400.0
+
 @inline function angle_between_vectors(
     v1::AbstractVector{T1}, v2::AbstractVector{T2}
 ) where {T1,T2}

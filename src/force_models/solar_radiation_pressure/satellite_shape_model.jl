@@ -3,14 +3,14 @@
 # Description
 # ==========================================================================================
 #
-#   Satellite Drag Models to easily compute the ballistic coefficient
+#   Satellite SRP Models to easily compute the reflectivity ballistic coefficient
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export CannonballFixedSRP, StateSRPModel
+export AbstractSatelliteSRPModel, CannonballFixedSRP, StateSRPModel
 export reflectivity_ballistic_coefficient
 
 """
-Abstract satellite drag model to help compute drag forces.
+Abstract satellite SRP model to help compute solar radiation pressure forces.
 """
 abstract type AbstractSatelliteSRPModel end
 
@@ -25,8 +25,8 @@ fixed reflectivity coefficient.
 - `reflectivity_coeff::Number`: The reflectivity coefficient of the spacecraft.
 - `reflectivity_ballistic_coeff::Number`: The fixed ballistic coefficient to use.
 """
-struct CannonballFixedSRP{RT,MT,RcT,RbT} <:
-       AbstractSatelliteSRPModel where {RT<:Number,MT<:Number,RcT<:Number,RbT<:Number}
+struct CannonballFixedSRP{RT<:Number,MT<:Number,RcT<:Number,RbT<:Number} <:
+       AbstractSatelliteSRPModel
     radius::RT
     mass::MT
     reflectivity_coeff::RcT

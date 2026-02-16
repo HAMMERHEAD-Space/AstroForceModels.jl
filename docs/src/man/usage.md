@@ -31,12 +31,12 @@ using DifferentialEquations
 gravity_model = KeplerianGravityAstroModel()  # or GravityHarmonicsAstroModel
 drag_model = DragAstroModel(...)
 srp_model = SRPAstroModel(...)
-third_body_model = ThirdBodyAstroModel(...)
+third_body = ThirdBodyModel(; body=SunBody(), eop_data=fetch_iers_eop())
 
 # Combine into a dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, third_body_model)
+    (drag_model, srp_model, third_body)
 )
 
 # System dynamics function using the dynamics model
@@ -97,7 +97,7 @@ gravity_model = GravityHarmonicsAstroModel(
 )
 
 ## 2. Atmospheric Drag Model
-satellite_drag = CannonballDragModel(
+satellite_drag = CannonballFixedDrag(
     area = spacecraft_params.area,
     drag_coeff = spacecraft_params.Cd,
     mass = spacecraft_params.mass
@@ -127,27 +127,17 @@ srp_model = SRPAstroModel(
 )
 
 ## 4. Third Body Gravity (Sun and Moon)
-# Create third body models
-sun_perturbation = ThirdBodyAstroModel(
-    third_body_model = sun_model,
-    eop_data = eop_data
-)
-
+# Sun model already created above for SRP
 # Create Moon model  
 moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
 
-moon_perturbation = ThirdBodyAstroModel(
-    third_body_model = moon_model, 
-    eop_data = eop_data
-)
-
 ## 5. Relativistic Effects
-relativity_model = RelativisticAstroModel()
+relativity_model = RelativityModel(eop_data)
 
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_perturbation, moon_perturbation, relativity_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model)
 )
 
 # System dynamics function for ODE solver

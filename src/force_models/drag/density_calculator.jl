@@ -7,13 +7,13 @@
 #   the SatelliteToolbox ecosystem
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export JB2008, JR1971, MSIS2000, ExpAtmo, None
+export AtmosphericModelType, JB2008, JR1971, MSIS2000, ExpAtmo, NoAtmosphere
 abstract type AtmosphericModelType end
 struct JB2008 <: AtmosphericModelType end
 struct JR1971 <: AtmosphericModelType end
 struct MSIS2000 <: AtmosphericModelType end
 struct ExpAtmo <: AtmosphericModelType end
-struct None <: AtmosphericModelType end
+struct NoAtmosphere <: AtmosphericModelType end
 
 export compute_density
 """
@@ -27,7 +27,7 @@ Computes the atmospheric density at a point given the date, position, eop_data, 
 - `eop_data::EopIau1980`: The earth orientation parameters.
 - `AtmosphereType::AtmosphericModelType`: The type of atmospheric model used to compute the density. Available 
     options are Jacchia-Bowman 2008 (JB2008), Jacchia-Roberts 1971 (JR1971), NRL MSIS 2000 (MSIS2000),
-    Exponential (ExpAtmo), and None (None)
+    Exponential (ExpAtmo), and NoAtmosphere (NoAtmosphere)
 
 # Returns
 - `rho::Number`: The density of the atmosphere at the provided time and point [kg/m^3].
@@ -112,10 +112,10 @@ end
     JD::Number,
     u::AbstractVector,
     eop_data::EopIau1980,
-    AtmosphereType::None;
+    AtmosphereType::NoAtmosphere;
     roots_container::Union{Nothing,AbstractVector}=nothing,
     P::Union{Nothing,AbstractMatrix}=nothing,
 )
-    # If None atmosphere provided return 0.0
+    # If NoAtmosphere provided return 0.0
     return 0.0
 end

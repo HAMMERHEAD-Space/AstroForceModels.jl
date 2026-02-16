@@ -39,7 +39,7 @@ Sun-spacecraft distance, and includes shadow effects from the central body (typi
 - `R_Sun::RST`: Radius of the Sun [km] - defaults to R_SUN constant
 - `R_Occulting::ROT`: Radius of the occulting body [km] - defaults to R_EARTH constant  
 - `Ψ::PT`: Solar flux constant at 1 AU [W/m²] - defaults to SOLAR_FLUX constant
-- `AU::AUT`: Astronomical Unit [km] - defaults to ASTRONOMICAL_UNIT constant
+- `AU::AUT`: Astronomical Unit [km] - defaults to ASTRONOMICAL_UNIT / 1E3
 
 # Example
 ```julia
@@ -67,13 +67,16 @@ srp_model = SRPAstroModel(
 - [`reflectivity_ballistic_coefficient`](@ref): Compute reflectivity coefficient
 - Shadow modeling with Conical, Cylindrical, and other shadow types
 """
-@with_kw struct SRPAstroModel{ST,SDT,EoT,SMT,RST,ROT,PT,AUT} <:
-                AbstractNonPotentialBasedForce where {
+Base.@kwdef struct SRPAstroModel{
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
     EoT<:Union{EopIau1980,EopIau2000A},
     SMT<:ShadowModelType,
-}
+    RST<:Number,
+    ROT<:Number,
+    PT<:Number,
+    AUT<:Number,
+} <: AbstractNonPotentialBasedForce
     satellite_srp_model::ST
     sun_data::SDT
     eop_data::EoT
@@ -82,7 +85,7 @@ srp_model = SRPAstroModel(
     R_Sun::RST = R_SUN
     R_Occulting::ROT = R_EARTH
     Ψ::PT = SOLAR_FLUX
-    AU::AUT = ASTRONOMICAL_UNIT
+    AU::AUT = ASTRONOMICAL_UNIT / 1E3
 end
 
 """
@@ -104,8 +107,8 @@ parameters of an object.
 function acceleration(
     u::AbstractVector, p::ComponentVector, t::Number, srp_model::SRPAstroModel
 )
-    # Compute the Sun's Position
-    sun_pos = srp_model.sun_data(p.JD + t / 86400.0, Position())
+    # Compute the Sun's Position (convert from m to km for consistent units)
+    sun_pos = srp_model.sun_data(current_jd(p, t), Position()) ./ 1E3
 
     # Compute the reflectivity ballistic coefficient
     RC = reflectivity_ballistic_coefficient(u, p, t, srp_model.satellite_srp_model)
@@ -140,10 +143,10 @@ force can be computed using the a Cannonball model with the following equation
 
 # Arguments
 
-- `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame.
-- `sun_pos::AbstractVector`: The current position of the Sun.
-- `R_Sun::Number`: The radius of the Sun.
-- `R_Occulting::Number`: The radius of the Earth.
+- `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame [km, km/s].
+- `sun_pos::AbstractVector`: The current position of the Sun [km].
+- `R_Sun::Number`: The radius of the Sun [km].
+- `R_Occulting::Number`: The radius of the Earth [km].
 - `Ψ::Number`: Solar Constant at 1 Astronomical Unit.
 - `RC::Number`: The solar ballistic coefficient of the satellite -- (Area/mass) * Reflectivity Coefficient [kg/m^2].
 - `t::Number`: The current time of the Simulation

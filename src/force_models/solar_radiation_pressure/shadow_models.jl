@@ -9,11 +9,11 @@
 #
 # References
 # ==========================================================================================
-#TODO: REFERENCE
-#   [1]
+#
+#   [1] Montenbruck, O., & Gill, E. (2000). Satellite Orbits: Models, Methods, and Applications. Springer.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export Conical, Cylindrical, No_Shadow
+export ShadowModelType, Conical, Cylindrical, No_Shadow
 abstract type ShadowModelType end
 struct Conical <: ShadowModelType end
 struct Cylindrical <: ShadowModelType end
@@ -30,7 +30,7 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
 - `sun_pos::AbstractVector`: The current Sun position.
 - `R_Sun::Number`: The radius of the Sun.
 - `R_Occulting::Number`: The radius of the Occulting Body.
-- `ShadowModel::ShadowModelType`: The Earth shadow model to use. Current Options -- Cylindrical, Conical, Conical_Simplified, None
+- `ShadowModel::ShadowModelType`: The Earth shadow model to use. Current Options -- Cylindrical, Conical, No_Shadow
 
 # Returns
 
@@ -43,7 +43,7 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
 )
-    sat_pos = SVector{3}(sat_pos[1:3])
+    sat_pos = SVector{3}(sat_pos[1], sat_pos[2], sat_pos[3])
     sun_direction = SVector{3}(normalize(sun_pos))
 
     # Compute dot product between sun and satellite positions

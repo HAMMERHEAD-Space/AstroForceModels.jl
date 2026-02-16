@@ -6,7 +6,7 @@
 #   Third Body Model and Ephemeris Functions
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export Vallado
+export AbstractEphemerisType, Vallado
 abstract type AbstractEphemerisType end
 struct Vallado <: AbstractEphemerisType end
 
@@ -24,9 +24,9 @@ Contains information to compute the acceleration of a third body force acting on
 - `body::CelestialBody`: Celestial body acting on the craft.
 - `ephem_type::AbstractEphemerisType`: Ephemeris type used to compute body's position. Options are currently Vallado().
 """
-@with_kw struct ThirdBodyModel{BT,EoT,EpT} <: AbstractNonPotentialBasedForce where {
+Base.@kwdef struct ThirdBodyModel{
     BT<:CelestialBody,EoT<:Union{EopIau1980,EopIau2000A,Nothing},EpT<:AbstractEphemerisType
-}
+} <: AbstractNonPotentialBasedForce
     body::BT = SunBody
     eop_data::EoT = nothing
     ephem_type::EpT = Vallado()
@@ -48,18 +48,20 @@ function get_position(
     ephem_type::Vallado, body::CelestialBody, eop_data::T, time::TT
 ) where {T<:Union{EopIau1980,EopIau2000A,Nothing},TT}
 
-    # Compute the MOD frame in the J2000 frame to rotate the sun's position vector
+    # Compute the MOD frame in the J2000 frame to rotate the body's position vector
     R_MOD2J2000::SatelliteToolboxTransformations.DCM{TT} = r_eci_to_eci(
         MOD(), J2000(), time, eop_data
     )
 
-    if body.name == :Sun
-        pos_mod = sun_position_mod(time)
-    elseif body.name == :Moon
-        pos_mod = moon_position_mod(time)
-    end
+    pos_mod = _position_mod(body, time)
 
     return R_MOD2J2000 * pos_mod
+end
+
+_position_mod(::CelestialBody{:Sun}, time) = sun_position_mod(time)
+_position_mod(::CelestialBody{:Moon}, time) = moon_position_mod(time)
+function _position_mod(body::CelestialBody{Name}, time) where {Name}
+    throw(ArgumentError("Vallado position ephemeris is not supported for $Name"))
 end
 
 """
@@ -76,20 +78,19 @@ Computes the velocity of the celestial body using Vallado's ephemeris
 function get_velocity(
     ephem_type::Vallado, body::CelestialBody, eop_data::T, time::TT
 ) where {T<:Union{EopIau1980,EopIau2000A,Nothing},TT}
-    if body.name == :Sun
-        vel_mod = sun_velocity_mod(time)
-    else
-        throw(
-            ArgumentError("Vallado velocity ephemeris is only supported by Sun Currently")
-        )
-    end
+    vel_mod = _velocity_mod(body, time)
 
-    # Compute the MOD frame in the J2000 frame to rotate the sun's position vector
+    # Compute the MOD frame in the J2000 frame to rotate the body's velocity vector
     R_MOD2J2000::SatelliteToolboxTransformations.DCM{TT} = r_eci_to_eci(
         MOD(), J2000(), time, eop_data
     )
 
     return R_MOD2J2000 * vel_mod
+end
+
+_velocity_mod(::CelestialBody{:Sun}, time) = sun_velocity_mod(time)
+function _velocity_mod(body::CelestialBody{Name}, time) where {Name}
+    throw(ArgumentError("Vallado velocity ephemeris is not supported for $Name"))
 end
 
 #TODO: ADD FULL STATE WITH SPICE SUPPORT

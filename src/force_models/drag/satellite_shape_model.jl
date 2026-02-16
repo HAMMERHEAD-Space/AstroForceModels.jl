@@ -6,7 +6,7 @@
 #   Satellite Drag Models to easily compute the ballistic coefficient
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export CannonballFixedDrag, StateDragModel
+export AbstractSatelliteDragModel, CannonballFixedDrag, StateDragModel
 export ballistic_coefficient
 
 """
@@ -25,8 +25,8 @@ fixed ballistic coefficient.
 - `drag_coeff::Number`: The drag coefficient of the spacecraft.
 - `ballistic_coeff::Number`: The fixed ballistic coefficient to use.
 """
-struct CannonballFixedDrag{RT,MT,DT,BT} <:
-       AbstractSatelliteDragModel where {RT<:Number,MT<:Number,DT<:Number,BT<:Number}
+struct CannonballFixedDrag{RT<:Number,MT<:Number,DT<:Number,BT<:Number} <:
+       AbstractSatelliteDragModel
     radius::RT
     mass::MT
     drag_coeff::DT

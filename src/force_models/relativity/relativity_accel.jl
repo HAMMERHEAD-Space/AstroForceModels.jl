@@ -3,7 +3,7 @@
 # Description
 # ==========================================================================================
 #
-#   Relativity Force Models for Schwartzchild, Lense-Thirring, and De Sitter Effects
+#   Relativity Force Models for Schwarzschild, Lense-Thirring, and De Sitter Effects
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
@@ -16,7 +16,7 @@
 export RelativityModel,
     relativity_accel,
     lense_thirring_acceleration,
-    schwartzchild_acceleration,
+    schwarzschild_acceleration,
     de_Sitter_acceleration
 #TODO: CAN THIS BE INCORPORATED INTO THE POTENTIAL FORCES IN DROMO
 """
@@ -24,41 +24,56 @@ Relativity Astro Model struct
 Contains information to compute the acceleration of relativity acting on a spacecraft.
 
 # Fields
-- `central_body::ThirdBodyModel`: The data to compute the central body's graviational parameter.
-- `sun_body::ThirdBodyModel`: The data to compute the Sun's position, velocity, and graviational parameter.
+- `central_body::ThirdBodyModel`: The data to compute the central body's gravitational parameter.
+- `sun_body::ThirdBodyModel`: The data to compute the Sun's position, velocity, and gravitational parameter.
 - `eop_data::Union{EopIau1980,EopIau2000A}`: Earth Orientation Parameter data.
 - `c::Number`: The speed of light [km/s].
 - `γ::Number`: Post-Newtonian Parameterization parameter. γ=1 in General Relativity.
 - `β::Number`: Post-Newtonian Parameterization parameter. β=1 in General Relativity.
-- `schwartzchild_effect::Bool`: Include the Schwartzchild relativity effect.
+- `schwarzschild_effect::Bool`: Include the Schwarzschild relativity effect.
 - `lense_thirring_effect::Bool`: Include the Lense Thirring relativity effect.
 - `de_Sitter_effect::Bool`: Include the De Sitter relativity effect.
 """
-@with_kw struct RelativityModel{ST,EoT,CT,GT,BT,ET} <:
-                AbstractNonPotentialBasedForce where {
-    ST<:ThirdBodyModel,
+Base.@kwdef struct RelativityModel{
+    CBT<:ThirdBodyModel,
+    SBT<:ThirdBodyModel,
     EoT<:Union{EopIau1980,EopIau2000A},
     CT<:Number,
     GT<:Number,
     BT<:Number,
     ET<:Bool,
-}
-    central_body::ST = ThirdBodyModel(; body=EarthBody(), eop_data=fetch_iers_eop())
-    sun_body::ST = ThirdBodyModel(; body=SunBody(), eop_data=fetch_iers_eop())
+} <: AbstractNonPotentialBasedForce
+    central_body::CBT = ThirdBodyModel(; body=EarthBody(), eop_data=fetch_iers_eop())
+    sun_body::SBT = ThirdBodyModel(; body=SunBody(), eop_data=fetch_iers_eop())
     eop_data::EoT = fetch_iers_eop()
-    c::CT = SPEED_OF_LIGHT / 1E3
+    c::CT = SPEED_OF_LIGHT
     γ::GT = 1.0
     β::BT = 1.0
-    schwartzchild_effect::ET = true
+    schwarzschild_effect::ET = true
     lense_thirring_effect::ET = true
     de_Sitter_effect::ET = true
 end
 
 """
+    RelativityModel(eop_data; kwargs...)
+
+Convenience constructor that shares a single EOP dataset across all sub-models,
+avoiding redundant `fetch_iers_eop()` calls.
+"""
+function RelativityModel(eop_data::Union{EopIau1980,EopIau2000A}; kwargs...)
+    return RelativityModel(;
+        central_body=ThirdBodyModel(; body=EarthBody(), eop_data=eop_data),
+        sun_body=ThirdBodyModel(; body=SunBody(), eop_data=eop_data),
+        eop_data=eop_data,
+        kwargs...,
+    )
+end
+
+"""
     acceleration(u::AbstractVector, p::ComponentVector, t::Number, relativity_model::RelativityModel)
 
-Computes the srp acceleration acting on a spacecraft given a srp model and current state and 
-parameters of an object.
+Computes the relativistic acceleration acting on a spacecraft given a relativity model and current 
+state and parameters of an object.
 
 # Arguments
 - `u::AbstractVector`: Current State of the simulation.
@@ -74,34 +89,37 @@ function acceleration(
     u::AbstractVector{UT}, p::ComponentVector{PT}, t::TT, relativity_model::RelativityModel
 ) where {UT,PT,TT}
     RT = promote_type(UT, PT, TT)
+    z = zero(RT)
+    accel = SVector{3}(z, z, z)
 
-    current_time = p.JD + t / 86400.0
+    current_time = current_jd(p, t)
+    μ_body = relativity_model.central_body.body.μ
+    c = relativity_model.c
+    γ = relativity_model.γ
 
-    R_ITRF2J2000::SatelliteToolboxTransformations.DCM{RT} = r_ecef_to_eci(
-        ITRF(), J2000(), current_time, relativity_model.eop_data
-    )
+    if relativity_model.schwarzschild_effect
+        accel =
+            accel + schwarzschild_acceleration(u, μ_body; c=c, γ=γ, β=relativity_model.β)
+    end
 
-    J =
-        SVector{3}(R_ITRF2J2000[1, 3], R_ITRF2J2000[2, 3], R_ITRF2J2000[3, 3]) *
-        EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS
+    if relativity_model.lense_thirring_effect
+        R_ITRF2J2000::SatelliteToolboxTransformations.DCM{RT} = r_ecef_to_eci(
+            ITRF(), J2000(), current_time, relativity_model.eop_data
+        )
+        J =
+            SVector{3}(R_ITRF2J2000[1, 3], R_ITRF2J2000[2, 3], R_ITRF2J2000[3, 3]) *
+            EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS
+        accel = accel + lense_thirring_acceleration(u, μ_body, J; c=c, γ=γ)
+    end
 
-    sun_pos = relativity_model.sun_body(current_time, Position()) ./ 1E3
-    sun_vel = relativity_model.sun_body(current_time, Velocity()) ./ 1E3
+    if relativity_model.de_Sitter_effect
+        sun_pos = relativity_model.sun_body(current_time, Position()) ./ 1E3
+        sun_vel = relativity_model.sun_body(current_time, Velocity()) ./ 1E3
+        μ_Sun = relativity_model.sun_body.body.μ
+        accel = accel + de_Sitter_acceleration(u, sun_pos, sun_vel, μ_Sun; c=c, γ=γ)
+    end
 
-    return relativity_accel(
-        u,
-        sun_pos,
-        sun_vel,
-        relativity_model.central_body.body.μ,
-        relativity_model.sun_body.body.μ,
-        J;
-        c=relativity_model.c,
-        γ=relativity_model.γ,
-        β=relativity_model.β,
-        schwartzchild_effect=relativity_model.schwartzchild_effect,
-        lense_thirring_effect=relativity_model.lense_thirring_effect,
-        de_Sitter_effect=relativity_model.de_Sitter_effect,
-    )
+    return accel
 end
 
 """
@@ -112,10 +130,10 @@ end
         μ_body::Number,
         μ_Sun::Number,
         J::AbstractVector;
-        c::Number=SPEED_OF_LIGHT / 1E3,
+        c::Number=SPEED_OF_LIGHT,
         γ::Number=1.0,
         β::Number=1.0,
-        schwartzchild_effect::Bool=true,
+        schwarzschild_effect::Bool=true,
         lense_thirring_effect::Bool=true,
         de_Sitter_effect::Bool=true,
     )
@@ -133,7 +151,7 @@ parameters of an object.
 - `c::Number`: Speed of Light [km/s]
 - `γ::Number`: Post-Newtonian Parameterization parameter. γ=1 in General Relativity.
 - `β::Number`: Post-Newtonian Parameterization parameter. β=1 in General Relativity.
-- `schwartzchild_effect::Bool`: Include the Schwartzchild relativity effect.
+- `schwarzschild_effect::Bool`: Include the Schwarzschild relativity effect.
 - `lense_thirring_effect::Bool`: Include the Lense Thirring relativity effect.
 - `de_Sitter_effect::Bool`: Include the De Sitter relativity effect.
 
@@ -148,31 +166,32 @@ function relativity_accel(
     μ_body::MT,
     μ_Sun::MT2,
     J::AbstractVector{JT};
-    c::CT=SPEED_OF_LIGHT / 1E3,
+    c::CT=SPEED_OF_LIGHT,
     γ::GT=1.0,
     β::BT=1.0,
-    schwartzchild_effect::Bool=true,
+    schwarzschild_effect::Bool=true,
     lense_thirring_effect::Bool=true,
     de_Sitter_effect::Bool=true,
 ) where {UT,RT,VT,MT,MT2,JT,CT,GT,BT}
     AT = promote_type(UT, RT, VT, MT, MT2, JT, CT, GT, BT)
+    z = zero(AT)
+    accel = SVector{3}(z, z, z)
 
-    schwartzchild_accel =
-        schwartzchild_effect .* schwartzchild_acceleration(u, μ_body; c=c, γ=γ, β=β)
-    lense_thirring_accel =
-        lense_thirring_effect .* lense_thirring_acceleration(u, μ_body, J; c=c, γ=γ)
-    de_Sitter_accel =
-        de_Sitter_effect .* de_Sitter_acceleration(u, r_sun, v_sun, μ_Sun; c=c, γ=γ)
+    if schwarzschild_effect
+        accel = accel + schwarzschild_acceleration(u, μ_body; c=c, γ=γ, β=β)
+    end
+    if lense_thirring_effect
+        accel = accel + lense_thirring_acceleration(u, μ_body, J; c=c, γ=γ)
+    end
+    if de_Sitter_effect
+        accel = accel + de_Sitter_acceleration(u, r_sun, v_sun, μ_Sun; c=c, γ=γ)
+    end
 
-    return SVector{3,AT}(
-        schwartzchild_accel[1] + lense_thirring_accel[1] + de_Sitter_accel[1],
-        schwartzchild_accel[2] + lense_thirring_accel[2] + de_Sitter_accel[2],
-        schwartzchild_accel[3] + lense_thirring_accel[3] + de_Sitter_accel[3],
-    )
+    return accel
 end
 
 """
-    schwartzchild_acceleration(
+    schwarzschild_acceleration(
         u::AbstractVector, μ_body::Number; c::Number=SPEED_OF_LIGHT, γ::Number=1.0, β::Number=1.0
     )
 
@@ -187,10 +206,10 @@ parameters of an object.
 - `β::Number`: Post-Newtonian Parameterization parameter. β=1 in General Relativity.
 
 # Returns
-- `schwartzchild_acceleration: SVector{3}`: The 3-dimensional schwartzchild acceleration acting on the spacecraft.
+- `schwarzschild_acceleration: SVector{3}`: The 3-dimensional schwarzschild acceleration acting on the spacecraft.
 
 """
-@inline function schwartzchild_acceleration(
+@inline function schwarzschild_acceleration(
     u::AbstractVector{UT}, μ_body::MT; c::CT=SPEED_OF_LIGHT, γ::GT=1.0, β::BT=1.0
 ) where {UT,MT,CT,GT,BT}
     RT = promote_type(UT, MT, CT, GT, BT)
@@ -199,18 +218,18 @@ parameters of an object.
     r_norm = norm(r)
     ṙ = SVector{3,UT}(u[4], u[5], u[6])
 
-    schwartzchild_pos_force = μ_body / ((c^2.0) * (r_norm^3.0))
-    schwartzchild_dir =
+    schwarzschild_pos_force = μ_body / ((c^2.0) * (r_norm^3.0))
+    schwarzschild_dir =
         ((2.0 * (β + γ)) * (μ_body / r_norm) - γ * dot(ṙ, ṙ)) * r +
         2.0 * (1.0 + γ) * dot(r, ṙ) * ṙ
 
-    schwartzchild = SVector{3,RT}(
-        schwartzchild_pos_force * schwartzchild_dir[1],
-        schwartzchild_pos_force * schwartzchild_dir[2],
-        schwartzchild_pos_force * schwartzchild_dir[3],
+    schwarzschild = SVector{3,RT}(
+        schwarzschild_pos_force * schwarzschild_dir[1],
+        schwarzschild_pos_force * schwarzschild_dir[2],
+        schwarzschild_pos_force * schwarzschild_dir[3],
     )
 
-    return schwartzchild
+    return schwarzschild
 end
 
 """

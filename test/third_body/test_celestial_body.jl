@@ -1,12 +1,12 @@
 @testset "Celestial Body Construction" begin
     sun = SunBody()
     @test sun.μ == μ_SUN
-    @test sun.name == :Sun
+    @test nameof(sun) == :Sun
     @test sun.Req == R_SUN
 
     moon = MoonBody()
     @test moon.μ == μ_MOON
-    @test moon.name == :Moon
+    @test nameof(moon) == :Moon
     @test moon.Req == R_MOON
 end
 
@@ -16,19 +16,19 @@ end
 
     typeof(sun.μ)
 
-    @test sun.name == :Sun
+    @test nameof(sun) == :Sun
     @test sun.Req == Float32(R_SUN)
 
     moon = MoonBody(; T=Float32)
     @test moon.μ == Float32(μ_MOON)
-    @test moon.name == :Moon
+    @test nameof(moon) == :Moon
     @test moon.Req == Float32(R_MOON)
 end
 
 @testset "Test Custom Celestial Body Construction" begin
     tatooine = CelestialBody(:Tatooine, :Dual_Sun, 99999, 1.2E8, 3456.0)
 
-    @test tatooine.name == :Tatooine
+    @test nameof(tatooine) == :Tatooine
     @test tatooine.central_body == :Dual_Sun
     @test tatooine.jpl_code == 99999
     @test tatooine.μ == 1.2E8

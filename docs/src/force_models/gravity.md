@@ -1,4 +1,4 @@
-# Gravity / Zonal Harmonics
+# Gravity / Spherical Harmonics
 
 The gravity force model accounts for the gravitational acceleration experienced by a spacecraft due to the non-uniform mass distribution of the central body (typically Earth). While a point-mass gravity model assumes the central body is perfectly spherical and uniform, real celestial bodies have irregular mass distributions that create additional gravitational perturbations.
 
