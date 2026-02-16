@@ -152,7 +152,7 @@ force can be computed using a cannonball model with the following equation:
 - `R_Sun::Number`: The radius of the Sun [km]. Default: `R_SUN`.
 - `R_Occulting::Number`: The radius of the occulting body [km]. Default: `R_EARTH`.
 - `Ψ::Number`: Solar radiation pressure at 1 AU [N/m^2]. Default: `SOLAR_FLUX`.
-- `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT`.
+- `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT / 1E3`.
 
 # Returns
 
@@ -166,7 +166,7 @@ force can be computed using a cannonball model with the following equation:
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
     Ψ::Number=SOLAR_FLUX,
-    AU::Number=ASTRONOMICAL_UNIT,
+    AU::Number=ASTRONOMICAL_UNIT / 1E3,
 ) where {UT}
     sat_pos = SVector{3,UT}(u[1], u[2], u[3])
 
