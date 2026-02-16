@@ -84,7 +84,7 @@ end
     ] #km, km/s
 
     satellite_lense_thirring_model = RelativityModel(;
-        schwartzchild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
+        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
     )
 
     @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) = acceleration(
@@ -94,7 +94,7 @@ end
     @test lense_thirr_accel(state, p, t, satellite_lense_thirring_model) isa SVector
 
     satellite_de_sitter_model = RelativityModel(;
-        schwartzchild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
+        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
     )
 
     @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) = acceleration(
@@ -102,14 +102,14 @@ end
     )
     @test de_sitt_accel(state, p, t, satellite_de_sitter_model) isa SVector
 
-    satellite_schwartzchild_model = RelativityModel(;
-        schwartzchild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
+    satellite_schwarzschild_model = RelativityModel(;
+        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
     )
 
-    @check_allocs schwartz_accel(state, p, t, satellite_schwartzchild_model) = acceleration(
-        state, p, t, satellite_schwartzchild_model
+    @check_allocs schwartz_accel(state, p, t, satellite_schwarzschild_model) = acceleration(
+        state, p, t, satellite_schwarzschild_model
     )
-    @test schwartz_accel(state, p, t, satellite_schwartzchild_model) isa SVector
+    @test schwartz_accel(state, p, t, satellite_schwarzschild_model) isa SVector
 end
 
 @testset "SRP Allocations" begin

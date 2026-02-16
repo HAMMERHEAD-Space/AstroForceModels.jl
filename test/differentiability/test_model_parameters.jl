@@ -23,7 +23,7 @@ const _ATMOSPHERE_MODELS = (
     ("JR1971", JR1971()),
     ("MSIS2000", MSIS2000()),
     ("ExpAtmo", ExpAtmo()),
-    ("None", None()),
+    ("NoAtmosphere", NoAtmosphere()),
 )
 
 const _satellite_drag_model = CannonballFixedDrag(0.2)
@@ -40,6 +40,14 @@ const _relativity_model = RelativityModel()
 
 const _satellite_srp_model = CannonballFixedSRP(0.2)
 const _sun_model = ThirdBodyModel(; body=SunBody(), eop_data=_eop_data)
+
+const _SHADOW_MODELS = (
+    ("Conical", Conical()),
+    ("Cylindrical", Cylindrical()),
+    ("SmoothedConical", SmoothedConical()),
+    ("NoShadow", NoShadow()),
+)
+
 const _srp_model = SRPAstroModel(;
     satellite_srp_model=_satellite_srp_model,
     sun_data=_sun_model,

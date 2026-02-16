@@ -3,19 +3,17 @@
 # Description
 # ==========================================================================================
 #
-#   Acceleration from Zonal Harmonics
+#   Gravitational Acceleration Models (Keplerian and Spherical Harmonics)
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # References
 # ==========================================================================================
 #
-#   [1] 
+#   [1] Montenbruck, O., & Gill, E. (2000). Satellite Orbits: Models, Methods, and Applications. Springer.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-include("./utils.jl")
-
-export GravityHarmonicsAstroModel, KeplerianGravityAstroModel
+export AbstractGravityAstroModel, GravityHarmonicsAstroModel, KeplerianGravityAstroModel
 
 abstract type AbstractGravityAstroModel <: AbstractPotentialBasedForce end
 
@@ -26,17 +24,16 @@ Contains information to compute the acceleration of a Gravitational Harmonics Mo
 # Fields
 - `gravity_model::AbstractGravityModel`: The gravitational potential model and coefficient data.
 - `eop_data::Union{EopIau1980,EopIau2000A}`: The data compute the Earth's orientation.
-- `order::Int`: The maximum order to compute the graviational potential to, a value of -1 compute the maximum order of the supplied model. (Default=-1)
-- `degree::Int`: The maximum degree to compute the graviational potential to, a value of -1 compute the maximum degree of the supplied model. (Default=-1)
+- `order::Int`: The maximum order to compute the gravitational potential to, a value of -1 compute the maximum order of the supplied model. (Default=-1)
+- `degree::Int`: The maximum degree to compute the gravitational potential to, a value of -1 compute the maximum degree of the supplied model. (Default=-1)
 """
-@with_kw struct GravityHarmonicsAstroModel{GT,EoT,V,PT,DPT} <:
-                AbstractGravityAstroModel where {
+Base.@kwdef struct GravityHarmonicsAstroModel{
     GT<:AbstractGravityModel{<:Number,NT} where {NT},
     EoT<:Union{EopIau1980,EopIau2000A},
     V<:Int,
-    PT<:Union{AbstractVector,Nothing},
-    DPT<:Union{AbstractVector,Nothing},
-}
+    PT<:Union{AbstractArray,Nothing},
+    DPT<:Union{AbstractArray,Nothing},
+} <: AbstractGravityAstroModel
     gravity_model::GT
     eop_data::EoT
     order::V = -1
@@ -63,11 +60,11 @@ parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional gravity acceleration acting on the spacecraft.
 
 """
-function acceleration(
+@inline function acceleration(
     u::AbstractVector, p::ComponentVector, t::Number, grav_model::GravityHarmonicsAstroModel
 )
     # Compute the J2000 to ITRF rotation matrix
-    R_J2002ITRF = r_eci_to_ecef(J2000(), ITRF(), p.JD + t / 86400.0, grav_model.eop_data)
+    R_J2002ITRF = r_eci_to_ecef(J2000(), ITRF(), current_jd(p, t), grav_model.eop_data)
 
     # Compute the ITRF position
     itrf_pos = R_J2002ITRF * SVector{3}(u[1], u[2], u[3]) .* 1E3
@@ -110,7 +107,7 @@ function potential(
 )
 
     # Compute the J2000 to ITRF rotation matrix
-    R_J2002ITRF = r_eci_to_ecef(J2000(), ITRF(), p.JD + t / 86400.0, grav_model.eop_data)
+    R_J2002ITRF = r_eci_to_ecef(J2000(), ITRF(), current_jd(p, t), grav_model.eop_data)
 
     # Compute the ITRF position
     itrf_pos = R_J2002ITRF * SVector{3}(u[1], u[2], u[3]) .* 1E3
@@ -151,7 +148,7 @@ parameters of an object. Based on the IAU 2006 precession-nutation model, implem
 function potential_time_derivative(
     u::AbstractVector, p::ComponentVector, t::Number, grav_model::GravityHarmonicsAstroModel
 )
-    curr_jd = p.JD + t / 86400.0
+    curr_jd = current_jd(p, t)
     jd_tt = curr_jd + (get_Δat(curr_jd) + 32.184) / 86400.0
 
     # Compute the J2000 to ITRF rotation matrix
@@ -184,8 +181,7 @@ Contains information to compute the acceleration of a Gravitational Harmonics Mo
 # Fields
 - `μ::Number`: The gravitational potential constant of the central body.
 """
-@with_kw struct KeplerianGravityAstroModel{MT} <:
-                AbstractGravityAstroModel where {MT<:Number}
+Base.@kwdef struct KeplerianGravityAstroModel{MT<:Number} <: AbstractGravityAstroModel
     μ::MT = μ_EARTH
 end
 
@@ -205,7 +201,7 @@ parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional gravity acceleration acting on the spacecraft.
 
 """
-function acceleration(
+@inline function acceleration(
     u::AbstractVector, p::ComponentVector, t::Number, grav_model::KeplerianGravityAstroModel
 )
     r = SVector{3}(u[1], u[2], u[3])
@@ -257,7 +253,10 @@ parameters of an object.
 
 """
 function potential_time_derivative(
-    u::AbstractVector, p::ComponentVector, t::Number, grav_model::KeplerianGravityAstroModel
-)
-    return 0.0
+    u::AbstractVector{UT},
+    p::ComponentVector{PT},
+    t::TT,
+    grav_model::KeplerianGravityAstroModel,
+) where {UT<:Number,PT,TT<:Number}
+    return zero(promote_type(UT, PT, TT))
 end

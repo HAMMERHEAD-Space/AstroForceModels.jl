@@ -43,59 +43,42 @@ For specialized missions, other planets may be significant:
 
 The third body force model in AstroForceModels includes:
 
-### ThirdBodyAstroModel
-
-The main struct for third body computations:
-
-- **third_body_model**: Contains celestial body properties and ephemeris data
-- **eop_data**: Earth orientation parameters for coordinate transformations
-
 ### ThirdBodyModel
 
-Contains information about specific celestial bodies:
+The main struct for third body computations and ephemeris provider:
 
-- **body**: Celestial body identifier (SUN, MOON, etc.)
-- **ephemeris_type**: Method for computing body position (:analytical, :de430, etc.)
-- **gravitational_parameter**: μ value for the celestial body
+- **body**: `CelestialBody` instance (e.g., `SunBody()`, `MoonBody()`)
+- **eop_data**: Earth orientation parameters for coordinate transformations
+- **ephemeris_type**: Method for computing body position (default: `Vallado()`)
 
 ### CelestialBody
 
-Defines properties of celestial bodies:
+Defines properties of celestial bodies using a `Name` type parameter for compile-time dispatch:
 
-- **name**: Body identifier  
-- **μ**: Gravitational parameter
-- **radius**: Physical radius
-- **ephemeris_data**: Orbital elements or ephemeris coefficients
+- **Name** (type parameter): Body identifier symbol (e.g., `:Sun`, `:Moon`, `:Earth`)
+- **central_body**: Central body symbol
+- **jpl_code**: NAIF ID code
+- **μ**: Gravitational parameter [km³/s²]
+- **Req**: Equatorial radius [km]
+
+Use `nameof(body)` to retrieve the body name. Pre-built constructors: `SunBody()`, `MoonBody()`, `EarthBody()`.
 
 ## Usage Example
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxCelestialBodies
 using SatelliteToolboxBase
 
 # Load Earth orientation parameters
 eop_data = fetch_iers_eop()
 
-# Create Sun model
+# Create third body models
 sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-# Create Moon model  
 moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
 
-# Create third body models
-sun_perturbation = ThirdBodyAstroModel(
-    third_body_model = sun_model,
-    eop_data = eop_data
-)
-
-moon_perturbation = ThirdBodyAstroModel(
-    third_body_model = moon_model, 
-    eop_data = eop_data
-)
-
 # These can be combined with other force models
-acceleration(state, parameters, time, sun_perturbation)
-acceleration(state, parameters, time, moon_perturbation)
+acceleration(state, parameters, time, sun_model)
+acceleration(state, parameters, time, moon_model)
 ```
 
 ## Implementation Details

@@ -62,26 +62,39 @@ a_dS = (μ_sun/c²r_sun³) * [3(r_sun·r_sat)/r_sun² * r_sun - r_sat]
 
 The relativistic force model in AstroForceModels provides:
 
-### RelativisticAstroModel
+### RelativityModel
 
 The main struct for relativistic computations:
 
-- **include_schwarzschild**: Include primary relativistic correction (default: true)
-- **include_lense_thirring**: Include frame dragging effects (default: false)
-- **include_de_sitter**: Include external body effects (default: false)
-- **central_body_J**: Angular momentum of central body (for Lense-Thirring)
-- **external_bodies**: List of external masses (for de Sitter effects)
+- **schwarzschild_effect**: Include primary relativistic correction (default: true)
+- **lense_thirring_effect**: Include frame dragging effects (default: true)
+- **de_Sitter_effect**: Include external body effects (default: true)
+- **central_body**: ThirdBodyModel for the central body (default: Earth)
+- **sun_body**: ThirdBodyModel for the Sun (for de Sitter effects)
+- **c**: Speed of light [km/s]
+- **γ**, **β**: PPN parameters (default: 1.0)
 
 ## Usage Example
 
 ```julia
 using AstroForceModels
+using SatelliteToolboxTransformations
 
-# Create basic relativistic model (Schwarzschild only)
-rel_model_basic = RelativisticAstroModel()
+# Load EOP data once and share across sub-models
+eop_data = fetch_iers_eop()
+
+# Create relativistic model with all effects using convenience constructor
+rel_model = RelativityModel(eop_data)
+
+# Or selectively enable effects
+rel_schwarzschild_only = RelativityModel(eop_data;
+    schwarzschild_effect = true,
+    lense_thirring_effect = false,
+    de_Sitter_effect = false
+)
 
 # Compute acceleration (typically called within integrator)
-acceleration(state, parameters, time, rel_model_basic)
+acceleration(state, parameters, time, rel_model)
 ```
 
 ## Magnitude of Effects

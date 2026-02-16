@@ -16,8 +16,8 @@
 """
     acceleration(u::AbstractVector, p::ComponentVector, t::Number, third_body_model::ThirdBodyModel)
 
-Computes the drag acceleration acting on a spacecraft given a drag model and current state and 
-parameters of an object.
+Computes the third-body gravitational acceleration acting on a spacecraft given a third body model 
+and current state and parameters of an object.
 
 # Arguments
 - `u::AbstractVector`: Current State of the simulation.
@@ -26,13 +26,13 @@ parameters of an object.
 - `third_body_model::ThirdBodyModel`: Third body model struct containing the relevant information to compute the acceleration.
 
 # Returns
-- `acceleration: SVector{3}`: The 3-dimensional srp acceleration acting on the spacecraft.
+- `acceleration: SVector{3}`: The 3-dimensional third-body acceleration acting on the spacecraft.
 
 """
 function acceleration(
     u::AbstractVector, p::ComponentVector, t::TT, third_body::ThirdBodyModel
 ) where {TT}
-    body_pos = third_body(p.JD + t / 86400.0, Position()) ./ 1E3
+    body_pos = third_body(current_jd(p, t), Position()) ./ 1E3
 
     return third_body_accel(u, third_body.body.μ, body_pos)
 end
@@ -65,7 +65,7 @@ spacecraft 𝐀 in the orbiting body's 𝐂 is part of the force not acting on t
     RT = promote_type(PT, BT)
 
     # Compute Position Vectors for the Spacecraft w.r.t the Central and 3rd Body Respectively
-    sat_pos = @view(u[1:3])
+    sat_pos = SVector{3,PT}(u[1], u[2], u[3])
     r_spacecraft_to_body = body_pos - sat_pos
 
     # Calculate and Return the Acceleration from the Difference in Potential

@@ -40,7 +40,7 @@ The main struct that encapsulates all drag-related parameters:
 
 Different representations of spacecraft geometry:
 
-- **CannonballDragModel**: Simplified spherical model with constant drag coefficient
+- **CannonballFixedDrag**: Simplified spherical model with constant drag coefficient
 
 ### Atmospheric Models
 
@@ -90,7 +90,7 @@ AstroForceModels supports five different atmospheric models for calculating atmo
 - **Primary Use**: Quick analysis, initial estimates, educational purposes
 - **Mathematical Form**: ρ(h) = ρ₀ × exp(-h/8420) where h is in meters
 
-#### None - No Atmosphere
+#### NoAtmosphere - No Atmosphere
 - **Type**: Vacuum model
 - **Altitude Range**: All altitudes
 - **Features**:
@@ -126,7 +126,7 @@ The choice of atmospheric model depends on your mission requirements:
 - **Applications**: Mission planning, parametric studies, teaching
 
 **For High-Altitude or Interplanetary Missions:**
-- **Recommended**: None
+- **Recommended**: NoAtmosphere
 - **Rationale**: Negligible atmospheric effects
 - **Applications**: GEO satellites, lunar missions, deep space
 
@@ -138,7 +138,7 @@ The choice of atmospheric model depends on your mission requirements:
 | JR1971 | High | 90-2500 km | Low |
 | MSIS2000 | Very High | 0-1000 km | Medium |
 | ExpAtmo | Low | All altitudes | Minimal |
-| None | Perfect* | All altitudes | Minimal |
+| NoAtmosphere | Perfect* | All altitudes | Minimal |
 
 *Perfect for vacuum conditions
 
@@ -152,7 +152,7 @@ using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxBase
 
 # Define spacecraft properties
-satellite_model = CannonballDragModel(
+satellite_model = CannonballFixedDrag(
     area = 1.2,      # m²
     drag_coeff = 2.2, # dimensionless
     mass = 100.0     # kg
@@ -190,10 +190,10 @@ models = [
     DragAstroModel(satellite_model, JR1971(), eop_data), 
     DragAstroModel(satellite_model, MSIS2000(), eop_data),
     DragAstroModel(satellite_model, ExpAtmo(), eop_data),
-    DragAstroModel(satellite_model, None(), eop_data)
+    DragAstroModel(satellite_model, NoAtmosphere(), eop_data)
 ]
 
-model_names = ["JB2008", "JR1971", "MSIS2000", "ExpAtmo", "None"]
+model_names = ["JB2008", "JR1971", "MSIS2000", "ExpAtmo", "NoAtmosphere"]
 
 # Compare accelerations
 for (i, model) in enumerate(models)
