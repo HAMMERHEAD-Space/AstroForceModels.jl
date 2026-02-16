@@ -67,7 +67,7 @@ function RelativityModel(eop_data::Union{EopIau1980,EopIau2000A}; kwargs...)
         sun_body=ThirdBodyModel(; body=SunBody(), eop_data=eop_data),
         eop_data=eop_data,
     )
-    return RelativityModel(; merge(defaults, values(kwargs))...)
+    return RelativityModel(; merge(defaults, kwargs)...)
 end
 
 """
