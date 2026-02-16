@@ -64,7 +64,10 @@ if _DIFF_ENV ∉ ("false", "")
     end
     if _need("Enzyme")
         using Enzyme
-        push!(_backend_list, ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))))
+        push!(
+            _backend_list,
+            ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))),
+        )
     end
     if _need("Mooncake")
         using Mooncake
@@ -82,7 +85,7 @@ if _DIFF_ENV ∉ ("false", "")
     if isempty(_backend_list)
         error(
             "ASTROFORCEMODELS_TEST_DIFF=\"$_DIFF_ENV\" did not match any backend. " *
-            "Valid names: ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote"
+            "Valid names: ForwardDiff, Enzyme, Mooncake, PolyesterForwardDiff, Zygote",
         )
     end
 
