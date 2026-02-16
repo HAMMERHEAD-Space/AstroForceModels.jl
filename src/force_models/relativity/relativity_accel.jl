@@ -58,15 +58,16 @@ end
     RelativityModel(eop_data; kwargs...)
 
 Convenience constructor that shares a single EOP dataset across all sub-models,
-avoiding redundant `fetch_iers_eop()` calls.
+avoiding redundant `fetch_iers_eop()` calls. Any of `central_body`, `sun_body`,
+or `eop_data` can be overridden via keyword arguments.
 """
 function RelativityModel(eop_data::Union{EopIau1980,EopIau2000A}; kwargs...)
-    return RelativityModel(;
+    defaults = (
         central_body=ThirdBodyModel(; body=EarthBody(), eop_data=eop_data),
         sun_body=ThirdBodyModel(; body=SunBody(), eop_data=eop_data),
         eop_data=eop_data,
-        kwargs...,
     )
+    return RelativityModel(; merge(defaults, values(kwargs))...)
 end
 
 """
