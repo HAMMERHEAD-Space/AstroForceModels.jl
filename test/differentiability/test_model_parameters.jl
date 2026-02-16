@@ -45,7 +45,7 @@ const _SHADOW_MODELS = (
     ("Conical", Conical()),
     ("Cylindrical", Cylindrical()),
     ("SmoothedConical", SmoothedConical()),
-    ("No_Shadow", No_Shadow()),
+    ("NoShadow", NoShadow()),
 )
 
 const _srp_model = SRPAstroModel(;
