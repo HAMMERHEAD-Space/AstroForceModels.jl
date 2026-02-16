@@ -43,21 +43,34 @@ const _grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 const _keplerian_model = KeplerianGravityAstroModel()
 
 const _harmonics_models = [
-    ("4x4", GravityHarmonicsAstroModel(;
-        gravity_model=_grav_coeffs, eop_data=_eop_data, order=4, degree=4,
-    )),
-    ("20x20", GravityHarmonicsAstroModel(;
-        gravity_model=_grav_coeffs, eop_data=_eop_data, order=20, degree=20,
-    )),
-    ("36x36", GravityHarmonicsAstroModel(;
-        gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36,
-    )),
+    (
+        "4x4",
+        GravityHarmonicsAstroModel(;
+            gravity_model=_grav_coeffs, eop_data=_eop_data, order=4, degree=4
+        ),
+    ),
+    (
+        "20x20",
+        GravityHarmonicsAstroModel(;
+            gravity_model=_grav_coeffs, eop_data=_eop_data, order=20, degree=20
+        ),
+    ),
+    (
+        "36x36",
+        GravityHarmonicsAstroModel(;
+            gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36
+        ),
+    ),
 ]
 
-SUITE["gravity"]["Keplerian"] = @benchmarkable acceleration($_state, $_p, $_t, $_keplerian_model)
+SUITE["gravity"]["Keplerian"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_keplerian_model
+)
 
 for (label, model) in _harmonics_models
-    SUITE["gravity"]["Harmonics $label"] = @benchmarkable acceleration($_state, $_p, $_t, $model)
+    SUITE["gravity"]["Harmonics $label"] = @benchmarkable acceleration(
+        $_state, $_p, $_t, $model
+    )
 end
 
 # ---------------------
@@ -109,7 +122,9 @@ const _sun_pos = _sun_model(_JD, Position()) ./ 1E3
 const _sat_pos = SVector{3}(_state[1], _state[2], _state[3])
 
 for (label, shadow) in _SHADOW_MODELS
-    SUITE["shadow_models"][label] = @benchmarkable shadow_model($_sat_pos, $_sun_pos, $shadow)
+    SUITE["shadow_models"][label] = @benchmarkable shadow_model(
+        $_sat_pos, $_sun_pos, $shadow
+    )
 end
 
 # ---------------------
@@ -125,9 +140,13 @@ SUITE["third_body"]["Moon"] = @benchmarkable acceleration($_state, $_p, $_t, $_m
 # ---------------------
 const _relativity_model = RelativityModel(_eop_data)
 
-SUITE["relativity"]["Full"] = @benchmarkable acceleration($_state, $_p, $_t, $_relativity_model)
+SUITE["relativity"]["Full"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_relativity_model
+)
 SUITE["relativity"]["Schwarzschild only"] = @benchmarkable acceleration(
-    $_state, $_p, $_t,
+    $_state,
+    $_p,
+    $_t,
     $(RelativityModel(_eop_data; lense_thirring_effect=false, de_Sitter_effect=false)),
 )
 
@@ -135,7 +154,7 @@ SUITE["relativity"]["Schwarzschild only"] = @benchmarkable acceleration(
 # Dynamics builder
 # ---------------------
 const _grav_model_36 = GravityHarmonicsAstroModel(;
-    gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36,
+    gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36
 )
 const _drag_model = DragAstroModel(;
     satellite_drag_model=_satellite_drag_model,
@@ -152,17 +171,17 @@ const _srp_model = SRPAstroModel(;
 const _dynamics_keplerian = CentralBodyDynamicsModel(_keplerian_model)
 const _dynamics_harmonics = CentralBodyDynamicsModel(_grav_model_36)
 const _dynamics_full = CentralBodyDynamicsModel(
-    _grav_model_36, (_sun_model, _moon_model, _srp_model, _drag_model, _relativity_model),
+    _grav_model_36, (_sun_model, _moon_model, _srp_model, _drag_model, _relativity_model)
 )
 
 SUITE["dynamics_builder"]["Keplerian only"] = @benchmarkable build_dynamics_model(
-    $_state, $_p, $_t, $_dynamics_keplerian,
+    $_state, $_p, $_t, $_dynamics_keplerian
 )
 SUITE["dynamics_builder"]["Harmonics 36x36 only"] = @benchmarkable build_dynamics_model(
-    $_state, $_p, $_t, $_dynamics_harmonics,
+    $_state, $_p, $_t, $_dynamics_harmonics
 )
 SUITE["dynamics_builder"]["Full (gravity+drag+srp+3body+rel)"] = @benchmarkable build_dynamics_model(
-    $_state, $_p, $_t, $_dynamics_full,
+    $_state, $_p, $_t, $_dynamics_full
 )
 
 # ---------------------
