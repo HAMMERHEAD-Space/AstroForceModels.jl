@@ -16,7 +16,7 @@ abstract type AbstractSatelliteSRPModel end
 
 """
 Cannonball Fixed SRP Model struct
-Contains information to compute the reflectivity coefficient of a cannonball drag model with a 
+Contains information to compute the reflectivity ballistic coefficient of a cannonball SRP model with a 
 fixed reflectivity coefficient.
 
 # Fields
@@ -34,15 +34,15 @@ struct CannonballFixedSRP{RT<:Number,MT<:Number,RcT<:Number,RbT<:Number} <:
 end
 
 """
-    CannonballFixedSRP(ballistic_coeff::Number)
+    CannonballFixedSRP(reflectivity_ballistic_coeff::Number)
 
-Constructor for a fixed ballistic coefficient SRP model.
+Constructor for a fixed reflectivity ballistic coefficient SRP model.
 
 # Arguments
-- `ballistic_coeff::Number`: The fixed ballistic coefficient to use.
+- `reflectivity_ballistic_coeff::Number`: The fixed reflectivity ballistic coefficient to use.
 
 # Returns 
-- `srp_model::CannonballFixedDrag`: A fixed ballistic coefficient SRP model.
+- `srp_model::CannonballFixedSRP`: A fixed reflectivity ballistic coefficient SRP model.
 
 """
 function CannonballFixedSRP(reflectivity_ballistic_coeff::Number)
@@ -55,13 +55,13 @@ function CannonballFixedSRP(reflectivity_ballistic_coeff::Number)
 end
 
 """
-    CannonballFixedSRP(radius::Number, mass::Number, drag_coeff::Number)
+    CannonballFixedSRP(radius::Number, mass::Number, reflectivity_coeff::Number)
 
-Constructor for a fixed cannonball ballistic coefficient SRP model.
+Constructor for a fixed cannonball reflectivity ballistic coefficient SRP model.
 
-The ballistic coefficient is computed with the following equation:
+The reflectivity ballistic coefficient is computed with the following equation:
 
-                RC = CD * area/mass
+                RC = Cr * area/mass
 
 where area is the 2D projection of a sphere
 
@@ -73,7 +73,7 @@ where area is the 2D projection of a sphere
 - `reflectivity_coeff::Number`: The reflectivity coefficient of the spacecraft.
 
 # Returns 
-- srp_model::CannonballFixedSRP`: A fixed ballistic coefficient SRP model.
+- `srp_model::CannonballFixedSRP`: A fixed reflectivity ballistic coefficient SRP model.
 
 """
 function CannonballFixedSRP(radius::Number, mass::Number, reflectivity_coeff::Number)
@@ -121,23 +121,23 @@ Empty struct used for when the simulation state includes the reflectivity ballis
 struct StateSRPModel <: AbstractSatelliteSRPModel end
 
 """
-ballistic_coefficient(
-    u::AbstractVector, 
-    p::ComponentVector, 
-    t::Number, 
-    model::StateSRPModel)
+    reflectivity_ballistic_coefficient(
+        u::AbstractVector, 
+        p::AbstractVector, 
+        t::Number, 
+        model::StateSRPModel)
 
-Returns the ballistic coefficient for a SRP model given the model and current state 
-of the simulation.
+Returns the reflectivity ballistic coefficient for a SRP model given the model and current state 
+of the simulation. Reads the coefficient from the state vector at index 8.
 
 # Arguments
-    - `u::AbstractVector`: The current state of the simulation.
-    - `p::ComponentVector`: The parameters of the simulation.
-    - `t::Number`: The current time of the simulation.
-    - `model::StateSRPModel`: The SRP model for the spacecraft.
+- `u::AbstractVector`: The current state of the simulation.
+- `p::AbstractVector`: The parameters of the simulation.
+- `t::Number`: The current time of the simulation.
+- `model::StateSRPModel`: The SRP model for the spacecraft.
 
 # Returns
-    -`ballistic_coeff::Number`: The current ballistic coefficient of the spacecraft.
+- `reflectivity_ballistic_coeff::Number`: The current reflectivity ballistic coefficient of the spacecraft.
 """
 @inline function reflectivity_ballistic_coefficient(
     u::AbstractVector, p::AbstractVector, t::Number, model::StateSRPModel

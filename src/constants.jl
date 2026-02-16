@@ -24,5 +24,5 @@ const μ_MOON::Float64 = 4.902800118457551E3
 const μ_SUN::Float64 = 1.3271244004127946E11
 # Gravitational Parameter of the Earth [km^3/s^2]
 const μ_EARTH::Float64 = 3.986004415e5
-# Earth's Angular Momentum per Unit Mass [kg*km^2/s]
+# Earth's Specific Angular Momentum (angular momentum per unit mass) [km^2/s]
 const EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS::Float64 = 0.4 * R_EARTH^2 * EARTH_ANGULAR_SPEED

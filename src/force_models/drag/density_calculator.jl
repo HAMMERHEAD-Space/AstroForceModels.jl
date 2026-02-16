@@ -85,8 +85,9 @@ end
     ecef_pos = R_J20002ITRF * SVector{3}(u[1], u[2], u[3])
     geodetic_pos = ecef_to_geodetic(ecef_pos .* 1E3)
 
-    # Compute the MSIS2000 density if the point is less than 1000km altitude otherwise it's 0.0
-    return AtmosphericModels.nrlmsise00(
+    # Compute the NRLMSISE-00 density if the point is less than 1000km altitude otherwise it's 0.0
+    # NRLMSISE-00 is valid from 0 to 1000 km altitude
+    return (geodetic_pos[3] < 1000E3) * AtmosphericModels.nrlmsise00(
         JD, geodetic_pos[3], geodetic_pos[1], geodetic_pos[2]; verbose=Val(false), P=P
     ).total_density
 end
@@ -116,6 +117,6 @@ end
     roots_container::Union{Nothing,AbstractVector}=nothing,
     P::Union{Nothing,AbstractMatrix}=nothing,
 )
-    # If NoAtmosphere provided return 0.0
-    return 0.0
+    # If NoAtmosphere provided return a type-stable zero
+    return zero(eltype(u))
 end

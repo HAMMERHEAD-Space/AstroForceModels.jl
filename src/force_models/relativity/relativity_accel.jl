@@ -85,7 +85,7 @@ state and parameters of an object.
 - `acceleration: SVector{3}`: The 3-dimensional relativity acceleration acting on the spacecraft.
 
 """
-function acceleration(
+@inline function acceleration(
     u::AbstractVector{UT}, p::ComponentVector{PT}, t::TT, relativity_model::RelativityModel
 ) where {UT,PT,TT}
     RT = promote_type(UT, PT, TT)

@@ -15,11 +15,11 @@
 #       Optimization." Trans. JSASS Aerospace Tech. Japan, 17(2), 181-188. doi:10.2322/tastj.17.181
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export ShadowModelType, Conical, Cylindrical, No_Shadow, SmoothedConical
+export ShadowModelType, Conical, Cylindrical, NoShadow, SmoothedConical
 abstract type ShadowModelType end
 struct Conical <: ShadowModelType end
 struct Cylindrical <: ShadowModelType end
-struct No_Shadow <: ShadowModelType end
+struct NoShadow <: ShadowModelType end
 
 """
     SmoothedConical{CST,CTT} <: ShadowModelType
@@ -54,7 +54,7 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
 - `sun_pos::AbstractVector`: The current Sun position.
 - `R_Sun::Number`: The radius of the Sun.
 - `R_Occulting::Number`: The radius of the Occulting Body.
-- `ShadowModel::ShadowModelType`: The Earth shadow model to use. Current Options -- Cylindrical, Conical, SmoothedConical, No_Shadow
+- `ShadowModel::ShadowModelType`: The Earth shadow model to use. Current Options -- Cylindrical, Conical, SmoothedConical, NoShadow
 
 # Returns
 
@@ -67,13 +67,13 @@ Computes the Lighting Factor of the Sun occur from the Umbra and Prenumbra of Ea
     R_Sun::Number=R_SUN,
     R_Occulting::Number=R_EARTH,
 )
-    sat_pos = SVector{3}(sat_pos[1], sat_pos[2], sat_pos[3])
+    _sat_pos = SVector{3}(sat_pos[1], sat_pos[2], sat_pos[3])
     sun_direction = SVector{3}(normalize(sun_pos))
 
     # Compute dot product between sun and satellite positions
-    dp_sun_sat = dot(sun_direction, sat_pos)
+    dp_sun_sat = dot(sun_direction, _sat_pos)
 
-    if dp_sun_sat >= 0.0 || norm(sat_pos - dp_sun_sat * sun_direction) > R_Occulting
+    if dp_sun_sat >= 0.0 || norm(_sat_pos - dp_sun_sat * sun_direction) > R_Occulting
         shadow_factor = 1.0
     else
         shadow_factor = 0.0

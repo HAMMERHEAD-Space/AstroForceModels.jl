@@ -9,7 +9,7 @@
 
     sat_pos = 6800 * normalize(sun_pos)
 
-    shadow_model_set = [Cylindrical(), Conical(), No_Shadow(), SmoothedConical()]
+    shadow_model_set = [Cylindrical(), Conical(), NoShadow(), SmoothedConical()]
 
     # No Occulsion
     for model in shadow_model_set
@@ -26,7 +26,7 @@
         )
         @test shadow_scaling == 0.0
     end
-    @test shadow_model(-sat_pos, sun_pos, No_Shadow(); R_Sun=R_SUN, R_Occulting=R_EARTH) ==
+    @test shadow_model(-sat_pos, sun_pos, NoShadow(); R_Sun=R_SUN, R_Occulting=R_EARTH) ==
         1.0
     # SmoothedConical returns ≈ 0 in full shadow (sigmoid, not exactly 0)
     @test shadow_model(
@@ -43,7 +43,7 @@
         sat_pos_simple, sun_pos_simple, Conical(); R_Sun=R_SUN, R_Occulting=R_EARTH
     ) ≈ 0.2573669402416321 atol = 1E-6
     @test shadow_model(
-        sat_pos_simple, sun_pos_simple, No_Shadow(); R_Sun=R_SUN, R_Occulting=R_EARTH
+        sat_pos_simple, sun_pos_simple, NoShadow(); R_Sun=R_SUN, R_Occulting=R_EARTH
     ) ≈ 1.0 atol = 1E-6
     # SmoothedConical should give a partial shadow factor between 0 and 1
     smoothed_partial = shadow_model(

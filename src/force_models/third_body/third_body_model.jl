@@ -27,7 +27,7 @@ Contains information to compute the acceleration of a third body force acting on
 Base.@kwdef struct ThirdBodyModel{
     BT<:CelestialBody,EoT<:Union{EopIau1980,EopIau2000A,Nothing},EpT<:AbstractEphemerisType
 } <: AbstractNonPotentialBasedForce
-    body::BT = SunBody
+    body::BT = SunBody()
     eop_data::EoT = nothing
     ephem_type::EpT = Vallado()
 end
@@ -37,12 +37,12 @@ end
 Computes the position of the celestial body using Vallado's ephemeris
 
 # Arguments
-- `ephem_type::Symbol`: Ephemeris type used to compute body's position.
+- `ephem_type::Vallado`: Ephemeris type used to compute body's position.
 - `body::CelestialBody`: Celestial body acting on the craft.
-- `time::Number`: Current time of the simulation in seconds.
+- `time::Number`: Current time of the simulation in Julian days.
 
 # Returns
-- `body_position: SVector{3}`: The 3-dimensional third body position in the J2000 frame.
+- `body_position::SVector{3}`: The 3-dimensional third body position in the J2000 frame [m].
 """
 function get_position(
     ephem_type::Vallado, body::CelestialBody, eop_data::T, time::TT
@@ -68,12 +68,12 @@ end
 Computes the velocity of the celestial body using Vallado's ephemeris
 
 # Arguments
-- `ephem_type::Symbol`: Ephemeris type used to compute body's position.
+- `ephem_type::Vallado`: Ephemeris type used to compute body's velocity.
 - `body::CelestialBody`: Celestial body acting on the craft.
-- `time::Number`: Current time of the simulation in seconds.
+- `time::Number`: Current time of the simulation in Julian days.
 
 # Returns
-- `body_position: SVector{3}`: The 3-dimensional third body position in the J2000 frame.
+- `body_velocity::SVector{3}`: The 3-dimensional third body velocity in the J2000 frame.
 """
 function get_velocity(
     ephem_type::Vallado, body::CelestialBody, eop_data::T, time::TT

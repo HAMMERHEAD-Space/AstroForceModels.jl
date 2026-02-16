@@ -50,15 +50,15 @@ _BACKENDS = (
     ("Zygote", AutoZygote()),
 )
 
-#@testset "Differentiability" begin
-#    include("differentiability/test_model_parameters.jl")
-#    include("differentiability/test_drag.jl")
-#    include("differentiability/test_srp.jl")
-#    include("differentiability/test_gravity.jl")
-#    include("differentiability/test_relativity.jl")
-#    include("differentiability/test_third_body.jl")
-#    include("differentiability/test_dynamics_builder.jl")
-#end
+@testset "Differentiability" begin
+    include("differentiability/test_model_parameters.jl")
+    include("differentiability/test_drag.jl")
+    include("differentiability/test_srp.jl")
+    include("differentiability/test_gravity.jl")
+    include("differentiability/test_relativity.jl")
+    include("differentiability/test_third_body.jl")
+    include("differentiability/test_dynamics_builder.jl")
+end
 
 @testset "Performance" begin
     # Force Model Allocation Check
