@@ -79,6 +79,20 @@ AstroForceModels provides several categories of force models:
 
 - `RelativityModel`: General relativistic effects (Schwarzschild, Lense-Thirring, de Sitter)
 
+### Low-Thrust Propulsion
+
+- `LowThrustAstroModel`: Low-thrust propulsion force model with frame support
+- `ConstantCartesianThrust`: Fixed thrust acceleration vector (frame-dependent)
+- `ConstantTangentialThrust`: Constant-magnitude velocity-aligned thrust
+- `StateThrustModel`: User-defined state-dependent thrust profile
+- `PiecewiseConstantThrust`: Piecewise-constant arc-based thrust schedule
+
+### Reference Frames
+
+- `InertialFrame`: ECI/J2000 inertial frame (default)
+- `RTNFrame`: Radial–Transverse–Normal orbit-fixed frame
+- `VNBFrame`: Velocity–Normal–Binormal velocity-fixed frame
+
 All force models implement the common `acceleration(state, params, time, model)` interface.
 
 ## Type Definitions

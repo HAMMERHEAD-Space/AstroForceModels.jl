@@ -14,6 +14,7 @@ SUITE["drag"] = BenchmarkGroup(["acceleration"])
 SUITE["srp"] = BenchmarkGroup(["acceleration"])
 SUITE["third_body"] = BenchmarkGroup(["acceleration"])
 SUITE["relativity"] = BenchmarkGroup(["acceleration"])
+SUITE["low_thrust"] = BenchmarkGroup(["acceleration"])
 SUITE["shadow_models"] = BenchmarkGroup(["shadow"])
 SUITE["dynamics_builder"] = BenchmarkGroup(["combined"])
 
@@ -151,6 +152,47 @@ SUITE["relativity"]["Schwarzschild only"] = @benchmarkable acceleration(
 )
 
 # ---------------------
+# Low thrust models
+# ---------------------
+const _lt_cartesian = LowThrustAstroModel(;
+    thrust_model=ConstantCartesianThrust(1e-7, 2e-7, 3e-7)
+)
+const _lt_tangential = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
+const _lt_rtn = LowThrustAstroModel(;
+    thrust_model=ConstantCartesianThrust(0.0, 1e-7, 0.0), frame=RTNFrame()
+)
+const _lt_vnb = LowThrustAstroModel(;
+    thrust_model=ConstantCartesianThrust(1e-7, 0.0, 0.0), frame=VNBFrame()
+)
+const _lt_piecewise = LowThrustAstroModel(;
+    thrust_model=PiecewiseConstantThrust(
+        [0.0, 3600.0, 7200.0],
+        [
+            SVector{3}(1e-7, 0.0, 0.0),
+            SVector{3}(0.0, 1e-7, 0.0),
+            SVector{3}(-1e-7, 0.0, 0.0),
+        ],
+    ),
+    frame=RTNFrame(),
+)
+
+SUITE["low_thrust"]["Cartesian (Inertial)"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_lt_cartesian
+)
+SUITE["low_thrust"]["Tangential (Inertial)"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_lt_tangential
+)
+SUITE["low_thrust"]["Cartesian (RTN)"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_lt_rtn
+)
+SUITE["low_thrust"]["Cartesian (VNB)"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_lt_vnb
+)
+SUITE["low_thrust"]["Piecewise (RTN, 3 arcs)"] = @benchmarkable acceleration(
+    $_state, $_p, $_t, $_lt_piecewise
+)
+
+# ---------------------
 # Dynamics builder
 # ---------------------
 const _grav_model_36 = GravityHarmonicsAstroModel(;
@@ -171,7 +213,8 @@ const _srp_model = SRPAstroModel(;
 const _dynamics_keplerian = CentralBodyDynamicsModel(_keplerian_model)
 const _dynamics_harmonics = CentralBodyDynamicsModel(_grav_model_36)
 const _dynamics_full = CentralBodyDynamicsModel(
-    _grav_model_36, (_sun_model, _moon_model, _srp_model, _drag_model, _relativity_model)
+    _grav_model_36,
+    (_sun_model, _moon_model, _srp_model, _drag_model, _relativity_model, _lt_tangential),
 )
 
 SUITE["dynamics_builder"]["Keplerian only"] = @benchmarkable build_dynamics_model(
@@ -180,7 +223,7 @@ SUITE["dynamics_builder"]["Keplerian only"] = @benchmarkable build_dynamics_mode
 SUITE["dynamics_builder"]["Harmonics 36x36 only"] = @benchmarkable build_dynamics_model(
     $_state, $_p, $_t, $_dynamics_harmonics
 )
-SUITE["dynamics_builder"]["Full (gravity+drag+srp+3body+rel)"] = @benchmarkable build_dynamics_model(
+SUITE["dynamics_builder"]["Full (gravity+drag+srp+3body+rel+lt)"] = @benchmarkable build_dynamics_model(
     $_state, $_p, $_t, $_dynamics_full
 )
 

@@ -169,6 +169,57 @@ end
     @test moon_3body_accel(state, p, t, moon_third_body) isa SVector
 end
 
+@testset "Low Thrust Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    cartesian_model = LowThrustAstroModel(;
+        thrust_model=ConstantCartesianThrust(1e-7, 2e-7, 3e-7)
+    )
+    @check_allocs cart_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test cart_accel(state, p, t, cartesian_model) isa SVector
+
+    tangential_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
+    @check_allocs tang_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test tang_accel(state, p, t, tangential_model) isa SVector
+
+    rtn_model = LowThrustAstroModel(;
+        thrust_model=ConstantCartesianThrust(0.0, 1e-7, 0.0), frame=RTNFrame()
+    )
+    @check_allocs rtn_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test rtn_accel(state, p, t, rtn_model) isa SVector
+
+    vnb_model = LowThrustAstroModel(;
+        thrust_model=ConstantCartesianThrust(1e-7, 0.0, 0.0), frame=VNBFrame()
+    )
+    @check_allocs vnb_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test vnb_accel(state, p, t, vnb_model) isa SVector
+
+    pw_model = LowThrustAstroModel(;
+        thrust_model=PiecewiseConstantThrust(
+            [0.0, 3600.0, 7200.0],
+            [
+                SVector{3}(1e-7, 0.0, 0.0),
+                SVector{3}(0.0, 1e-7, 0.0),
+                SVector{3}(-1e-7, 0.0, 0.0),
+            ],
+        ),
+        frame=RTNFrame(),
+    )
+    @check_allocs pw_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test pw_accel(state, p, t, pw_model) isa SVector
+end
+
 @testset "Dynamics Builder Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     p = ComponentVector(; JD=JD)

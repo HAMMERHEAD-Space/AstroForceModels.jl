@@ -154,6 +154,51 @@ sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-12)
 total_accel = build_dynamics_model(u0, p, 0.0, dynamics_model)
 ```
 
+## Low-Thrust Propulsion Example
+
+Low-thrust models can be added as perturbations alongside other force models. Thrust can
+be specified in different reference frames (Inertial, RTN, or VNB):
+
+```julia
+using AstroForceModels
+using StaticArraysCore
+
+# Constant tangential thrust in VNB frame (orbit raising)
+lt_vnb = LowThrustAstroModel(;
+    thrust_model = ConstantCartesianThrust(1e-7, 0.0, 0.0),  # [V, N, B]
+    frame = VNBFrame(),
+)
+
+# Piecewise-constant thrust schedule in RTN (Sims-Flanagan style)
+lt_rtn = LowThrustAstroModel(;
+    thrust_model = PiecewiseConstantThrust(
+        [0.0, 3600.0, 7200.0],                               # arc start times [s]
+        [SVector{3}(0.0, 1e-7, 0.0),                         # burn 1: transverse
+         SVector{3}(0.0, 0.0, 0.0),                          # coast
+         SVector{3}(0.0, -1e-7, 0.0)],                       # burn 2: reverse
+    ),
+    frame = RTNFrame(),
+)
+
+# Or use the convenience ConstantTangentialThrust (always inertial)
+# 1 mN thrust on a 500 kg spacecraft
+lt_simple = LowThrustAstroModel(;
+    thrust_model = ConstantTangentialThrust(1e-3, 500.0),
+)
+
+# Combine with high-fidelity dynamics
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model, sun_model, moon_model, lt_rtn)
+)
+
+# System dynamics with low-thrust
+function lt_dynamics!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
+```
+
 ## Troubleshooting
 
 ### Common Issues

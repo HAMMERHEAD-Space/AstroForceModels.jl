@@ -23,6 +23,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 - **Solar Radiation Pressure**: With shadow modeling (conical, cylindrical)
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
+- **Low-Thrust Propulsion**: Constant, tangential, and user-defined thrust profiles
 
 # Example Usage
 
@@ -124,6 +125,10 @@ include("force_models/solar_radiation_pressure/srp_accel.jl")
 
 include("force_models/gravity/utils.jl")
 include("force_models/gravity/gravity_accel.jl")
+
+include("force_models/low_thrust/frames.jl")
+include("force_models/low_thrust/thrust_model.jl")
+include("force_models/low_thrust/low_thrust_accel.jl")
 
 include("dynamics_builder.jl")
 

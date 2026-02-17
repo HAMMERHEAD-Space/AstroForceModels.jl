@@ -33,9 +33,11 @@
         -1.1880157328553503
     ] #km, km/s
 
+    lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
+
     t = 0.0
     model_list = CentralBodyDynamicsModel(
-        grav_model, (sun_third_body, moon_third_body, srp_model, drag_model)
+        grav_model, (sun_third_body, moon_third_body, srp_model, drag_model, lt_model)
     )
 
     total_accel = build_dynamics_model(state, p, t, model_list)
@@ -45,7 +47,8 @@
         acceleration(state, p, t, moon_third_body) +
         acceleration(state, p, t, sun_third_body) +
         acceleration(state, p, t, srp_model) +
-        acceleration(state, p, t, drag_model)
+        acceleration(state, p, t, drag_model) +
+        acceleration(state, p, t, lt_model)
 
     @test total_accel_summed ≈ total_accel rtol=1e-14
 end

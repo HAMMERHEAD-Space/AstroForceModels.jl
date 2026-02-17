@@ -58,6 +58,8 @@ const _RC = 0.2
 
 const _moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=_eop_data)
 
+const _lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
+
 const _model_list = CentralBodyDynamicsModel(
-    _grav_model, (_sun_model, _moon_model, _srp_model, _drag_model)
+    _grav_model, (_sun_model, _moon_model, _srp_model, _drag_model, _lt_model)
 )

@@ -35,6 +35,10 @@ using JET
     # Relativity Tests
     include("relativity/test_relativity.jl")
 
+    # Low Thrust Tests
+    include("low_thrust/test_thrust_model.jl")
+    include("low_thrust/test_low_thrust_accel.jl")
+
     # Dynamics Builder
     include("test_dynamics_builder.jl")
 end
@@ -100,6 +104,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_gravity.jl")
         include("differentiability/test_relativity.jl")
         include("differentiability/test_third_body.jl")
+        include("differentiability/test_low_thrust.jl")
         include("differentiability/test_dynamics_builder.jl")
     end
 else
