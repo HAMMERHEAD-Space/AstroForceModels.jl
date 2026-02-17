@@ -390,15 +390,17 @@ function albedo_accel(
     AUT<:Number,
     CT<:Number,
 }
-    sat_pos = SVector{3,Float64}(u[1], u[2], u[3])
+    RT = promote_type(UT, ST, RCT, TT, SFT, AUT, CT)
+
+    sat_pos = SVector{3,UT}(u[1], u[2], u[3])
 
     R_ECEF2ECI = r_ecef_to_eci(ITRF(), J2000(), current_time, eop_data)
 
     n_points = length(weights)
 
-    result_x = 0.0
-    result_y = 0.0
-    result_z = 0.0
+    result_x = zero(RT)
+    result_y = zero(RT)
+    result_z = zero(RT)
 
     @inbounds for i in 1:n_points
         theta = theta_coords[i]
@@ -424,7 +426,7 @@ function albedo_accel(
         result_z += weight * accel[3]
     end
 
-    return SVector{3,Float64}(result_x, result_y, result_z)
+    return SVector{3,RT}(result_x, result_y, result_z)
 end
 
 """
