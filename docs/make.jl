@@ -15,6 +15,7 @@ makedocs(;
             "force_models/gravity.md",
             "force_models/drag.md",
             "force_models/solar_radiation_pressure.md",
+            "force_models/albedo.md",
             "force_models/third_body.md",
             "force_models/relativity.md",
             "force_models/low_thrust.md",

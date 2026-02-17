@@ -50,7 +50,7 @@ Borderies & Longaretti (1990), and other albedo radiation pressure studies. The 
 value represents approximately 30% of incoming solar radiation being reflected, while 
 0.7 represents Earth's average thermal emission characteristics.
 """
-@with_kw struct UniformAlbedoModel{AT,ET} <: AbstractAlbedoModel{AT,ET}
+Base.@kwdef struct UniformAlbedoModel{AT,ET} <: AbstractAlbedoModel{AT,ET}
     visible_albedo::AT = 0.3      # Earth's average visible albedo (literature consensus)
     infrared_emissivity::ET = 0.7 # Earth's average infrared emissivity (literature consensus)
 end
@@ -64,7 +64,7 @@ Contains information to compute the acceleration from Earth albedo radiation pre
 - `sun_data::ThirdBodyModel`: The data to compute the Sun's position.
 - `body_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: The Earth albedo radiation model.
 - `eop_data::EopIau1980`: Earth orientation parameters.
-- `solar_flux::Number`: Solar flux at 1 AU [W/m²].
+- `solar_irradiance::Number`: Solar irradiance at 1 AU [W/m²].
 - `speed_of_light::Number`: Speed of light [km/s].
 - `lebedev_order::Int`: Order of Lebedev quadrature for spherical integration.
 """
@@ -87,7 +87,7 @@ mutable struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,PT,WT,TT,PhT} <:
     body_albedo_model::EAT
     eop_data::EoT
 
-    solar_flux::SFT
+    solar_irradiance::SFT
     speed_of_light::CT
     AU::AUT
 
@@ -107,9 +107,9 @@ function AlbedoAstroModel(;
     sun_data,
     body_albedo_model,
     eop_data,
-    solar_flux=SOLAR_FLUX,
+    solar_irradiance=SOLAR_IRRADIANCE,
     speed_of_light=SPEED_OF_LIGHT,
-    AU=ASTRONOMICAL_UNIT,
+    AU=ASTRONOMICAL_UNIT / 1E3,
     lebedev_order::Int=125,  # Order of Lebedev quadrature
 )
     # Generate Lebedev quadrature nodes and weights for unit sphere
@@ -143,7 +143,7 @@ function AlbedoAstroModel(;
         typeof(sun_data),
         typeof(body_albedo_model),
         typeof(eop_data),
-        typeof(solar_flux),
+        typeof(solar_irradiance),
         typeof(speed_of_light),
         typeof(AU),
         typeof(lebedev_points),
@@ -155,7 +155,7 @@ function AlbedoAstroModel(;
         sun_data,
         body_albedo_model,
         eop_data,
-        solar_flux,
+        solar_irradiance,
         speed_of_light,
         AU,
         lebedev_points,
@@ -174,7 +174,7 @@ function albedo_integrand(
     RC::RCT,
     body_albedo_model::AM,
     current_time::TT,
-    solar_flux::SFT,
+    solar_irradiance::SFT,
     speed_of_light::CT,
     AU::AUT,
 ) where {
@@ -201,7 +201,6 @@ function albedo_integrand(
     lon_rad = phi_rad > π ? phi_rad - 2π : phi_rad  # Convert to longitude: lon ∈ [-π, π]
 
     # Surface element position in ECEF coordinates using SatelliteToolboxTransformations
-    # Note: geodetic_to_ecef expects altitude above ellipsoid, so we use h=0 for surface points
     surface_pos_ecef = geodetic_to_ecef(lat_rad, lon_rad, 0.0) ./ 1E3 # Convert meters to km
 
     # Transform surface position to ECI
@@ -211,8 +210,7 @@ function albedo_integrand(
     surface_to_sat = sat_pos - surface_pos
     distance = norm(surface_to_sat)
 
-    # Angle between surface normal and satellite direction (numerically stable)
-    # Note: angle_between_vectors normalizes internally, so pass raw vectors
+    # Angle between surface normal and satellite direction
     angle_from_nadir = angle_between_vectors(surface_pos, surface_to_sat)
     cos_alpha = cos(angle_from_nadir)
 
@@ -221,56 +219,49 @@ function albedo_integrand(
         return SVector{3,RET}(0.0, 0.0, 0.0)
     end
 
-    # Compute surface element area differential (Jacobian for spherical coordinates)
-    # For spherical coordinates (θ, φ): dΩ = R² * sin(θ) * dθ * dφ
-    # Note: Lebedev weights already account for this Jacobian, but we need R²
+    # Surface element area: R² (sin(θ) factor included in Lebedev weights)
     R_earth = norm(surface_pos)
-    jacobian = R_earth^2  # Jacobian in km² (sin(θ) factor included in Lebedev weights)
+    jacobian = R_earth^2  # km²
 
-    # Compute solar illumination of surface element
     # Vector from surface element to Sun
     surface_to_sun = sun_pos - surface_pos
     surface_to_sun_norm = norm(surface_to_sun)
 
-    # Solar flux at Earth's distance (W/m²)
-    solar_flux_at_earth = solar_flux * (AU / surface_to_sun_norm)^2
+    # Solar irradiance at Earth's distance [W/m²]
+    irradiance_at_earth = solar_irradiance * (AU / surface_to_sun_norm)^2
 
-    # Angle between surface normal and sun direction (numerically stable)
-    # Note: angle_between_vectors normalizes internally, so pass raw vectors
+    # Solar zenith angle at surface element
     solar_zenith_angle = angle_between_vectors(surface_pos, surface_to_sun)
     cos_solar_zenith = cos(solar_zenith_angle)
 
-    # Compute shortwave and longwave fluxes
+    # Compute shortwave and longwave fluxes [W/m²]
     total_radiance = compute_earth_radiation_fluxes(
         body_albedo_model,
         lat_rad,
         lon_rad,
         cos_solar_zenith,
-        solar_flux_at_earth,
+        irradiance_at_earth,
         current_time,
     )
 
-    # Radiation pressure from this surface element
-    # Follow SRP pattern: F = RC * pressure * geometric_factor / 1E3
-    # For albedo: pressure = total_radiance / speed_of_light
-    # geometric_factor = jacobian * cos_alpha / (π * distance^2)
-    # Note: jacobian already in km², distance in km, so no unit conversion needed here
-    pressure = total_radiance / speed_of_light  # N/m² (pressure units like SOLAR_FLUX)
+    # Convert irradiance [W/m²] to radiation pressure [N/m²] by dividing by c [m/s]
+    # speed_of_light is in [km/s], multiply by 1E3 to get [m/s]
+    pressure = total_radiance / (speed_of_light * 1E3)  # [N/m²]
+
+    # Geometric view factor: solid angle of surface element as seen from satellite
     geometric_factor = jacobian * cos_alpha / (π * distance^2)  # km² / km² = dimensionless
 
-    # Following SRP formula exactly: F = RC * pressure * geometric_factor / 1E3
+    # Acceleration magnitude [km/s²]
+    # RC [m²/kg] * pressure [N/m²] * geometric_factor [-] = [m/s²], / 1E3 → [km/s²]
     F_albedo = RC * pressure * geometric_factor / 1E3
 
-    # Convert to acceleration vector
-    # Direction unit vector from surface to satellite  
+    # Direction: surface element → satellite
     surface_to_sat_unit = surface_to_sat / distance
-    element_acceleration = SVector{3,RET}(
+    return SVector{3,RET}(
         F_albedo * surface_to_sat_unit[1],
         F_albedo * surface_to_sat_unit[2],
         F_albedo * surface_to_sat_unit[3],
-    )  # Already in km/s²
-
-    return element_acceleration
+    )
 end
 
 """
@@ -291,11 +282,12 @@ parameters of an object.
 function acceleration(
     u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel
 )
-    # Compute the Sun's position
-    sun_pos = albedo_model.sun_data(p.JD + t / 86400.0, Position())
+    jd = current_jd(p, t)
+
+    # Compute the Sun's position (convert from m to km)
+    sun_pos = albedo_model.sun_data(jd, Position()) ./ 1E3
 
     # Compute the reflectivity ballistic coefficient
-    # TODO: Probably not the same as the SRP ballistic coefficient since it would be a function of the satellite's orientation
     RC = reflectivity_ballistic_coefficient(u, p, t, albedo_model.satellite_shape_model)
 
     # Return the 3-dimensional Albedo Force
@@ -303,13 +295,13 @@ function acceleration(
         u,
         sun_pos,
         RC,
-        p.JD + t / 86400.0,
+        jd,
         albedo_model.body_albedo_model,
         albedo_model.eop_data,
         albedo_model.theta_coords,
         albedo_model.phi_coords,
         albedo_model.weights;
-        solar_flux=albedo_model.solar_flux,
+        solar_irradiance=albedo_model.solar_irradiance,
         AU=albedo_model.AU,
         speed_of_light=albedo_model.speed_of_light,
     )
@@ -322,15 +314,16 @@ end
         RC::Number, 
         current_time::Number,
         body_albedo_model::AbstractAlbedoModel,
-        eop_data::EopIau1980;
-        solar_flux::Number=1360.8,  # Solar flux at 1 AU [W/m²]
-        speed_of_light::Number=SPEED_OF_LIGHT,  # Speed of light [m/s]
-        AU::Number=149597870.7,  # Astronomical unit [km]
-        reltol::Number=1e-4,
-        abstol::Number=1e-8
+        eop_data::EopIau1980,
+        theta_coords::AbstractVector,
+        phi_coords::AbstractVector,
+        weights::AbstractVector;
+        solar_irradiance::Number=SOLAR_IRRADIANCE,
+        speed_of_light::Number=SPEED_OF_LIGHT,
+        AU::Number=ASTRONOMICAL_UNIT / 1E3
     )
 
-Compute the acceleration from Earth albedo radiation pressure using numerical integration.
+Compute the acceleration from Earth albedo radiation pressure using Lebedev quadrature.
 
 Earth albedo radiation pressure arises from two sources:
 1. Solar radiation reflected by Earth's surface (shortwave, albedo component)
@@ -340,31 +333,35 @@ The total acceleration is computed by integrating over the Earth's surface visib
 to the satellite (field of view), considering both reflected and emitted radiation.
 
 Mathematical formulation based on Knocke et al. (1988):
-    a_albedo = (A/m) * RC * ∫∫ [F_SW + F_LW] * cos(γ) * cos(α) * dΩ / (π * c * r²)
+    a_albedo = RC * ∫∫ [F_SW + F_LW] * cos(α) * dΩ / (π * c * r²) / 1E3
 
 Where:
-- A/m: Area-to-mass ratio (embedded in RC)
-- RC: Reflectivity coefficient  
-- F_SW: Shortwave flux (reflected solar radiation)
-- F_LW: Longwave flux (thermal emission)
-- γ: Angle between incident radiation and satellite surface normal
+- RC: Reflectivity ballistic coefficient [m²/kg]
+- F_SW: Shortwave flux (reflected solar radiation) [W/m²]
+- F_LW: Longwave flux (thermal emission) [W/m²]
 - α: Angle between Earth surface element normal and satellite direction
-- dΩ: Surface element area
-- c: Speed of light
-- r: Distance from surface element to satellite
+- dΩ: Surface element area [km²]
+- c: Speed of light [m/s]
+- r: Distance from surface element to satellite [km]
 
 # Arguments
-- `u::AbstractVector`: The current state of the spacecraft in the central body inertial frame.
+- `u::AbstractVector`: The current state of the spacecraft in the central body inertial frame [km, km/s].
 - `sun_pos::AbstractVector`: The current position of the Sun [km].
 - `RC::Number`: The reflectivity ballistic coefficient of the satellite [m²/kg].
-- `body_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: Earth albedo radiation model.
+- `current_time::Number`: The current Julian date.
+- `body_albedo_model::AbstractAlbedoModel`: Earth albedo radiation model.
+- `eop_data::EopIau1980`: Earth orientation parameters.
+- `theta_coords::AbstractVector`: Pre-computed colatitude coordinates for Lebedev quadrature.
+- `phi_coords::AbstractVector`: Pre-computed azimuth coordinates for Lebedev quadrature.
+- `weights::AbstractVector`: Pre-computed scaled integration weights.
 
-# Optional Arguments
-- `solar_flux::Number`: Solar flux at 1 AU [W/m²].
-- `speed_of_light::Number`: Speed of light [km/s].
+# Keyword Arguments
+- `solar_irradiance::Number`: Solar irradiance at 1 AU [W/m²]. Default: `SOLAR_IRRADIANCE`.
+- `speed_of_light::Number`: Speed of light [km/s]. Default: `SPEED_OF_LIGHT`.
+- `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT / 1E3`.
 
 # Returns
-- `SVector{3}{Number}`: Inertial acceleration from albedo radiation pressure [km/s²].
+- `SVector{3}`: Inertial acceleration from albedo radiation pressure [km/s²].
 """
 function albedo_accel(
     u::AbstractVector{UT},
@@ -376,8 +373,8 @@ function albedo_accel(
     theta_coords::TT_C,
     phi_coords::PT_C,
     weights::WT;
-    solar_flux::SFT=SOLAR_FLUX,
-    AU::AUT=ASTRONOMICAL_UNIT,
+    solar_irradiance::SFT=SOLAR_IRRADIANCE,
+    AU::AUT=ASTRONOMICAL_UNIT / 1E3,
     speed_of_light::CT=SPEED_OF_LIGHT,
 ) where {
     UT<:Number,
@@ -397,21 +394,17 @@ function albedo_accel(
 
     R_ECEF2ECI = r_ecef_to_eci(ITRF(), J2000(), current_time, eop_data)
 
-    # Use pre-computed Lebedev coordinates and weights for efficient integration
     n_points = length(weights)
 
-    # Initialize result
     result_x = 0.0
     result_y = 0.0
     result_z = 0.0
 
-    # Single-sum integration over all Lebedev quadrature points
     @inbounds for i in 1:n_points
         theta = theta_coords[i]
         phi = phi_coords[i]
         weight = weights[i]
 
-        # Evaluate integrand at Lebedev point
         x = SVector{2,Float64}(theta, phi)
         accel = albedo_integrand(
             x,
@@ -421,7 +414,7 @@ function albedo_accel(
             RC,
             body_albedo_model,
             current_time,
-            solar_flux,
+            solar_irradiance,
             speed_of_light,
             AU,
         )

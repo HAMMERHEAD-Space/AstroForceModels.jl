@@ -44,7 +44,7 @@ end
                     _p,
                     _t,
                     AlbedoAstroModel(;
-                        satellite_srp_model=CannonballFixedSRP(x),
+                        satellite_shape_model=CannonballFixedSRP(x),
                         sun_data=_sun_model,
                         body_albedo_model=_uniform_albedo_model,
                         eop_data=_eop_data,

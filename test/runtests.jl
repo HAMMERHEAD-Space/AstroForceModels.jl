@@ -106,6 +106,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_relativity.jl")
         include("differentiability/test_third_body.jl")
         include("differentiability/test_low_thrust.jl")
+        include("differentiability/test_albedo.jl")
         include("differentiability/test_dynamics_builder.jl")
     end
 else

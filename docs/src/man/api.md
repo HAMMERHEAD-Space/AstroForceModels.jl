@@ -71,6 +71,11 @@ AstroForceModels provides several categories of force models:
 - `SRPAstroModel`: Solar radiation pressure force model with shadow modeling
 - `CannonballFixedSRP`: Fixed reflectivity coefficient satellite shape model
 
+### Albedo Radiation Pressure Models
+
+- `AlbedoAstroModel`: Earth albedo radiation pressure force model with Lebedev quadrature integration
+- `UniformAlbedoModel`: Uniform albedo model with constant visible albedo and infrared emissivity
+
 ### Third Body Models
 
 - `ThirdBodyModel`: Third body ephemeris provider (Sun, Moon, planets)

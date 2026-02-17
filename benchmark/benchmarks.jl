@@ -12,6 +12,7 @@ const SUITE = BenchmarkGroup()
 SUITE["gravity"] = BenchmarkGroup(["acceleration"])
 SUITE["drag"] = BenchmarkGroup(["acceleration"])
 SUITE["srp"] = BenchmarkGroup(["acceleration"])
+SUITE["albedo"] = BenchmarkGroup(["acceleration"])
 SUITE["third_body"] = BenchmarkGroup(["acceleration"])
 SUITE["relativity"] = BenchmarkGroup(["acceleration"])
 SUITE["low_thrust"] = BenchmarkGroup(["acceleration"])
@@ -125,6 +126,30 @@ const _sat_pos = SVector{3}(_state[1], _state[2], _state[3])
 for (label, shadow) in _SHADOW_MODELS
     SUITE["shadow_models"][label] = @benchmarkable shadow_model(
         $_sat_pos, $_sun_pos, $shadow
+    )
+end
+
+# ---------------------
+# Albedo models
+# ---------------------
+const _uniform_albedo = UniformAlbedoModel(; visible_albedo=0.3, infrared_emissivity=0.7)
+
+const _ALBEDO_ORDERS = [
+    ("order_21", 21),
+    ("order_59", 59),
+    ("order_125", 125),
+]
+
+for (label, order) in _ALBEDO_ORDERS
+    albedo_model = AlbedoAstroModel(;
+        satellite_shape_model=_satellite_srp_model,
+        sun_data=_sun_model,
+        body_albedo_model=_uniform_albedo,
+        eop_data=_eop_data,
+        lebedev_order=order,
+    )
+    SUITE["albedo"][label] = @benchmarkable acceleration(
+        $_state, $_p, $_t, $albedo_model
     )
 end
 
