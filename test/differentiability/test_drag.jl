@@ -78,7 +78,7 @@ end
                     _t,
                 )
 
-                if !(backend[1] == "Zygote" && atmo[1] == "None")
+                if !(backend[1] == "Zygote" && atmo[1] == "NoAtmosphere")
                     f_ad, df_ad = value_and_derivative(
                         (x) -> Array(
                             acceleration(

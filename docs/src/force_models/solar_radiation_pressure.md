@@ -57,7 +57,14 @@ AstroForceModels implements three shadow models for eclipse calculations:
 - Faster computation than conical model
 - Suitable for missions where high shadow accuracy isn't critical
 
-**No_Shadow Model**: Disables all eclipse effects
+**SmoothedConical Shadow Model** (Aziz et al.): Differentiable sigmoid-based model
+- Uses a logistic sigmoid to smoothly transition between sunlight and shadow
+- Fully compatible with automatic differentiation (no branching on shadow state)
+- Parameterized by sharpness coefficient `cs` (default: 289.78) and transition coefficient `ct` (default: 1.0)
+- Ideal for gradient-based optimization (e.g., Q-Law, trajectory optimization)
+- Default parameters calibrated for geocentric orbits
+
+**NoShadow Model**: Disables all eclipse effects
 - Always returns shadow factor = 1.0 (full sunlight)
 - Eliminates computational overhead of shadow calculations
 - Useful for high-altitude missions where eclipses are rare
@@ -65,11 +72,12 @@ AstroForceModels implements three shadow models for eclipse calculations:
 
 ### Performance Comparison
 
-| Shadow Model | Accuracy | Memory Usage | Best For |
-|--------------|----------|--------------|----------|
-| Conical | Highest | Low | LEO precision missions |
-| Cylindrical | Medium | Minimal | Fast analysis, CubeSats |
-| No_Shadow | N/A* | Minimal | High altitudes, debugging |
+| Shadow Model | Accuracy | AD Compatible | Best For |
+|--------------|----------|---------------|----------|
+| Conical | Highest | No | LEO precision missions |
+| SmoothedConical | High | Yes | Gradient-based optimization |
+| Cylindrical | Medium | No | Fast analysis, CubeSats |
+| NoShadow | N/A* | Yes | High altitudes, debugging |
 
 *Perfect accuracy for missions without eclipses
 

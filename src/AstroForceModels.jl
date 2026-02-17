@@ -23,6 +23,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 - **Solar Radiation Pressure**: With shadow modeling (conical, cylindrical)
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
+- **Low-Thrust Propulsion**: Constant, tangential, and user-defined thrust profiles
 
 # Example Usage
 
@@ -54,7 +55,6 @@ module AstroForceModels
 
 using ComponentArrays, StaticArraysCore
 using LinearAlgebra
-using Parameters
 using Lebedev
 using SatelliteToolboxBase
 using SatelliteToolboxCelestialBodies
@@ -107,27 +107,31 @@ force sources. The primary implementation is [`CentralBodyDynamicsModel`](@ref).
 """
 abstract type AbstractDynamicsModel end
 
-include("./constants.jl")
-include("./utils.jl")
+include("constants.jl")
+include("utils.jl")
 
-include("./force_models/drag/satellite_shape_model.jl")
-include("./force_models/drag/density_calculator.jl")
-include("./force_models/drag/drag_accel.jl")
+include("force_models/drag/satellite_shape_model.jl")
+include("force_models/drag/density_calculator.jl")
+include("force_models/drag/drag_accel.jl")
 
-include("./force_models/third_body/celestial_body.jl")
-include("./force_models/third_body/third_body_model.jl")
-include("./force_models/third_body/third_body_accel.jl")
+include("force_models/third_body/celestial_body.jl")
+include("force_models/third_body/third_body_model.jl")
+include("force_models/third_body/third_body_accel.jl")
 
-include("./force_models/relativity/relativity_accel.jl")
+include("force_models/relativity/relativity_accel.jl")
 
-include("./force_models/solar_radiation_pressure/satellite_shape_model.jl")
-include("./force_models/solar_radiation_pressure/shadow_models.jl")
-include("./force_models/solar_radiation_pressure/srp_accel.jl")
-include("./force_models/solar_radiation_pressure/albedo_accel.jl")
+include("force_models/solar_radiation_pressure/satellite_shape_model.jl")
+include("force_models/solar_radiation_pressure/shadow_models.jl")
+include("force_models/solar_radiation_pressure/srp_accel.jl")
 
-include("./force_models/gravity/gravity_accel.jl")
+include("force_models/gravity/utils.jl")
+include("force_models/gravity/gravity_accel.jl")
 
-include("./dynamics_builder.jl")
+include("force_models/low_thrust/frames.jl")
+include("force_models/low_thrust/thrust_model.jl")
+include("force_models/low_thrust/low_thrust_accel.jl")
+
+include("dynamics_builder.jl")
 
 export acceleration,
     potential,

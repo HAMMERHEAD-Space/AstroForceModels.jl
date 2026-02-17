@@ -14,7 +14,7 @@
     ] #km, km/s
 
     satellite_lense_thirring_model = RelativityModel(;
-        schwartzchild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
+        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
     )
 
     lense_thirring_accel = acceleration(state, p, 0.0, satellite_lense_thirring_model)
@@ -27,7 +27,7 @@
     @test lense_thirring_accel ≈ expected_acceleration atol = 1e-13
 
     satellite_de_sitter_model = RelativityModel(;
-        schwartzchild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
+        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
     )
 
     de_sitter_accel = acceleration(state, p, 0.0, satellite_de_sitter_model)
@@ -40,16 +40,16 @@
     #TODO: THIS ISN'T A GREAT TEST BUT THE SUN POSITION MODEL NEEDS TO BE IMPROVED FIRST
     @test de_sitter_accel ≈ expected_acceleration atol = 1E-13
 
-    satellite_schwartzchild_model = RelativityModel(;
-        schwartzchild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
+    satellite_schwarzschild_model = RelativityModel(;
+        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
     )
 
-    schwartzchild_accel = acceleration(state, p, 0.0, satellite_schwartzchild_model)
+    schwarzschild_accel = acceleration(state, p, 0.0, satellite_schwarzschild_model)
 
     # Generated with Orekit
     expected_acceleration = [
         4.591078254044568e-12, -1.4642193807865207e-11, -1.4370450162013855e-12
     ] # km/s
 
-    @test schwartzchild_accel ≈ expected_acceleration rtol = 1E-15
+    @test schwarzschild_accel ≈ expected_acceleration rtol = 1E-15
 end

@@ -8,11 +8,12 @@
 [![DOI](https://zenodo.org/badge/762543633.svg)](https://doi.org/10.5281/zenodo.16954385)
 
 This package contains the dominant astrodynamics forces affecting the orbital trajectory of a satellite. This package implements:
-- [x] Zonal Harmonics
+- [x] Spherical Harmonics
 - [x] Solar Radiation Pressure
 - [x] Drag
 - [x] Third Body Gravity
 - [x] Relativistic
+- [x] Low Thrust
 - [x] Albedo
 - [ ] Solid Tides
 - [ ] Spacecraft thermal emission

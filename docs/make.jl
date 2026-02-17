@@ -17,10 +17,11 @@ makedocs(;
             "force_models/solar_radiation_pressure.md",
             "force_models/third_body.md",
             "force_models/relativity.md",
+            "force_models/low_thrust.md",
         ],
         "API Reference" => "man/api.md",
         "Library" => "lib/library.md",
     ],
 )
 
-deploydocs(; repo="github.com/jmurphy6895/AstroForceModels.jl.git", target="build")
+deploydocs(; repo="github.com/HAMMERHEAD-Space/AstroForceModels.jl.git", target="build")

@@ -67,7 +67,7 @@ end
 - [`acceleration`](@ref): Individual force model acceleration interface
 """
 struct CentralBodyDynamicsModel{N,GT<:AbstractGravityAstroModel,PT<:Tuple} <:
-       AbstractDynamicsModel where {N<:Int}
+       AbstractDynamicsModel
     gravity_model::GT
     perturbing_models::PT
 end
@@ -206,8 +206,10 @@ unroll the loop and inline all acceleration computations, providing optimal perf
 end
 
 # Base case: empty tuple returns zero acceleration
-@inline sum_accelerations(u::AbstractVector, p::ComponentVector, t::Number, models::Tuple{}) = SVector{
-    3
-}(
-    0.0, 0.0, 0.0
-)
+@inline function sum_accelerations(
+    u::AbstractVector{UT}, p::ComponentVector{PT}, t::TT, models::Tuple{}
+) where {UT<:Number,PT,TT<:Number}
+    T = promote_type(UT, PT, TT)
+    z = zero(T)
+    return SVector{3}(z, z, z)
+end

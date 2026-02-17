@@ -31,12 +31,12 @@ using DifferentialEquations
 gravity_model = KeplerianGravityAstroModel()  # or GravityHarmonicsAstroModel
 drag_model = DragAstroModel(...)
 srp_model = SRPAstroModel(...)
-third_body_model = ThirdBodyAstroModel(...)
+third_body = ThirdBodyModel(; body=SunBody(), eop_data=fetch_iers_eop())
 
 # Combine into a dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, third_body_model)
+    (drag_model, srp_model, third_body)
 )
 
 # System dynamics function using the dynamics model
@@ -97,7 +97,7 @@ gravity_model = GravityHarmonicsAstroModel(
 )
 
 ## 2. Atmospheric Drag Model
-satellite_drag = CannonballDragModel(
+satellite_drag = CannonballFixedDrag(
     area = spacecraft_params.area,
     drag_coeff = spacecraft_params.Cd,
     mass = spacecraft_params.mass
@@ -127,27 +127,17 @@ srp_model = SRPAstroModel(
 )
 
 ## 4. Third Body Gravity (Sun and Moon)
-# Create third body models
-sun_perturbation = ThirdBodyAstroModel(
-    third_body_model = sun_model,
-    eop_data = eop_data
-)
-
+# Sun model already created above for SRP
 # Create Moon model  
 moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
 
-moon_perturbation = ThirdBodyAstroModel(
-    third_body_model = moon_model, 
-    eop_data = eop_data
-)
-
 ## 5. Relativistic Effects
-relativity_model = RelativisticAstroModel()
+relativity_model = RelativityModel(eop_data)
 
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_perturbation, moon_perturbation, relativity_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model)
 )
 
 # System dynamics function for ODE solver
@@ -162,6 +152,51 @@ sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-12)
 
 # Alternative: Manual acceleration computation
 total_accel = build_dynamics_model(u0, p, 0.0, dynamics_model)
+```
+
+## Low-Thrust Propulsion Example
+
+Low-thrust models can be added as perturbations alongside other force models. Thrust can
+be specified in different reference frames (Inertial, RTN, or VNB):
+
+```julia
+using AstroForceModels
+using StaticArraysCore
+
+# Constant tangential thrust in VNB frame (orbit raising)
+lt_vnb = LowThrustAstroModel(;
+    thrust_model = ConstantCartesianThrust(1e-7, 0.0, 0.0),  # [V, N, B]
+    frame = VNBFrame(),
+)
+
+# Piecewise-constant thrust schedule in RTN (Sims-Flanagan style)
+lt_rtn = LowThrustAstroModel(;
+    thrust_model = PiecewiseConstantThrust(
+        [0.0, 3600.0, 7200.0],                               # arc start times [s]
+        [SVector{3}(0.0, 1e-7, 0.0),                         # burn 1: transverse
+         SVector{3}(0.0, 0.0, 0.0),                          # coast
+         SVector{3}(0.0, -1e-7, 0.0)],                       # burn 2: reverse
+    ),
+    frame = RTNFrame(),
+)
+
+# Or use the convenience ConstantTangentialThrust (always inertial)
+# 1 mN thrust on a 500 kg spacecraft
+lt_simple = LowThrustAstroModel(;
+    thrust_model = ConstantTangentialThrust(1e-3, 500.0),
+)
+
+# Combine with high-fidelity dynamics
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model, sun_model, moon_model, lt_rtn)
+)
+
+# System dynamics with low-thrust
+function lt_dynamics!(du, u, p, t)
+    du[1:3] = u[4:6]  # velocity
+    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
+end
 ```
 
 ## Troubleshooting
