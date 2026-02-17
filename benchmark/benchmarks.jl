@@ -134,11 +134,7 @@ end
 # ---------------------
 const _uniform_albedo = UniformAlbedoModel(; visible_albedo=0.3, infrared_emissivity=0.7)
 
-const _ALBEDO_ORDERS = [
-    ("order_21", 21),
-    ("order_59", 59),
-    ("order_125", 125),
-]
+const _ALBEDO_ORDERS = [("order_21", 21), ("order_59", 59), ("order_125", 125)]
 
 for (label, order) in _ALBEDO_ORDERS
     albedo_model = AlbedoAstroModel(;
@@ -148,9 +144,7 @@ for (label, order) in _ALBEDO_ORDERS
         eop_data=_eop_data,
         lebedev_order=order,
     )
-    SUITE["albedo"][label] = @benchmarkable acceleration(
-        $_state, $_p, $_t, $albedo_model
-    )
+    SUITE["albedo"][label] = @benchmarkable acceleration($_state, $_p, $_t, $albedo_model)
 end
 
 # ---------------------
