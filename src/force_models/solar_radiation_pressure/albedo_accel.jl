@@ -95,11 +95,11 @@ struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,PT,WT} <:
 end
 
 # Constructor
-function AlbedoAstroModel(
+function AlbedoAstroModel(;
     satellite_shape_model::ST,
     sun_data::SDT,
     body_albedo_model::EAT,
-    eop_data::EoT;
+    eop_data::EoT,
     solar_irradiance::SFT=SOLAR_IRRADIANCE,
     speed_of_light::CT=SPEED_OF_LIGHT,
     AU::AUT=ASTRONOMICAL_UNIT / 1E3,
