@@ -63,3 +63,15 @@ const _lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e
 const _model_list = CentralBodyDynamicsModel(
     _grav_model, (_sun_model, _moon_model, _srp_model, _drag_model, _lt_model)
 )
+
+const _uniform_albedo_model = UniformAlbedoModel(;
+    visible_albedo=0.3, infrared_emissivity=0.7
+)
+
+# Create albedo force model
+const _albedo_model = AlbedoAstroModel(;
+    satellite_shape_model=_satellite_srp_model,
+    sun_data=_sun_model,
+    body_albedo_model=_uniform_albedo_model,
+    eop_data=_eop_data,
+)

@@ -220,6 +220,37 @@ end
     @test pw_accel(state, p, t, pw_model) isa SVector
 end
 
+@testset "Albedo Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    eop_data = fetch_iers_eop()
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+
+    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+
+    satellite_shape_model = CannonballFixedSRP(0.2)
+
+    albedo_model = AlbedoAstroModel(;
+        satellite_shape_model=satellite_shape_model,
+        sun_data=sun_third_body,
+        body_albedo_model=UniformAlbedoModel(0.3, 0.7),
+        eop_data=eop_data,
+    )
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
+
+    @test albedo_alloc_accel(state, p, t, albedo_model) isa SVector
+end
+
 @testset "Dynamics Builder Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     p = ComponentVector(; JD=JD)

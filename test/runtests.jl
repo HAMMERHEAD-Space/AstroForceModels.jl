@@ -23,6 +23,7 @@ using JET
     include("solar_radiation_pressure/test_satellite_shape_models.jl")
     include("solar_radiation_pressure/test_shadow_models.jl")
     include("solar_radiation_pressure/test_srp_accel.jl")
+    include("solar_radiation_pressure/test_albedo_accel.jl")
 
     # Third Body Tests
     include("third_body/test_celestial_body.jl")
@@ -105,6 +106,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_relativity.jl")
         include("differentiability/test_third_body.jl")
         include("differentiability/test_low_thrust.jl")
+        include("differentiability/test_albedo.jl")
         include("differentiability/test_dynamics_builder.jl")
     end
 else
