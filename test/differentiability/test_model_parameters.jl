@@ -62,6 +62,15 @@ const _lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e
 
 const _tides_model = SolidBodyTidesModel(_eop_data)
 
+const _thermal_sat_model = FixedThermalEmission(0.01)
+const _thermal_model = ThermalEmissionAstroModel(;
+    satellite_thermal_model=_thermal_sat_model,
+    sun_data=_sun_model,
+    eop_data=_eop_data,
+    shadow_model=Conical(),
+)
+const _C_thm = 0.01
+
 const _model_list = CentralBodyDynamicsModel(
     _grav_model, (_sun_model, _moon_model, _srp_model, _drag_model, _lt_model)
 )

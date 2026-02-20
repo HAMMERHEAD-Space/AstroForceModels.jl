@@ -241,6 +241,32 @@ end
     @test tides_accel(state, p, t, tides_model) isa SVector
 end
 
+@testset "Thermal Emission Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    eop_data = fetch_iers_eop()
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+
+    thermal_sat = FixedThermalEmission(0.01)
+    thermal_model = ThermalEmissionAstroModel(;
+        satellite_thermal_model=thermal_sat, sun_data=sun_model, eop_data=eop_data
+    )
+
+    @check_allocs thm_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test thm_accel(state, p, t, thermal_model) isa SVector
+end
+
 @testset "Albedo Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()

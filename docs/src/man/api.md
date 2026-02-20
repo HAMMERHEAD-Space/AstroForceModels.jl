@@ -88,6 +88,12 @@ AstroForceModels provides several categories of force models:
 
 - `SolidBodyTidesModel`: Tidal deformation perturbation from tide-raising bodies (IERS 2010, Step 1)
 
+### Thermal Emission
+
+- `ThermalEmissionAstroModel`: Spacecraft thermal re-radiation force from anisotropic surface emission
+- `FixedThermalEmission`: Fixed thermal emission coefficient model
+- `FlatPlateThermalModel`: Physical flat plate model with front/back emissivity, absorptivity, and efficiency
+
 ### Low-Thrust Propulsion
 
 - `LowThrustAstroModel`: Low-thrust propulsion force model with frame support
