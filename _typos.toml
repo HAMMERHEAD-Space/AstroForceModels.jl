@@ -1,3 +1,5 @@
 [default.extend-words]
 AAS = "AAS"
 ECT = "ECT"
+NED = "NED"
+ned = "ned"

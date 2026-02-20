@@ -17,7 +17,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Albedo
 - [x] Solid Body Tides
 - [x] Spacecraft Thermal Emission
-- [ ] Magnetic Field Effects
+- [x] Geomagnetic Lorentz Force
 
 The plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl, but this is still under discussion. In the meantime, interfaces to those models will be added.
 

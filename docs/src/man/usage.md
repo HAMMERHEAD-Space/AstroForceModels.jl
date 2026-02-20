@@ -155,10 +155,17 @@ thermal_model = ThermalEmissionAstroModel(;
     shadow_model = Conical(),
 )
 
+## 8. Geomagnetic Lorentz Force
+mag_model = MagneticFieldAstroModel(;
+    spacecraft_charge_model = FixedChargeMassRatio(1e-5),  # q/m [C/kg]
+    geomagnetic_field_model = DipoleMagneticField(),
+    eop_data = eop_data,
+)
+
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model, thermal_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model, thermal_model, mag_model)
 )
 
 # System dynamics function for ODE solver

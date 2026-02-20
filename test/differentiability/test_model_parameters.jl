@@ -71,6 +71,13 @@ const _thermal_model = ThermalEmissionAstroModel(;
 )
 const _C_thm = 0.01
 
+const _q_over_m = 1e-3
+const _mag_dipole_model = MagneticFieldAstroModel(;
+    spacecraft_charge_model=FixedChargeMassRatio(_q_over_m),
+    geomagnetic_field_model=DipoleMagneticField(),
+    eop_data=_eop_data,
+)
+
 const _model_list = CentralBodyDynamicsModel(
     _grav_model, (_sun_model, _moon_model, _srp_model, _drag_model, _lt_model)
 )
