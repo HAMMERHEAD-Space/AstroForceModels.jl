@@ -36,6 +36,9 @@ using JET
     # Relativity Tests
     include("relativity/test_relativity.jl")
 
+    # Solid Body Tides Tests
+    include("solid_body_tides/test_solid_body_tides.jl")
+
     # Low Thrust Tests
     include("low_thrust/test_thrust_model.jl")
     include("low_thrust/test_low_thrust_accel.jl")
@@ -107,6 +110,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_third_body.jl")
         include("differentiability/test_low_thrust.jl")
         include("differentiability/test_albedo.jl")
+        include("differentiability/test_solid_body_tides.jl")
         include("differentiability/test_dynamics_builder.jl")
     end
 else

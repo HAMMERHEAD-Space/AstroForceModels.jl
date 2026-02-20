@@ -134,10 +134,13 @@ moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
 ## 5. Relativistic Effects
 relativity_model = RelativityModel(eop_data)
 
+## 6. Solid Body Tides (IERS 2010, Step 1)
+tides_model = SolidBodyTidesModel(eop_data)
+
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, relativity_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model)
 )
 
 # System dynamics function for ODE solver

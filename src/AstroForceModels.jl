@@ -23,6 +23,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 - **Solar Radiation Pressure**: With shadow modeling (conical, cylindrical)
 - **Earth Albedo Radiation Pressure**: Reflected and thermal Earth radiation
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations
+- **Solid Body Tides**: Geopotential perturbations from tidal deformation (IERS 2010)
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
 - **Low-Thrust Propulsion**: Constant, tangential, and user-defined thrust profiles
 
@@ -125,6 +126,8 @@ include("force_models/solar_radiation_pressure/satellite_shape_model.jl")
 include("force_models/solar_radiation_pressure/shadow_models.jl")
 include("force_models/solar_radiation_pressure/srp_accel.jl")
 include("force_models/solar_radiation_pressure/albedo_accel.jl")
+
+include("force_models/solid_body_tides/solid_body_tides_accel.jl")
 
 include("force_models/gravity/utils.jl")
 include("force_models/gravity/gravity_accel.jl")

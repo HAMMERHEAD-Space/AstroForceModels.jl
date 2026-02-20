@@ -220,6 +220,27 @@ end
     @test pw_accel(state, p, t, pw_model) isa SVector
 end
 
+@testset "Solid Earth Tides Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    eop_data = fetch_iers_eop()
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    tides_model = SolidBodyTidesModel(eop_data)
+
+    @check_allocs tides_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test tides_accel(state, p, t, tides_model) isa SVector
+end
+
 @testset "Albedo Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
