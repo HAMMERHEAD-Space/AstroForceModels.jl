@@ -20,6 +20,7 @@ makedocs(;
             "force_models/relativity.md",
             "force_models/low_thrust.md",
             "force_models/solid_body_tides.md",
+            "force_models/thermal_emission.md",
         ],
         "API Reference" => "man/api.md",
         "Library" => "lib/library.md",

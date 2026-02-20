@@ -10,7 +10,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Low Thrust
 - [x] Albedo
 - [x] Solid Body Tides
-- [ ] Spacecraft thermal emission
+- [x] Spacecraft Thermal Emission
 - [ ] Magnetic Field Effects
 
 ## Installation

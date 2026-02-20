@@ -137,10 +137,28 @@ relativity_model = RelativityModel(eop_data)
 ## 6. Solid Body Tides (IERS 2010, Step 1)
 tides_model = SolidBodyTidesModel(eop_data)
 
+## 7. Thermal Emission (Thermal Re-Radiation)
+thermal_sat = FlatPlateThermalModel(;
+    area = 10.82,          # solar panel area [m²]
+    mass = spacecraft_mass, # spacecraft mass [kg]
+    ε_front = 0.75,        # front emissivity
+    ε_back = 0.90,         # back emissivity
+    absorptivity = 0.92,   # solar absorptivity
+    ξ = 0.91,              # temperature ratio factor
+    η = 0.12,              # electric efficiency
+)
+
+thermal_model = ThermalEmissionAstroModel(;
+    satellite_thermal_model = thermal_sat,
+    sun_data = sun_model,
+    eop_data = eop_data,
+    shadow_model = Conical(),
+)
+
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model, thermal_model)
 )
 
 # System dynamics function for ODE solver
