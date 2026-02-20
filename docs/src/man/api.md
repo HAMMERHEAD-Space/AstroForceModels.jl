@@ -94,6 +94,14 @@ AstroForceModels provides several categories of force models:
 - `FixedThermalEmission`: Fixed thermal emission coefficient model
 - `FlatPlateThermalModel`: Physical flat plate model with front/back emissivity, absorptivity, and efficiency
 
+### Geomagnetic Lorentz Force
+
+- `MagneticFieldAstroModel`: Lorentz force on charged spacecraft from Earth's geomagnetic field (IGRF or dipole)
+- `FixedChargeMassRatio`: Fixed charge-to-mass ratio model [C/kg]
+- `StateChargeModel`: State-dependent charge-to-mass ratio function
+- `IGRFField`: IGRF v14 geomagnetic field model (spherical harmonics up to degree 13)
+- `DipoleMagneticField`: Simplified dipole geomagnetic field model
+
 ### Low-Thrust Propulsion
 
 - `LowThrustAstroModel`: Low-thrust propulsion force model with frame support
@@ -147,10 +155,11 @@ AstroForceModels is designed to be built off packages in the SatelliteToolbox.jl
 ### Required Dependencies
 
 ```julia
-using SatelliteToolboxBase           # Base types and constants
-using SatelliteToolboxGravityModels  # Gravity field models
+using SatelliteToolboxBase               # Base types and constants
+using SatelliteToolboxGravityModels      # Gravity field models
 using SatelliteToolboxAtmosphericModels  # Atmospheric density models
 using SatelliteToolboxCelestialBodies    # Celestial body ephemeris
+using SatelliteToolboxGeomagneticField   # Geomagnetic field models (IGRF, dipole)
 using SatelliteToolboxTransformations    # Coordinate transformations
 ```
 

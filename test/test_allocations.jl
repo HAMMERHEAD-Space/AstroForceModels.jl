@@ -267,6 +267,31 @@ end
     @test thm_accel(state, p, t, thermal_model) isa SVector
 end
 
+@testset "Magnetic Field Dipole Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    eop_data = fetch_iers_eop()
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    mag_model = MagneticFieldAstroModel(;
+        spacecraft_charge_model=FixedChargeMassRatio(1e-3),
+        geomagnetic_field_model=DipoleMagneticField(),
+        eop_data=eop_data,
+    )
+
+    @check_allocs mag_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test mag_accel(state, p, t, mag_model) isa SVector
+end
+
 @testset "Albedo Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()

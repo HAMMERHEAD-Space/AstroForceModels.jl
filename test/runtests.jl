@@ -3,6 +3,7 @@ using ComponentArrays
 using LinearAlgebra
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxCelestialBodies
+using SatelliteToolboxGeomagneticField
 using SatelliteToolboxGravityModels
 using SatelliteToolboxTransformations
 using SpaceIndices
@@ -41,6 +42,9 @@ using JET
 
     # Thermal Emission Tests
     include("thermal_emission/test_thermal_emission_accel.jl")
+
+    # Magnetic Field Tests
+    include("magnetic_field/test_magnetic_field_accel.jl")
 
     # Low Thrust Tests
     include("low_thrust/test_thrust_model.jl")
@@ -115,6 +119,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_albedo.jl")
         include("differentiability/test_solid_body_tides.jl")
         include("differentiability/test_thermal_emission.jl")
+        include("differentiability/test_magnetic_field.jl")
         include("differentiability/test_dynamics_builder.jl")
     end
 else
