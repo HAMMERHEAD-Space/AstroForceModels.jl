@@ -84,6 +84,10 @@ AstroForceModels provides several categories of force models:
 
 - `RelativityModel`: General relativistic effects (Schwarzschild, Lense-Thirring, de Sitter)
 
+### Solid Body Tides
+
+- `SolidBodyTidesModel`: Tidal deformation perturbation from tide-raising bodies (IERS 2010, Step 1)
+
 ### Low-Thrust Propulsion
 
 - `LowThrustAstroModel`: Low-thrust propulsion force model with frame support

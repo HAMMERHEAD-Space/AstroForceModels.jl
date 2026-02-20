@@ -9,7 +9,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Relativistic
 - [x] Low Thrust
 - [x] Albedo
-- [ ] Solid Tides
+- [x] Solid Body Tides
 - [ ] Spacecraft thermal emission
 - [ ] Magnetic Field Effects
 
