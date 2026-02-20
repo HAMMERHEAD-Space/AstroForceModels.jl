@@ -24,6 +24,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 - **Earth Albedo Radiation Pressure**: Reflected and thermal Earth radiation
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations
 - **Solid Body Tides**: Geopotential perturbations from tidal deformation (IERS 2010)
+- **Plasma Drag**: Ionospheric ion drag with Chapman layer density model
 - **Thermal Emission**: Spacecraft thermal re-radiation from anisotropic surface emission
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
 - **Low-Thrust Propulsion**: Constant, tangential, and user-defined thrust profiles
@@ -135,6 +136,10 @@ include("force_models/thermal_emission/thermal_emission_accel.jl")
 
 include("force_models/gravity/utils.jl")
 include("force_models/gravity/gravity_accel.jl")
+
+include("force_models/plasma_drag/ionosphere_model.jl")
+include("force_models/plasma_drag/satellite_shape_model.jl")
+include("force_models/plasma_drag/plasma_drag_accel.jl")
 
 include("force_models/low_thrust/frames.jl")
 include("force_models/low_thrust/thrust_model.jl")
