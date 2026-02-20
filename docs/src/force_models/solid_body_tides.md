@@ -50,7 +50,7 @@ The main struct for solid body tides computations:
 - **k2**: Degree-2 Love number (default: 0.30190, IERS 2010 anelastic)
 - **k3**: Degree-3 Love number (default: 0.093, IERS 2010)
 - **k2_plus**: Degree-2 to degree-4 coupling Love number (default: 0.0)
-- **R_e**: Central body equatorial radius [km] (default: Earth)
+- **R_e**: Central body equatorial radius in km (default: Earth)
 - **include_degree_3**: Include degree-3 contribution (default: true)
 
 The model accepts any number of tide-raising bodies as a tuple of `ThirdBodyModel`s, enabling use with any central body — not just Earth.

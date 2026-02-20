@@ -57,7 +57,7 @@ satellite and body ``j``.
 - `k3::Number`: Degree-3 Love number (default: 0.093, IERS 2010 Table 6.3).
 - `k2_plus::Number`: Degree-2 → degree-4 coupling Love number ``k_2^{(+)}``
   (default: -0.00089, IERS 2010 Table 6.3, anelastic m=0). Set to 0 to disable.
-- `R_e::Number`: Central body equatorial radius [km] (default: `R_EARTH`).
+- `R_e::Number`: Central body equatorial radius in km (default: `R_EARTH`).
 - `include_degree_3::Bool`: Include degree-3 tidal contribution (default: true).
 """
 Base.@kwdef struct SolidBodyTidesModel{
@@ -171,7 +171,7 @@ where ``\\xi = \\hat{\\mathbf{r}} \\cdot \\hat{\\mathbf{r}}_j``.
 # Keyword Arguments
 - `k2::Number`: Degree-2 Love number (default: 0.30190).
 - `k3::Number`: Degree-3 Love number (default: 0.093).
-- `R_e::Number`: Central body equatorial radius [km] (default: `R_EARTH`).
+- `R_e::Number`: Central body equatorial radius in km (default: `R_EARTH`).
 - `include_degree_3::Bool`: Include degree-3 contribution (default: true).
 
 # Returns
