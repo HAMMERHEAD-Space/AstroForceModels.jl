@@ -54,7 +54,6 @@
     )
     hp_accel = acceleration(state, p, 0.0, hp_drag_model)
 
-    @test hp_accel[1] ≈ expected_acceleration[1] rtol = 1e-2
-    @test hp_accel[2] ≈ expected_acceleration[2] rtol = 1e-2
-    @test hp_accel[3] ≈ expected_acceleration[3] rtol = 1e-2
+    @test norm(hp_accel) ≈ norm(expected_acceleration) rtol = 1e-2
+    @test dot(normalize(hp_accel), normalize(expected_acceleration)) ≈ 1.0
 end
