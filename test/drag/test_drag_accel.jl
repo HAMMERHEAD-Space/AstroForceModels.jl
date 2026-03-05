@@ -37,7 +37,6 @@
     # - Atmospheric density: ~1e-11 to 1e-12 kg/m³ 
     # - Velocity: ~7.6 km/s
     # - Ballistic coefficient: 0.2 m²/kg (from test setup)
-    # Expected drag acceleration: ~1e-8 to 1e-10 km/s² magnitude
 
     drag_magnitude = norm(drag_accel)
     @test drag_magnitude > 1e-10  # Should be non-negligible for LEO
