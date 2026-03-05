@@ -80,6 +80,8 @@ end
 # ---------------------
 const _satellite_drag_model = CannonballFixedDrag(0.2)
 
+SpaceIndices.init()
+
 const _ATMOSPHERE_MODELS = [
     ("JB2008", JB2008()),
     ("JR1971", JR1971()),
