@@ -19,7 +19,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 # Force Models Available
 
 - **Gravity Models**: Keplerian and spherical harmonics (via SatelliteToolboxGravityModels)
-- **Atmospheric Drag**: Multiple atmospheric models (JR1971, JB2008, NRLMSISE00, etc.)
+- **Atmospheric Drag**: Multiple atmospheric models (JB2008, JR1971, NRLMSISE00, Harris-Priester, Modified Harris-Priester, Exponential)
 - **Solar Radiation Pressure**: With shadow modeling (conical, cylindrical)
 - **Earth Albedo Radiation Pressure**: Reflected and thermal Earth radiation
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations

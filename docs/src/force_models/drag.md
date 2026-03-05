@@ -44,7 +44,7 @@ Different representations of spacecraft geometry:
 
 ### Atmospheric Models
 
-AstroForceModels supports five different atmospheric models for calculating atmospheric density:
+AstroForceModels supports seven different atmospheric models for calculating atmospheric density:
 
 #### JB2008 - Jacchia-Bowman 2008
 - **Type**: Semi-empirical thermospheric model
@@ -90,6 +90,29 @@ AstroForceModels supports five different atmospheric models for calculating atmo
 - **Primary Use**: Quick analysis, initial estimates, educational purposes
 - **Mathematical Form**: ρ(h) = ρ₀ × exp(-h/8420) where h is in meters
 
+#### HarrisPriester - Harris-Priester
+- **Type**: Semi-empirical thermospheric model with diurnal density variation
+- **Altitude Range**: 100 to 1,000 km
+- **Features**:
+  - Cosine power law for diurnal density bulge (configurable exponent `n`, default 4)
+  - Static density table for mean solar activity conditions
+  - No space weather indices required
+  - Fast computation
+- **Primary Use**: General LEO analysis, cases where space weather data is unavailable
+- **Configuration**: `HarrisPriester(; n=4)` where `n` controls bulge sharpness (2=smooth, 6=sharp)
+
+#### HarrisPriesterModified - Modified Harris-Priester (Hatten & Russell 2017)
+- **Type**: Improved semi-empirical thermospheric model
+- **Altitude Range**: 100 to 1,000 km
+- **Features**:
+  - C³ continuous density profiles across altitude boundaries
+  - Cubic dependency on 81-day centered average F10.7 solar flux
+  - Eliminates singularities present in the classic model
+  - Requires `SpaceIndices.init()` for F10.7 data
+- **Primary Use**: Higher-fidelity LEO analysis where smooth derivatives are needed (e.g., optimization, AD)
+- **Reference**: Hatten, N. & Russell, R. P. (2017). *Advances in Space Research*, 59(2), 571-586.
+- **Configuration**: `HarrisPriesterModified(; n=4)` where `n` controls bulge sharpness
+
 #### NoAtmosphere - No Atmosphere
 - **Type**: Vacuum model
 - **Altitude Range**: All altitudes
@@ -125,6 +148,16 @@ The choice of atmospheric model depends on your mission requirements:
 - **Rationale**: Fastest computation, simple physics
 - **Applications**: Mission planning, parametric studies, teaching
 
+**For LEO Without Space Weather Data:**
+- **Recommended**: HarrisPriester
+- **Rationale**: Diurnal density variation without requiring space indices
+- **Applications**: Quick trade studies, historical analysis without index data
+
+**For Smooth Derivatives (Optimization / AD):**
+- **Recommended**: HarrisPriesterModified
+- **Rationale**: C³ continuity avoids discontinuities in gradient-based methods
+- **Applications**: Orbit optimization, sensitivity analysis, AD-based orbit determination
+
 **For High-Altitude or Interplanetary Missions:**
 - **Recommended**: NoAtmosphere
 - **Rationale**: Negligible atmospheric effects
@@ -132,13 +165,15 @@ The choice of atmospheric model depends on your mission requirements:
 
 ### Computational Performance Comparison
 
-| Model | Accuracy | Altitude Range | Memory Usage |
-|-------|----------|----------------|--------------|
-| JB2008 | Very High | 0-1000 km | Low |
-| JR1971 | High | 90-2500 km | Low |
-| MSIS2000 | Very High | 0-1000 km | Medium |
-| ExpAtmo | Low | All altitudes | Minimal |
-| NoAtmosphere | Perfect* | All altitudes | Minimal |
+| Model | Accuracy | Altitude Range | Space Indices | Memory Usage |
+|-------|----------|----------------|---------------|--------------|
+| JB2008 | Very High | 0-1000 km | Required | Low |
+| JR1971 | High | 90-2500 km | Required | Low |
+| MSIS2000 | Very High | 0-1000 km | Required | Medium |
+| HarrisPriesterModified | High | 100-1000 km | Required | Low |
+| HarrisPriester | Moderate | 100-1000 km | Not needed | Low |
+| ExpAtmo | Low | All altitudes | Not needed | Minimal |
+| NoAtmosphere | Perfect* | All altitudes | Not needed | Minimal |
 
 *Perfect for vacuum conditions
 
@@ -189,11 +224,13 @@ models = [
     DragAstroModel(satellite_model, JB2008(), eop_data),
     DragAstroModel(satellite_model, JR1971(), eop_data), 
     DragAstroModel(satellite_model, MSIS2000(), eop_data),
+    DragAstroModel(satellite_model, HarrisPriester(), eop_data),
+    DragAstroModel(satellite_model, HarrisPriesterModified(), eop_data),
     DragAstroModel(satellite_model, ExpAtmo(), eop_data),
     DragAstroModel(satellite_model, NoAtmosphere(), eop_data)
 ]
 
-model_names = ["JB2008", "JR1971", "MSIS2000", "ExpAtmo", "NoAtmosphere"]
+model_names = ["JB2008", "JR1971", "MSIS2000", "HarrisPriester", "HarrisPriesterModified", "ExpAtmo", "NoAtmosphere"]
 
 # Compare accelerations
 for (i, model) in enumerate(models)
