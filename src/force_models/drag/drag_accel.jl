@@ -34,7 +34,7 @@ square of the relative velocity between the spacecraft and the atmosphere.
 
 # Fields
 - `satellite_drag_model::ST`: The satellite drag model for computing ballistic coefficient (Cd*A/m)
-- `atmosphere_model::AT`: The atmospheric model for computing density (e.g., JR1971, JB2008, NRLMSISE00)
+- `atmosphere_model::AT`: The atmospheric model for computing density (e.g., JB2008, JR1971, MSIS2000, HarrisPriester, HarrisPriesterModified, ExpAtmo)
 - `eop_data::EoT`: Earth Orientation Parameters for coordinate transformations and atmospheric modeling
 - `rts::RT`: Optional RTS parameter for atmospheric model (defaults to nothing)
 - `P::PT`: Optional P matrix parameter for atmospheric model (defaults to nothing)

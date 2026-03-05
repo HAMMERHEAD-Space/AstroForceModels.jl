@@ -85,6 +85,8 @@ const _ATMOSPHERE_MODELS = [
     ("JR1971", JR1971()),
     ("MSIS2000", MSIS2000()),
     ("ExpAtmo", ExpAtmo()),
+    ("HarrisPriester", HarrisPriester()),
+    ("HarrisPriesterModified", HarrisPriesterModified()),
 ]
 
 for (label, atmo) in _ATMOSPHERE_MODELS
