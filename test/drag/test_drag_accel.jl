@@ -46,4 +46,16 @@
     # Drag should oppose motion (negative work)
     velocity = SVector{3}(state[4], state[5], state[6])
     @test dot(drag_accel, velocity) < 0  # Drag opposes velocity
+
+    # Harris-Priester drag model — Orekit reference values use Harris-Priester
+    hp_drag_model = DragAstroModel(;
+        satellite_drag_model=satellite_drag_model,
+        atmosphere_model=HarrisPriester(),
+        eop_data=eop_data,
+    )
+    hp_accel = acceleration(state, p, 0.0, hp_drag_model)
+
+    @test hp_accel[1] ≈ expected_acceleration[1] rtol = 1e-2
+    @test hp_accel[2] ≈ expected_acceleration[2] rtol = 1e-2
+    @test hp_accel[3] ≈ expected_acceleration[3] rtol = 1e-2
 end

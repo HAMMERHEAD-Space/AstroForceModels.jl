@@ -33,4 +33,24 @@
     rho = AtmosphericModels.exponential(h)
     ρ = compute_density(JD, pos_eci, eop_data, ExpAtmo())
     @test rho == ρ
+
+    # Harris-Priester Check
+    rho = AtmosphericModels.harrispriester(JD, ϕ_gd, λ_gd, h)
+    ρ = compute_density(JD, pos_eci, eop_data, HarrisPriester())
+    @test rho == ρ
+
+    # Harris-Priester with custom n
+    rho = AtmosphericModels.harrispriester(JD, ϕ_gd, λ_gd, h; n=2)
+    ρ = compute_density(JD, pos_eci, eop_data, HarrisPriester(; n=2))
+    @test rho == ρ
+
+    # Modified Harris-Priester Check
+    rho = AtmosphericModels.harrispriester_modified(JD, ϕ_gd, λ_gd, h)
+    ρ = compute_density(JD, pos_eci, eop_data, HarrisPriesterModified())
+    @test rho == ρ
+
+    # Modified Harris-Priester with custom n
+    rho = AtmosphericModels.harrispriester_modified(JD, ϕ_gd, λ_gd, h; n=6)
+    ρ = compute_density(JD, pos_eci, eop_data, HarrisPriesterModified(; n=6))
+    @test rho == ρ
 end
