@@ -73,6 +73,13 @@ const _thermal_model = ThermalEmissionAstroModel(;
 )
 const _C_thm = 0.01
 
+const _q_over_m = 1e-3
+const _mag_dipole_model = MagneticFieldAstroModel(;
+    spacecraft_charge_model=FixedChargeMassRatio(_q_over_m),
+    geomagnetic_field_model=DipoleMagneticField(),
+    eop_data=_eop_data,
+)
+
 const _satellite_plasma_drag_model = CannonballFixedPlasmaDrag(0.025)
 const _plasma_drag_model = PlasmaDragAstroModel(;
     satellite_plasma_drag_model=_satellite_plasma_drag_model,

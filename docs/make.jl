@@ -4,7 +4,11 @@ using AstroForceModels
 makedocs(;
     modules=[AstroForceModels],
     format=Documenter.HTML(;
-        prettyurls=(!("local" in ARGS)), highlights=["yaml"], ansicolor=true
+        prettyurls=(!("local" in ARGS)),
+        highlights=["yaml"],
+        ansicolor=true,
+        size_threshold=300_000,
+        size_threshold_warn=200_000,
     ),
     sitename="AstroForceModels.jl",
     authors="Jordan Murphy",
@@ -21,6 +25,7 @@ makedocs(;
             "force_models/low_thrust.md",
             "force_models/solid_body_tides.md",
             "force_models/thermal_emission.md",
+            "force_models/magnetic_field.md",
         ],
         "API Reference" => "man/api.md",
         "Library" => "lib/library.md",

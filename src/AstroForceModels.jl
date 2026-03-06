@@ -26,6 +26,7 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 - **Solid Body Tides**: Geopotential perturbations from tidal deformation (IERS 2010)
 - **Plasma Drag**: Ionospheric ion drag with Chapman layer density model
 - **Thermal Emission**: Spacecraft thermal re-radiation from anisotropic surface emission
+- **Geomagnetic Lorentz Force**: Lorentz force on charged spacecraft from Earth's magnetic field
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
 - **Low-Thrust Propulsion**: Constant, tangential, and user-defined thrust profiles
 
@@ -65,6 +66,7 @@ using SatelliteToolboxCelestialBodies
 using SatelliteToolboxGravityModels
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxTransformations
+using SatelliteToolboxGeomagneticField
 using SpaceIndices
 
 """
@@ -133,6 +135,9 @@ include("force_models/solid_body_tides/solid_body_tides_accel.jl")
 
 include("force_models/thermal_emission/satellite_thermal_model.jl")
 include("force_models/thermal_emission/thermal_emission_accel.jl")
+
+include("force_models/magnetic_field/spacecraft_charge_model.jl")
+include("force_models/magnetic_field/magnetic_field_accel.jl")
 
 include("force_models/gravity/utils.jl")
 include("force_models/gravity/gravity_accel.jl")
