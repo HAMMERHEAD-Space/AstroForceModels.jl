@@ -4,7 +4,11 @@ using AstroForceModels
 makedocs(;
     modules=[AstroForceModels],
     format=Documenter.HTML(;
-        prettyurls=(!("local" in ARGS)), highlights=["yaml"], ansicolor=true
+        prettyurls=(!("local" in ARGS)),
+        highlights=["yaml"],
+        ansicolor=true,
+        size_threshold=300_000,
+        size_threshold_warn=200_000,
     ),
     sitename="AstroForceModels.jl",
     authors="Jordan Murphy",
