@@ -220,6 +220,42 @@ end
     @test pw_accel(state, p, t, pw_model) isa SVector
 end
 
+@testset "Plasma Drag Allocations" begin
+    JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+    p = ComponentVector(; JD=JD)
+    t = 0.0
+    eop_data = fetch_iers_eop()
+
+    state = [
+        -1076.225324679696
+        -6765.896364327722
+        -332.3087833503755
+        9.356857417032581
+        -3.3123476319597557
+        -1.1880157328553503
+    ] #km, km/s
+
+    satellite_plasma_drag_model = CannonballFixedPlasmaDrag(0.025)
+
+    plasma_drag_model = PlasmaDragAstroModel(;
+        satellite_plasma_drag_model=satellite_plasma_drag_model,
+        ionosphere_model=ChapmanIonosphere(),
+        eop_data=eop_data,
+    )
+
+    @check_allocs pd_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test pd_accel(state, p, t, plasma_drag_model) isa SVector
+
+    plasma_drag_const = PlasmaDragAstroModel(;
+        satellite_plasma_drag_model=satellite_plasma_drag_model,
+        ionosphere_model=ConstantIonosphere(; rho_i=1e-17),
+        eop_data=eop_data,
+    )
+
+    @check_allocs pd_const_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test pd_const_accel(state, p, t, plasma_drag_const) isa SVector
+end
+
 @testset "Solid Earth Tides Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()

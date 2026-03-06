@@ -108,33 +108,28 @@ Returns the ballistic coefficient for a drag model given the model and current s
 end
 
 """
-State Drag Model struct
-Empty struct used for when the simulation state includes the ballistic coefficient.
+    StateDragModel{IT<:Integer} <: AbstractSatelliteDragModel
+
+Drag model that reads the ballistic coefficient from the state vector.
+Intended for estimation problems where the ballistic coefficient is a solve-for parameter.
+
+# Fields
+- `state_index::IT`: Index into the state vector `u` where the ballistic coefficient is stored.
+```
 """
-struct StateDragModel <: AbstractSatelliteDragModel end
+struct StateDragModel{IT<:Integer} <: AbstractSatelliteDragModel
+    state_index::IT
+end
+
+StateDragModel() = StateDragModel(7)
 
 """
-ballistic_coefficient(
-    u::AbstractVector, 
-    p::ComponentVector, 
-    t::Number, 
-    model::StateDragModel)
+    ballistic_coefficient(u, p, t, model::StateDragModel)
 
-Returns the ballistic coefficient for a drag model given the model and current state 
-of the simulation.
-
-# Arguments
-    - `u::AbstractVector`: The current state of the simulation.
-    - `p::ComponentVector`: The parameters of the simulation.
-    - `t::Number`: The current time of the simulation.
-    - `model::StateDragModel`: The drag model for the spacecraft.
-
-# Returns
-    -`ballistic_coeff::Number`: The current ballistic coefficient of the spacecraft.
+Returns the ballistic coefficient from the state vector at `model.state_index`.
 """
 @inline function ballistic_coefficient(
     u::AbstractVector, p::AbstractVector, t::Number, model::StateDragModel
 )
-    #TODO: GENERALIZE THE INDEX, COMPONENT VECTOR?
-    return u[7]
+    return u[model.state_index]
 end

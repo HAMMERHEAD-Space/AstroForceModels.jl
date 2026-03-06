@@ -88,6 +88,15 @@ AstroForceModels provides several categories of force models:
 
 - `SolidBodyTidesModel`: Tidal deformation perturbation from tide-raising bodies (IERS 2010, Step 1)
 
+### Plasma Drag (Ionospheric Ion Drag)
+
+- `PlasmaDragAstroModel`: Ionospheric plasma drag force from direct ion collection (Lafleur 2023, Chapra 1961)
+- `CannonballFixedPlasmaDrag`: Fixed ion ballistic coefficient satellite model
+- `StatePlasmaDragModel`: State-dependent ion ballistic coefficient for estimation
+- `ChapmanIonosphere`: Chapman layer F2-region ion density model (configurable peak density, altitude, scale height)
+- `ConstantIonosphere`: Fixed ion density for testing and parametric studies
+- `NoIonosphere`: Zero ion density (disables plasma drag)
+
 ### Thermal Emission
 
 - `ThermalEmissionAstroModel`: Spacecraft thermal re-radiation force from anisotropic surface emission

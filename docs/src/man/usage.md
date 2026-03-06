@@ -162,10 +162,31 @@ mag_model = MagneticFieldAstroModel(;
     eop_data = eop_data,
 )
 
+## 9. Plasma Drag (Ionospheric Ion Drag)
+# Plasma drag models the momentum transfer from ionospheric O⁺ ions
+# to the spacecraft. At LEO altitudes (300–600 km), this can contribute
+# 5–35% of total aerodynamic force (Lafleur, Acta Astronautica 2023).
+satellite_plasma = CannonballFixedPlasmaDrag(
+    sqrt(spacecraft_params.area / π),   # radius [m]
+    spacecraft_params.mass,             # mass [kg]
+    4.0,                                # ion drag coefficient (2–4 typical)
+)
+
+# Chapman layer model for F2-region ion density
+# Nmax: peak density [m⁻³], hmax: peak altitude [km], Hs: scale height [km]
+iono_model = ChapmanIonosphere(Nmax = 3e11, hmax = 350.0, Hs = 60.0)
+
+plasma_drag_model = PlasmaDragAstroModel(
+    satellite_plasma_drag_model = satellite_plasma,
+    ionosphere_model = iono_model,
+    eop_data = eop_data,
+)
+
 # Create a comprehensive dynamics model
 dynamics_model = CentralBodyDynamicsModel(
     gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, relativity_model, tides_model, thermal_model, mag_model)
+    (drag_model, srp_model, sun_model, moon_model, relativity_model,
+     tides_model, thermal_model, mag_model, plasma_drag_model)
 )
 
 # System dynamics function for ODE solver

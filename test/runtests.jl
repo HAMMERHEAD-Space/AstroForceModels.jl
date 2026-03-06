@@ -46,6 +46,11 @@ using JET
     # Magnetic Field Tests
     include("magnetic_field/test_magnetic_field_accel.jl")
 
+    # Plasma Drag Tests
+    include("plasma_drag/test_ionosphere_model.jl")
+    include("plasma_drag/test_satellite_shape_model.jl")
+    include("plasma_drag/test_plasma_drag_accel.jl")
+
     # Low Thrust Tests
     include("low_thrust/test_thrust_model.jl")
     include("low_thrust/test_low_thrust_accel.jl")
@@ -117,6 +122,7 @@ if _DIFF_ENV ∉ ("false", "")
         include("differentiability/test_third_body.jl")
         include("differentiability/test_low_thrust.jl")
         include("differentiability/test_albedo.jl")
+        include("differentiability/test_plasma_drag.jl")
         include("differentiability/test_solid_body_tides.jl")
         include("differentiability/test_thermal_emission.jl")
         include("differentiability/test_magnetic_field.jl")

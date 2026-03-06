@@ -115,33 +115,28 @@ Returns the ballistic coefficient for a SRP model given the model and current st
 end
 
 """
-State SRP Model struct
-Empty struct used for when the simulation state includes the reflectivity ballistic coefficient.
+    StateSRPModel{IT<:Integer} <: AbstractSatelliteSRPModel
+
+SRP model that reads the reflectivity ballistic coefficient from the state vector.
+Intended for estimation problems where the coefficient is a solve-for parameter.
+
+# Fields
+- `state_index::IT`: Index into the state vector `u` where the reflectivity ballistic coefficient is stored.
+```
 """
-struct StateSRPModel <: AbstractSatelliteSRPModel end
+struct StateSRPModel{IT<:Integer} <: AbstractSatelliteSRPModel
+    state_index::IT
+end
+
+StateSRPModel() = StateSRPModel(8)
 
 """
-    reflectivity_ballistic_coefficient(
-        u::AbstractVector, 
-        p::AbstractVector, 
-        t::Number, 
-        model::StateSRPModel)
+    reflectivity_ballistic_coefficient(u, p, t, model::StateSRPModel)
 
-Returns the reflectivity ballistic coefficient for a SRP model given the model and current state 
-of the simulation. Reads the coefficient from the state vector at index 8.
-
-# Arguments
-- `u::AbstractVector`: The current state of the simulation.
-- `p::AbstractVector`: The parameters of the simulation.
-- `t::Number`: The current time of the simulation.
-- `model::StateSRPModel`: The SRP model for the spacecraft.
-
-# Returns
-- `reflectivity_ballistic_coeff::Number`: The current reflectivity ballistic coefficient of the spacecraft.
+Returns the reflectivity ballistic coefficient from the state vector at `model.state_index`.
 """
 @inline function reflectivity_ballistic_coefficient(
     u::AbstractVector, p::AbstractVector, t::Number, model::StateSRPModel
 )
-    #TODO: GENERALIZE THE INDEX, COMPONENT VECTOR?
-    return u[8]
+    return u[model.state_index]
 end

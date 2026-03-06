@@ -18,6 +18,7 @@ This package contains the dominant astrodynamics forces affecting the orbital tr
 - [x] Solid Body Tides
 - [x] Spacecraft Thermal Emission
 - [x] Geomagnetic Lorentz Force
+- [x] Plasma Drag (Ionospheric Ion Drag)
 
 The plan is likely to merge this effort into Julia Space Mission Design's AstroModels -- https://github.com/JuliaSpaceMissionDesign/AstroModels.jl, but this is still under discussion. In the meantime, interfaces to those models will be added.
 

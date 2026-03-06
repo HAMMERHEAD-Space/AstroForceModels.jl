@@ -7,7 +7,8 @@ export R_SUN,
     μ_MOON,
     μ_SUN,
     μ_EARTH,
-    EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS
+    EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS,
+    MASS_O_PLUS
 
 # Radius of the Sun [km]
 const R_SUN::Float64 = 6.955E5
@@ -29,3 +30,5 @@ const μ_SUN::Float64 = 1.3271244004127946E11
 const μ_EARTH::Float64 = 3.986004415e5
 # Earth's Specific Angular Momentum (angular momentum per unit mass) [km^2/s]
 const EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS::Float64 = 0.4 * R_EARTH^2 * EARTH_ANGULAR_SPEED
+# Mass of O⁺ ion [kg] — dominant ionospheric ion in the F2 region (200-600 km)
+const MASS_O_PLUS::Float64 = 15.999 * 1.66053906660e-27

@@ -23,6 +23,8 @@ const _ATMOSPHERE_MODELS = (
     ("JR1971", JR1971()),
     ("MSIS2000", MSIS2000()),
     ("ExpAtmo", ExpAtmo()),
+    ("HarrisPriester", HarrisPriester()),
+    ("HarrisPriesterModified", HarrisPriesterModified()),
     ("NoAtmosphere", NoAtmosphere()),
 )
 
@@ -76,6 +78,20 @@ const _mag_dipole_model = MagneticFieldAstroModel(;
     spacecraft_charge_model=FixedChargeMassRatio(_q_over_m),
     geomagnetic_field_model=DipoleMagneticField(),
     eop_data=_eop_data,
+)
+
+const _satellite_plasma_drag_model = CannonballFixedPlasmaDrag(0.025)
+const _plasma_drag_model = PlasmaDragAstroModel(;
+    satellite_plasma_drag_model=_satellite_plasma_drag_model,
+    ionosphere_model=ChapmanIonosphere(),
+    eop_data=_eop_data,
+)
+const _BC_i = 0.025
+
+const _IONOSPHERE_MODELS = (
+    ("Chapman", ChapmanIonosphere()),
+    ("Constant", ConstantIonosphere(; rho_i=1e-17)),
+    ("NoIonosphere", NoIonosphere()),
 )
 
 const _model_list = CentralBodyDynamicsModel(

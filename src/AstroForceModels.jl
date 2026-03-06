@@ -19,11 +19,12 @@ and can be efficiently combined using the `CentralBodyDynamicsModel` system.
 # Force Models Available
 
 - **Gravity Models**: Keplerian and spherical harmonics (via SatelliteToolboxGravityModels)
-- **Atmospheric Drag**: Multiple atmospheric models (JR1971, JB2008, NRLMSISE00, etc.)
+- **Atmospheric Drag**: Multiple atmospheric models (JB2008, JR1971, NRLMSISE00, Harris-Priester, Modified Harris-Priester, Exponential)
 - **Solar Radiation Pressure**: With shadow modeling (conical, cylindrical)
 - **Earth Albedo Radiation Pressure**: Reflected and thermal Earth radiation
 - **Third-Body Gravity**: Sun, Moon, and planetary perturbations
 - **Solid Body Tides**: Geopotential perturbations from tidal deformation (IERS 2010)
+- **Plasma Drag**: Ionospheric ion drag with Chapman layer density model
 - **Thermal Emission**: Spacecraft thermal re-radiation from anisotropic surface emission
 - **Geomagnetic Lorentz Force**: Lorentz force on charged spacecraft from Earth's magnetic field
 - **Relativistic Effects**: Schwarzschild, Lense-Thirring, and de Sitter effects
@@ -140,6 +141,10 @@ include("force_models/magnetic_field/magnetic_field_accel.jl")
 
 include("force_models/gravity/utils.jl")
 include("force_models/gravity/gravity_accel.jl")
+
+include("force_models/plasma_drag/ionosphere_model.jl")
+include("force_models/plasma_drag/satellite_shape_model.jl")
+include("force_models/plasma_drag/plasma_drag_accel.jl")
 
 include("force_models/low_thrust/frames.jl")
 include("force_models/low_thrust/thrust_model.jl")
