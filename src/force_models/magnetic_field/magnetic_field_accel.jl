@@ -124,9 +124,7 @@ Compute the geomagnetic Lorentz force acceleration on a charged spacecraft.
 
     q_over_m = charge_mass_ratio(u, p, t, model.spacecraft_charge_model)
 
-    R_J2000_to_ITRF::SatelliteToolboxTransformations.DCM{Float64} = r_eci_to_ecef(
-        DCM, J2000(), ITRF(), JD, model.eop_data
-    )
+    R_J2000_to_ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, model.eop_data)
 
     r_eci = SVector{3}(u[1], u[2], u[3])
     r_ecef = R_J2000_to_ITRF * r_eci
