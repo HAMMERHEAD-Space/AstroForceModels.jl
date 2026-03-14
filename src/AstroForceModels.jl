@@ -68,6 +68,9 @@ using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxTransformations
 using SatelliteToolboxGeomagneticField
 using SpaceIndices
+using FrameTransformations
+using Tempo
+using SmallBodyGravity
 
 """
     AbstractAstroForceModel
@@ -113,6 +116,9 @@ force sources. The primary implementation is [`CentralBodyDynamicsModel`](@ref).
 """
 abstract type AbstractDynamicsModel end
 
+
+include("frames/frame_utils.jl")
+include("frames/frame_params.jl")
 include("constants.jl")
 include("utils.jl")
 

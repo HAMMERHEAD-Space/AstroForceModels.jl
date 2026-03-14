@@ -28,7 +28,7 @@ Contains information to compute the acceleration of a Gravitational Harmonics Mo
 - `degree::Int`: The maximum degree to compute the gravitational potential to, a value of -1 compute the maximum degree of the supplied model. (Default=-1)
 """
 Base.@kwdef struct GravityHarmonicsAstroModel{
-    GT<:AbstractGravityModel{<:Number,NT} where {NT},
+    GT<:AbstractGravityModel,
     EoT<:Union{EopIau1980,EopIau2000A},
     V<:Int,
     PT<:Union{AbstractArray,Nothing},
