@@ -1,7 +1,7 @@
 @testset "Solid Body Tides Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -13,11 +13,14 @@
         -1.1880157328553503
     ] #km, km/s
 
-    sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-    moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+    sun_model = test_sun_model()
+    moon_model = test_moon_model()
 
     @testset "Regression" begin
-        model = SolidBodyTidesModel(eop_data)
+        model = SolidBodyTidesModel(
+            tide_raising_bodies=(sun_model, moon_model),
+            R_e=AstroForceModels.R_EARTH,
+        )
         accel = acceleration(state, p, t, model)
 
         # Cross-validated against Orekit 13.1.4 SolidTides (IERS 2010, no pole tide)
@@ -47,9 +50,9 @@
     end
 
     @testset "Physical consistency" begin
-        jd = AstroForceModels.current_jd(p, t)
-        r_sun = sun_model(jd, AstroForceModels.Position()) ./ 1E3
-        r_moon = moon_model(jd, AstroForceModels.Position()) ./ 1E3
+        t_ft = AstroForceModels.ft_time(p, t)
+        r_sun = get_position(sun_model.ephem_type, sun_model.body, p.frames, t_ft)
+        r_moon = get_position(moon_model.ephem_type, moon_model.body, p.frames, t_ft)
 
         # Isolate Moon contribution by passing only the Moon
         accel_moon = solid_body_tides_accel(

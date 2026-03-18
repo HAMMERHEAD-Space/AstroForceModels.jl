@@ -1,8 +1,8 @@
 @testset "SRP Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
 
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -16,10 +16,10 @@
     satellite_srp_model = CannonballFixedSRP(0.2)
 
     #TODO: RESOLVE SUN'S POSITION WITH HIGHER FIDELITY MODEL
-    sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+    sun_model = test_sun_model()
 
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_model, eop_data=eop_data
+        satellite_srp_model=satellite_srp_model, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
     )
 
     srp_accel = acceleration(state, p, 0.0, srp_model)

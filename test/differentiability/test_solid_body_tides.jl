@@ -44,7 +44,7 @@ end
                     _p,
                     _t,
                     SolidBodyTidesModel(;
-                        tide_raising_bodies=_tides_model.tide_raising_bodies, k2=x
+                        tide_raising_bodies=_tides_model.tide_raising_bodies, R_e=_tides_model.R_e, k2=x
                     ),
                 ),
                 AutoFiniteDiff(),
@@ -58,7 +58,7 @@ end
                         _p,
                         _t,
                         SolidBodyTidesModel(;
-                            tide_raising_bodies=_tides_model.tide_raising_bodies, k2=x
+                            tide_raising_bodies=_tides_model.tide_raising_bodies, R_e=_tides_model.R_e, k2=x
                         ),
                     ),
                 ),
@@ -78,7 +78,7 @@ end
                     _p,
                     _t,
                     SolidBodyTidesModel(;
-                        tide_raising_bodies=_tides_model.tide_raising_bodies, k3=x
+                        tide_raising_bodies=_tides_model.tide_raising_bodies, R_e=_tides_model.R_e, k3=x
                     ),
                 ),
                 AutoFiniteDiff(),
@@ -92,7 +92,7 @@ end
                         _p,
                         _t,
                         SolidBodyTidesModel(;
-                            tide_raising_bodies=_tides_model.tide_raising_bodies, k3=x
+                            tide_raising_bodies=_tides_model.tide_raising_bodies, R_e=_tides_model.R_e, k3=x
                         ),
                     ),
                 ),

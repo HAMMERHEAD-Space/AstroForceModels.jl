@@ -86,6 +86,14 @@ function Base.setproperty!(p::FrameAwareParams, s::Symbol, v)
 end
 
 Base.propertynames(p::FrameAwareParams) = tuple(:frames, :epoch, :propagation_frame, propertynames(p.params)...)
+Base.eltype(p::FrameAwareParams) = eltype(p.params)
+Base.keys(p::FrameAwareParams) = keys(p.params)
+Base.values(p::FrameAwareParams) = values(p.params)
+Base.pairs(p::FrameAwareParams) = pairs(p.params)
+Base.similar(p::FrameAwareParams) = FrameAwareParams(similar(p.params), p.frames, p.epoch, p.propagation_frame)
+Base.similar(p::FrameAwareParams, ::Type{T}) where {T} = FrameAwareParams(similar(p.params, T), p.frames, p.epoch, p.propagation_frame)
+Base.axes(p::FrameAwareParams) = axes(p.params)
+Base.IndexStyle(::Type{<:FrameAwareParams}) = IndexLinear()
 
 # Show method
 function Base.show(io::IO, p::FrameAwareParams)
@@ -96,29 +104,3 @@ function Base.show(io::IO, p::FrameAwareParams)
     println(io, "  params: ", p.params)
 end
 
-"""
-    has_frames(p)
-
-Check if a parameter object has frame transformation capabilities.
-
-# Arguments
-- `p`: Parameter object (ComponentVector or FrameAwareParams)
-
-# Returns
-- `true` if `p` is a `FrameAwareParams`, `false` otherwise
-
-# Usage
-```julia
-if has_frames(p)
-    # Use frame transformations
-    R = rotation6(p.frames, p.propagation_frame, :BodyFixed, p.epoch + t)
-else
-    # Fallback to legacy behavior
-    R = r_eci_to_ecef(...)
-end
-```
-"""
-has_frames(p::FrameAwareParams) = true
-has_frames(p) = false
-
-export has_frames

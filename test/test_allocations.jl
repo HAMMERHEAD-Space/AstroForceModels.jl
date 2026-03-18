@@ -1,10 +1,10 @@
 @testset "Drag Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
     t = 0.0
 
     SpaceIndices.init()
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -29,19 +29,21 @@ end
 
 @testset "Gravitational Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
     t = 0.0
 
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
         gravity_model=grav_coeffs,
-        eop_data=eop_data,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
         order=36,
         degree=36,
         P=MMatrix{37,37,Float64}(zeros(37, 37)),
         dP=MMatrix{37,37,Float64}(zeros(37, 37)),
+        frames=p.frames,
     )
 
     state = [
@@ -70,9 +72,9 @@ end
 
 @testset "Relativity Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
     t = 0.0
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -83,8 +85,17 @@ end
         -1.1880157328553503
     ] #km, km/s
 
+    earth_body_model = ThirdBodyModel(
+        body=EarthBody(),
+        ephem_type=FrameEphemeris(center_point=399, target_point=399, axes=:ICRF),
+    )
+    sun_model = test_sun_model(; frames=p.frames)
+
     satellite_lense_thirring_model = RelativityModel(;
-        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
+        central_body=earth_body_model,
+        sun_body=sun_model,
+        J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false,
     )
 
     @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) = acceleration(
@@ -94,7 +105,9 @@ end
     @test lense_thirr_accel(state, p, t, satellite_lense_thirring_model) isa SVector
 
     satellite_de_sitter_model = RelativityModel(;
-        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
+        central_body=earth_body_model,
+        sun_body=sun_model,
+        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true,
     )
 
     @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) = acceleration(
@@ -103,7 +116,9 @@ end
     @test de_sitt_accel(state, p, t, satellite_de_sitter_model) isa SVector
 
     satellite_schwarzschild_model = RelativityModel(;
-        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
+        central_body=earth_body_model,
+        sun_body=sun_model,
+        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false,
     )
 
     @check_allocs schwartz_accel(state, p, t, satellite_schwarzschild_model) = acceleration(
@@ -114,9 +129,9 @@ end
 
 @testset "SRP Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
     t = 0.0
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -130,10 +145,10 @@ end
     satellite_srp_model = CannonballFixedSRP(0.2)
 
     #TODO: RESOLVE SUN'S POSITION WITH HIGHER FIDELITY MODEL
-    sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+    sun_model = test_sun_model(; frames=p.frames)
 
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_model, eop_data=eop_data
+        satellite_srp_model=satellite_srp_model, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
     )
     @check_allocs sr_accel(state, p, t, srp_model) = acceleration(state, p, t, srp_model)
 
@@ -143,11 +158,11 @@ end
 @testset "Third Body Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
-    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-    moon_third_body = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+    sun_third_body = test_sun_model(; frames=p.frames)
+    moon_third_body = test_moon_model(; frames=p.frames)
 
     state = [
         -1076.225324679696
@@ -171,7 +186,8 @@ end
 
 @testset "Low Thrust Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
+    eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -222,9 +238,9 @@ end
 
 @testset "Plasma Drag Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
     t = 0.0
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -259,7 +275,7 @@ end
 @testset "Solid Earth Tides Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -271,7 +287,10 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    tides_model = SolidBodyTidesModel(eop_data)
+    tides_model = SolidBodyTidesModel(
+        tide_raising_bodies=(test_sun_model(; frames=p.frames), test_moon_model(; frames=p.frames)),
+        R_e=AstroForceModels.R_EARTH,
+    )
 
     @check_allocs tides_accel(state, p, t, model) = acceleration(state, p, t, model)
     @test tides_accel(state, p, t, tides_model) isa SVector
@@ -280,7 +299,7 @@ end
 @testset "Thermal Emission Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -292,11 +311,11 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+    sun_model = test_sun_model(; frames=p.frames)
 
     thermal_sat = FixedThermalEmission(0.01)
     thermal_model = ThermalEmissionAstroModel(;
-        satellite_thermal_model=thermal_sat, sun_data=sun_model, eop_data=eop_data
+        satellite_thermal_model=thermal_sat, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
     )
 
     @check_allocs thm_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -306,7 +325,7 @@ end
 @testset "Magnetic Field Dipole Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -331,10 +350,10 @@ end
 @testset "Albedo Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
-    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+    sun_third_body = test_sun_model(; frames=p.frames)
 
     satellite_shape_model = CannonballFixedSRP(0.2)
 
@@ -342,7 +361,9 @@ end
         satellite_shape_model=satellite_shape_model,
         sun_data=sun_third_body,
         body_albedo_model=UniformAlbedoModel(0.3, 0.7),
-        eop_data=eop_data,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
+        frames=p.frames,
     )
 
     state = [
@@ -354,33 +375,35 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
+    @check_allocs albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
 
     @test albedo_alloc_accel(state, p, t, albedo_model) isa SVector
 end
 
 @testset "Dynamics Builder Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
 
     SpaceIndices.init()
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
         gravity_model=grav_coeffs,
-        eop_data=eop_data,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
         order=36,
         degree=36,
         P=MMatrix{37,37,Float64}(zeros(37, 37)),
         dP=MMatrix{37,37,Float64}(zeros(37, 37)),
+        frames=p.frames,
     )
-    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-    moon_third_body = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+    sun_third_body = test_sun_model(; frames=p.frames)
+    moon_third_body = test_moon_model(; frames=p.frames)
 
     satellite_srp_model = CannonballFixedSRP(0.2)
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_third_body, eop_data=eop_data
+        satellite_srp_model=satellite_srp_model, sun_data=sun_third_body, R_Occulting=AstroForceModels.R_EARTH
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)

@@ -50,27 +50,25 @@ function create_default_frames(; order::Int=2, numtype::Type=Float64)
 end
 
 """
-    create_frame_aware_params(epoch, base_params; frames=nothing, propagation_frame=:ICRF)
+    create_frame_aware_params(base_params; frames=nothing, propagation_frame=:ICRF)
 
-Create frame-aware parameters for force model propagation.
+Create frame-aware parameters for force model propagation. The `Epoch` is automatically
+derived from the `JD` field in `base_params`.
 
 # Arguments
-- `epoch::Epoch`: Reference epoch from Tempo.jl
-- `base_params::ComponentVector`: Base parameter vector (must include `JD` field)
-- `frames::Union{FrameSystem,Nothing}=nothing`: Frame system (creates default if not provided)
-- `propagation_frame::Symbol=:ICRF`: Frame in which state vectors are expressed
+- `base_params::ComponentVector`: Base parameter vector (must include `JD` field).
+- `frames::Union{FrameSystem,Nothing}=nothing`: Frame system (creates default if not provided).
+- `propagation_frame::Symbol=:ICRF`: Frame in which state vectors are expressed.
 
 # Returns
-- `FrameAwareParams`: Wrapped parameter object with frame transformation capabilities
+- `FrameAwareParams`: Wrapped parameter object with frame transformation capabilities.
 
 # Example
 ```julia
-using Tempo, ComponentArrays
+using ComponentArrays
 
-epoch = Epoch("2023-01-01T00:00:00 TDB")
 base = ComponentVector(JD = 2460000.5, μ = 398600.4415)
-
-params = create_frame_aware_params(epoch, base)
+params = create_frame_aware_params(base)
 
 # Access like normal ComponentVector
 params.JD  # 2460000.5
@@ -83,16 +81,15 @@ params.propagation_frame
 ```
 """
 function create_frame_aware_params(
-    epoch,
     base_params::ComponentVector;
     frames=nothing,
     propagation_frame::Symbol=:ICRF
 )
-    # Create default frames if not provided
     if frames === nothing
         frames = create_default_frames()
     end
 
+    epoch = Epoch((base_params.JD - 2451545.0) * 86400.0, TDB)
     return FrameAwareParams(base_params, frames, epoch, propagation_frame)
 end
 
@@ -163,14 +160,14 @@ function add_small_body_rotating_frame!(
     # Create rotation functions
     function rotation_function(ep)
         # ep is Tempo.Epoch, convert to seconds since J2000
-        t = value(ep - Epoch(0.0, TDB()))  # Seconds since J2000 TDB
+        t = value(ep - Epoch(0.0, TDB))  # Seconds since J2000 TDB
         θ = ω * t + epoch_offset
         return angle_to_dcm(θ, axis_norm)
     end
 
     # Time derivative of DCM
     function drotation_function(ep)
-        t = value(ep - Epoch(0.0, TDB()))
+        t = value(ep - Epoch(0.0, TDB))
         θ = ω * t + epoch_offset
         dcm = angle_to_dcm(θ, axis_norm)
         # ω̃ is the skew-symmetric matrix of angular velocity
@@ -187,7 +184,7 @@ function add_small_body_rotating_frame!(
         if O < 3
             return zero(SMatrix{3,3,T})
         end
-        t = value(ep - Epoch(0.0, TDB()))
+        t = value(ep - Epoch(0.0, TDB))
         θ = ω * t + epoch_offset
         dcm = angle_to_dcm(θ, axis_norm)
         ω_skew = SMatrix{3,3,T}(
@@ -203,7 +200,7 @@ function add_small_body_rotating_frame!(
         if O < 4
             return zero(SMatrix{3,3,T})
         end
-        t = value(ep - Epoch(0.0, TDB()))
+        t = value(ep - Epoch(0.0, TDB))
         θ = ω * t + epoch_offset
         dcm = angle_to_dcm(θ, axis_norm)
         ω_skew = SMatrix{3,3,T}(

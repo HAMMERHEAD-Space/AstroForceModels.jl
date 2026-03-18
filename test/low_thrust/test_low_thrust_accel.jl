@@ -1,6 +1,7 @@
 @testset "Low Thrust Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
+    eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -163,7 +164,7 @@
 
     @testset "LowThrustAstroModel in CentralBodyDynamicsModel" begin
         # Verify low thrust can be composed with gravity in the dynamics builder
-        keplerian = KeplerianGravityAstroModel()
+        keplerian = KeplerianGravityAstroModel(μ=AstroForceModels.μ_EARTH)
         thrust_model = ConstantCartesianThrust(1e-7, 0.0, 0.0)
         lt_model = LowThrustAstroModel(; thrust_model=thrust_model)
 
@@ -177,7 +178,7 @@
     end
 
     @testset "LowThrustAstroModel RTN in CentralBodyDynamicsModel" begin
-        keplerian = KeplerianGravityAstroModel()
+        keplerian = KeplerianGravityAstroModel(μ=AstroForceModels.μ_EARTH)
         lt_rtn = LowThrustAstroModel(;
             thrust_model=ConstantCartesianThrust(0.0, 1e-7, 0.0), frame=RTNFrame()
         )

@@ -1,5 +1,4 @@
 const _JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-const _p = ComponentVector(; JD=_JD)
 const _t = 0.0
 
 const _state = [
@@ -12,10 +11,12 @@ const _state = [
 ] #km, km/s
 
 const _eop_data = fetch_iers_eop()
+const _p = create_test_params(; JD=_JD, eop_data=_eop_data)
+
 const _grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
 const _grav_model = GravityHarmonicsAstroModel(;
-    gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36
+    gravity_model=_grav_coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF, order=36, degree=36
 )
 
 const _ATMOSPHERE_MODELS = (
@@ -38,10 +39,19 @@ const _BC = 0.2
 
 const _ENZYME_RUNTIME_ACTIVITY = ["MSIS2000"]
 
-const _relativity_model = RelativityModel()
+const _earth_body_model = ThirdBodyModel(
+    body=EarthBody(),
+    ephem_type=FrameEphemeris(center_point=399, target_point=399, axes=:ICRF),
+)
+
+const _relativity_model = RelativityModel(;
+    central_body=_earth_body_model,
+    sun_body=test_sun_model(),
+    J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+)
 
 const _satellite_srp_model = CannonballFixedSRP(0.2)
-const _sun_model = ThirdBodyModel(; body=SunBody(), eop_data=_eop_data)
+const _sun_model = test_sun_model()
 
 const _SHADOW_MODELS = (
     ("Conical", Conical()),
@@ -53,23 +63,26 @@ const _SHADOW_MODELS = (
 const _srp_model = SRPAstroModel(;
     satellite_srp_model=_satellite_srp_model,
     sun_data=_sun_model,
-    eop_data=_eop_data,
     shadow_model=Conical(),
+    R_Occulting=AstroForceModels.R_EARTH,
 )
 const _RC = 0.2
 
-const _moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=_eop_data)
+const _moon_model = test_moon_model()
 
 const _lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
 
-const _tides_model = SolidBodyTidesModel(_eop_data)
+const _tides_model = SolidBodyTidesModel(;
+    tide_raising_bodies=(test_sun_model(), test_moon_model()),
+    R_e=AstroForceModels.R_EARTH,
+)
 
 const _thermal_sat_model = FixedThermalEmission(0.01)
 const _thermal_model = ThermalEmissionAstroModel(;
     satellite_thermal_model=_thermal_sat_model,
     sun_data=_sun_model,
-    eop_data=_eop_data,
     shadow_model=Conical(),
+    R_Occulting=AstroForceModels.R_EARTH,
 )
 const _C_thm = 0.01
 
@@ -107,5 +120,6 @@ const _albedo_model = AlbedoAstroModel(;
     satellite_shape_model=_satellite_srp_model,
     sun_data=_sun_model,
     body_albedo_model=_uniform_albedo_model,
-    eop_data=_eop_data,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
 )

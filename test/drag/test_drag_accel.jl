@@ -1,9 +1,9 @@
 @testset "Drag Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
 
     SpaceIndices.init()
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696

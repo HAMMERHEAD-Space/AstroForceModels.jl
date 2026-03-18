@@ -6,10 +6,10 @@
 
         # GRACE-like satellite configuration (January 1, 2010, 12:00 UTC)
         JD = date_to_jd(2010, 1, 1, 16, 0, 0.0)
-        p = ComponentVector(; JD=JD)
 
         # Fetch EOP data for coordinate transformations
         eop_data = fetch_iers_eop()
+        p = create_test_params(; JD=JD, eop_data=eop_data)
 
         # GRACE-like orbital state (altitude ~460 km, polar orbit)
         # Position in ECI frame [km]
@@ -24,7 +24,7 @@
         satellite_shape_model = CannonballFixedSRP(0.030)  # m²/kg
 
         # Sun position data
-        sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+        sun_model = test_sun_model()
 
         # Uniform albedo model with literature-based values
         # visible_albedo=0.3, infrared_emissivity=0.7 (Earth-averaged values)
@@ -37,7 +37,8 @@
             satellite_shape_model=satellite_shape_model,
             sun_data=sun_model,
             body_albedo_model=uniform_albedo_model,
-            eop_data=eop_data,
+            body_fixed_frame=:ITRF,
+            propagation_frame=:ICRF,
         )
 
         # Compute albedo acceleration

@@ -66,7 +66,7 @@ end
         srp_model = SRPAstroModel(;
             satellite_srp_model=satellite_srp_model,
             sun_data=_sun_model,
-            eop_data=_eop_data,
+            R_Occulting=AstroForceModels.R_EARTH,
             shadow_model=Conical(),
         )
 
