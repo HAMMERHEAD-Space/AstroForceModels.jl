@@ -17,60 +17,22 @@
 export SRPAstroModel, srp_accel
 
 """
-    SRPAstroModel{ST,SDT,EoT,SMT,RST,ROT,PT,AUT} <: AbstractNonPotentialBasedForce
+    SRPAstroModel
 
-Solar Radiation Pressure (SRP) force model for spacecraft orbital dynamics.
-
-This model computes the acceleration due to solar radiation pressure acting on a spacecraft.
-The force is proportional to the solar flux, inversely proportional to the square of the 
-Sun-spacecraft distance, and includes shadow effects from the central body (typically Earth).
-
-# Type Parameters
-- `ST <: AbstractSatelliteSRPModel`: Type of the satellite SRP model
-- `SDT <: ThirdBodyModel`: Type of the Sun data model
-- `EoT <: Union{EopIau1980,EopIau2000A}`: Type of Earth Orientation Parameters
-- `SMT <: ShadowModelType`: Type of the shadow model
+Solar Radiation Pressure force model.
 
 # Fields
-- `satellite_srp_model::ST`: The satellite SRP model for computing the reflectivity coefficient and cross-sectional area
-- `sun_data::SDT`: The data model to compute the Sun's position and velocity
-- `eop_data::EoT`: Earth Orientation Parameters for coordinate transformations
-- `shadow_model::SMT`: Shadow model type (Conical, Cylindrical, etc.) - defaults to Conical()
-- `R_Sun::RST`: Radius of the Sun [km] - defaults to R_SUN constant
-- `R_Occulting::ROT`: Radius of the occulting body [km] - defaults to R_EARTH constant  
-- `Ψ::PT`: Solar flux constant at 1 AU [W/m²] - defaults to SOLAR_FLUX constant
-- `AU::AUT`: Astronomical Unit [km] - defaults to ASTRONOMICAL_UNIT / 1E3
-
-# Example
-```julia
-# Create satellite SRP model
-sat_srp = CannonballFixedSRP(
-    radius = 1.0,           # [m]
-    mass = 1000.0,          # [kg] 
-    reflectivity_coeff = 1.3
-)
-
-# Create Sun position model
-sun_model = ThirdBodyModel(body = SunBody(), eop_data = eop_data)
-
-# Create SRP force model
-srp_model = SRPAstroModel(
-    satellite_srp_model = sat_srp,
-    sun_data = sun_model,
-    eop_data = eop_data,
-    shadow_model = Conical()
-)
-```
-
-# See Also
-- [`acceleration`](@ref): Compute SRP acceleration
-- [`reflectivity_ballistic_coefficient`](@ref): Compute reflectivity coefficient
-- Shadow modeling with Conical, Cylindrical, and other shadow types
+- `satellite_srp_model`: Satellite SRP model for reflectivity coefficient.
+- `sun_data::ThirdBodyModel`: Sun position model (uses FrameEphemeris).
+- `shadow_model::ShadowModelType`: Shadow model type — defaults to `Conical()`.
+- `R_Sun::Number`: Radius of the Sun [km].
+- `R_Occulting::Number`: Radius of the occulting body [km]. No default — must be specified.
+- `Ψ::Number`: Solar flux constant at 1 AU [N/m²].
+- `AU::Number`: Astronomical Unit [km].
 """
 Base.@kwdef struct SRPAstroModel{
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
-    EoT<:Union{EopIau1980,EopIau2000A},
     SMT<:ShadowModelType,
     RST<:Number,
     ROT<:Number,
@@ -79,36 +41,39 @@ Base.@kwdef struct SRPAstroModel{
 } <: AbstractNonPotentialBasedForce
     satellite_srp_model::ST
     sun_data::SDT
-    eop_data::EoT
     shadow_model::SMT = Conical()
 
     R_Sun::RST = R_SUN
-    R_Occulting::ROT = R_EARTH
+    R_Occulting::ROT
     Ψ::PT = SOLAR_FLUX
     AU::AUT = ASTRONOMICAL_UNIT / 1E3
 end
 
 """
-    acceleration(u::AbstractVector, p::ComponentVector, t::Number, srp_model::SRPAstroModel)
+    acceleration(u::AbstractVector, p::FrameAwareParams, t::Number, srp_model::SRPAstroModel)
 
-Computes the srp acceleration acting on a spacecraft given a srp model and current state and 
-parameters of an object.
+Computes the SRP acceleration acting on a spacecraft.
 
 # Arguments
-- `u::AbstractVector`: Current State of the simulation.
-- `p::ComponentVector`: Current parameters of the simulation.
-- `t::Number`: Current time of the simulation.
-- `srp_model::SRPAstroModel`: SRP model struct containing the relevant information to compute the acceleration.
+- `u::AbstractVector`: Current state [km, km/s].
+- `p::FrameAwareParams`: Parameters with frame system.
+- `t::Number`: Elapsed time since epoch [s].
+- `srp_model::SRPAstroModel`: SRP model.
 
 # Returns
-- `acceleration: SVector{3}`: The 3-dimensional srp acceleration acting on the spacecraft.
-
+- `SVector{3}`: SRP acceleration [km/s²].
 """
 @inline function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, srp_model::SRPAstroModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, srp_model::SRPAstroModel
 )
-    # Compute the Sun's Position (convert from m to km for consistent units)
-    sun_pos = srp_model.sun_data(current_jd(p, t), Position()) ./ 1E3
+    # Get Sun position from FrameSystem (returns km directly)
+    sun_pos = get_position(
+        srp_model.sun_data.ephem_type,
+        srp_model.sun_data.body,
+        p.frames,
+        ft_time(p, t),
+        srp_model.sun_data.compiled_vector3,
+    )
 
     # Compute the reflectivity ballistic coefficient
     RC = reflectivity_ballistic_coefficient(u, p, t, srp_model.satellite_srp_model)
@@ -136,10 +101,6 @@ force can be computed using a cannonball model with the following equation:
 
                 𝐚 = F * RC * Ψ * (AU/(R_sc_Sun))^2 * R̂_sc_Sun
 
-!!! note
-    Currently only cannonball SRP is supported. To use a higher fidelity model, either use a state-varying function or compute
-    the reflectivity ballistic coefficient further upstream.
-
 # Arguments
 
 - `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame [km, km/s].
@@ -148,9 +109,9 @@ force can be computed using a cannonball model with the following equation:
 
 # Keyword Arguments
 
-- `ShadowModel::ShadowModelType`: Shadow model to use. Options: `Conical()`, `Cylindrical()`, `SmoothedConical()`, `NoShadow()`. Default: `Conical()`.
+- `ShadowModel::ShadowModelType`: Shadow model to use. Default: `Conical()`.
 - `R_Sun::Number`: The radius of the Sun [km]. Default: `R_SUN`.
-- `R_Occulting::Number`: The radius of the occulting body [km]. Default: `R_EARTH`.
+- `R_Occulting::Number`: The radius of the occulting body [km].
 - `Ψ::Number`: Solar radiation pressure at 1 AU [N/m^2]. Default: `SOLAR_FLUX`.
 - `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT / 1E3`.
 

@@ -102,7 +102,7 @@ Returns the ballistic coefficient for a drag model given the model and current s
 
 """
 @inline function ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::CannonballFixedDrag
+    u::AbstractVector, p, t::Number, model::CannonballFixedDrag
 )
     return model.ballistic_coeff
 end
@@ -129,7 +129,7 @@ StateDragModel() = StateDragModel(7)
 Returns the ballistic coefficient from the state vector at `model.state_index`.
 """
 @inline function ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::StateDragModel
+    u::AbstractVector, p, t::Number, model::StateDragModel
 )
     return u[model.state_index]
 end

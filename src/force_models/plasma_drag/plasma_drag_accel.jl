@@ -5,6 +5,8 @@
 #
 #   Acceleration from ionospheric plasma (ion) drag.
 #
+#   Earth-only. Requires Earth ionosphere model and ITRF frame in FrameSystem.
+#
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # References
@@ -23,42 +25,54 @@
 export PlasmaDragAstroModel, plasma_drag_accel
 
 """
-    PlasmaDragAstroModel{ST,IT,EoT} <: AbstractNonPotentialBasedForce
+    PlasmaDragAstroModel
 
 Ionospheric plasma drag force model for spacecraft in low-Earth orbit.
 
-Plasma drag arises from direct collection of ionospheric ions (primarily O⁺ in the 
-F2 region) and their momentum transfer to the spacecraft. The acceleration follows 
-the same cannonball drag formulation as atmospheric drag, but uses the ion mass 
-density from the ionosphere rather than the neutral atmospheric density:
+Earth-only. Requires Earth ionosphere model and ITRF frame in the FrameSystem.
 
-    𝐚 = -½ ⋅ BC_i ⋅ ρᵢ ⋅ |𝐯_app| ⋅ 𝐯_app
+# Constructor
+    PlasmaDragAstroModel(; satellite_plasma_drag_model, ionosphere_model,
+        body_fixed_frame=:ITRF, propagation_frame=:ICRF, frames=nothing)
 
-where BC_i = C_{D,i} A/m is the ion ballistic coefficient, ρᵢ is the ion mass density, 
-and 𝐯_app is the spacecraft velocity relative to the co-rotating ionosphere [1, 3].
-
-At LEO altitudes (300-600 km), plasma drag can contribute 5-35% of total aerodynamic 
-force, with larger contributions at higher altitudes where neutral density decreases 
-faster than ion density [1].
-
-# Type Parameters
-- `ST <: AbstractSatellitePlasmaDragModel`: Satellite plasma drag model type
-- `IT <: AbstractIonosphereModel`: Ionospheric density model type
-- `EoT <: Union{EopIau1980,EopIau2000A}`: Earth Orientation Parameters type
-
-# Fields
-- `satellite_plasma_drag_model::ST`: Model for computing ion ballistic coefficient
-- `ionosphere_model::IT`: Model for computing ion mass density
-- `eop_data::EoT`: Earth Orientation Parameters for coordinate transformations
+# Arguments
+- `satellite_plasma_drag_model`: Model for ion ballistic coefficient.
+- `ionosphere_model`: Model for ion mass density.
+- `body_fixed_frame::Symbol`: Body-fixed frame for geodetic conversion (default: `:ITRF`).
+- `propagation_frame::Symbol`: Frame in which the state vector is expressed (default: `:ICRF`).
+- `frames`: Optional `FrameSystem`. When provided, pre-compiles the rotation between
+  `propagation_frame` and `body_fixed_frame` for allocation-free evaluation.
 """
-Base.@kwdef struct PlasmaDragAstroModel{
-    ST<:AbstractSatellitePlasmaDragModel,
-    IT<:AbstractIonosphereModel,
-    EoT<:Union{EopIau1980,EopIau2000A},
+struct PlasmaDragAstroModel{
+    ST<:AbstractSatellitePlasmaDragModel,IT<:AbstractIonosphereModel,CR3
 } <: AbstractNonPotentialBasedForce
     satellite_plasma_drag_model::ST
     ionosphere_model::IT
-    eop_data::EoT
+    body_fixed_frame::Symbol
+    propagation_frame::Symbol
+    compiled_rotation3::CR3
+end
+
+function PlasmaDragAstroModel(;
+    satellite_plasma_drag_model::ST,
+    ionosphere_model::IT,
+    body_fixed_frame::Symbol=:ITRF,
+    propagation_frame::Symbol=:ICRF,
+    frames=nothing,
+    # Legacy: accept eop_data but ignore it
+    eop_data=nothing,
+) where {ST<:AbstractSatellitePlasmaDragModel,IT<:AbstractIonosphereModel}
+    cr3 = nothing
+    if !isnothing(frames) && propagation_frame != body_fixed_frame
+        cr3 = compile_rotation3(frames, propagation_frame, body_fixed_frame)
+    end
+    return PlasmaDragAstroModel(
+        satellite_plasma_drag_model,
+        ionosphere_model,
+        body_fixed_frame,
+        propagation_frame,
+        cr3,
+    )
 end
 
 """
@@ -66,19 +80,30 @@ end
 
 Compute the plasma drag acceleration on a spacecraft.
 
+Earth-only.
+
 # Arguments
-- `u::AbstractVector`: State vector [r; v] in J2000 ECI [km; km/s].
-- `p::ComponentVector`: Parameters; must include `p.JD` (Julian Date at epoch).
+- `u::AbstractVector`: Current state [km, km/s].
+- `p::FrameAwareParams`: Parameters with frame system.
 - `t::Number`: Elapsed time since epoch [s].
-- `model::PlasmaDragAstroModel`: Plasma drag force model.
+- `model::PlasmaDragAstroModel`: Plasma drag model.
 
 # Returns
-- `SVector{3}`: Plasma drag acceleration in J2000 ECI [km/s²].
+- `SVector{3}`: Plasma drag acceleration [km/s²].
 """
 @inline function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, model::PlasmaDragAstroModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, model::PlasmaDragAstroModel
 )
-    rho_i = compute_ion_density(current_jd(p, t), u, model.eop_data, model.ionosphere_model)
+    t_ft = ft_time(p, t)
+
+    R_rot = if isnothing(model.compiled_rotation3)
+        rotation3(p.frames, model.propagation_frame, model.body_fixed_frame, t_ft)
+    else
+        model.compiled_rotation3(t_ft)
+    end
+    R_prop2bf = R_rot.m[1]
+
+    rho_i = compute_ion_density(current_jd(p, t), u, R_prop2bf, model.ionosphere_model)
 
     ω_vec = SVector{3}(0.0, 0.0, EARTH_ANGULAR_SPEED)
 
@@ -91,23 +116,6 @@ end
     plasma_drag_accel(u, rho_i, BC_i, ω_vec) -> SVector{3}
 
 Low-level computation of plasma drag acceleration.
-
-The ionospheric plasma is treated as co-rotating with the Earth. The apparent 
-velocity of the spacecraft relative to the plasma is:
-
-    𝐯_app = 𝐯 - 𝛚 × 𝐫
-
-and the plasma drag acceleration is:
-
-    𝐚 = -½ ⋅ BC_i ⋅ ρᵢ ⋅ |𝐯_app| ⋅ 𝐯_app
-
-The factor of 1E3 converts from m/s² to km/s² (density is in kg/m³, velocity in km/s).
-
-# Arguments
-- `u::AbstractVector`: State [r; v] in J2000 ECI [km; km/s].
-- `rho_i::Number`: Ion mass density [kg/m³].
-- `BC_i::Number`: Ion ballistic coefficient C_{D,i} A/m [m²/kg].
-- `ω_vec::AbstractVector`: Earth angular velocity vector [rad/s].
 
 # Returns
 - `SVector{3}`: Plasma drag acceleration [km/s²].

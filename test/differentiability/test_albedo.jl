@@ -41,7 +41,8 @@ end
         satellite_shape_model=CannonballFixedSRP(_RC),
         sun_data=_sun_model,
         body_albedo_model=_uniform_albedo_model,
-        body_fixed_frame=:ITRF, propagation_frame=:ICRF,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
     )
 
     for backend in _BACKENDS

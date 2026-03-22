@@ -26,7 +26,7 @@ export compute_ion_density
 """
     AbstractIonosphereModel
 
-Abstract type for ionospheric density models used to compute ion mass density for 
+Abstract type for ionospheric density models used to compute ion mass density for
 plasma drag calculations.
 
 # Implementations
@@ -47,7 +47,7 @@ The ion number density follows the Chapman production function profile:
 
 where z = (h - hₘₐₓ) / Hₛ, and the ion mass density is ρᵢ = nᵢ ⋅ mᵢ.
 
-Default parameters represent typical mid-latitude, moderate solar activity conditions. 
+Default parameters represent typical mid-latitude, moderate solar activity conditions.
 The dominant ion in the F2 region (200-500 km) is O⁺.
 
 # Fields
@@ -88,34 +88,29 @@ end
 """
     NoIonosphere <: AbstractIonosphereModel
 
-Null ionosphere model that returns zero density. Use to disable plasma drag while 
+Null ionosphere model that returns zero density. Use to disable plasma drag while
 keeping the model in the perturbation tuple for interface consistency.
 """
 struct NoIonosphere <: AbstractIonosphereModel end
 
 """
-    compute_ion_density(JD, u, eop_data, model::ChapmanIonosphere)
+    compute_ion_density(JD, u, R_prop2bf, model::ChapmanIonosphere)
 
 Compute the ion mass density at the spacecraft position using a Chapman layer profile.
 
-The geodetic altitude is computed from the J2000 state vector via ECEF transformation,
-and the Chapman function is evaluated for the F2 layer. Density is zero above 1500 km
-where the ionosphere becomes negligible.
-
 # Arguments
 - `JD::Number`: Current Julian Date.
-- `u::AbstractVector`: Spacecraft state vector [r; v] in J2000 ECI [km; km/s].
-- `eop_data`: Earth Orientation Parameters for coordinate transformations.
+- `u::AbstractVector`: Spacecraft state vector [r; v] in the propagation frame [km; km/s].
+- `R_prop2bf`: DCM rotating from propagation frame to body-fixed (ECEF) frame.
 - `model::ChapmanIonosphere`: Chapman layer model parameters.
 
 # Returns
 - `rho_i::Number`: Ion mass density [kg/m³].
 """
 @inline function compute_ion_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, model::ChapmanIonosphere
+    JD::Number, u::AbstractVector, R_prop2bf, model::ChapmanIonosphere
 )
-    R_J20002ITRF = r_eci_to_ecef(DCM, J2000(), ITRF(), JD, eop_data)
-    ecef_pos = R_J20002ITRF * SVector{3}(u[1], u[2], u[3])
+    ecef_pos = R_prop2bf * SVector{3}(u[1], u[2], u[3])
     geodetic_pos = ecef_to_geodetic(ecef_pos .* 1E3)
 
     h_km = geodetic_pos[3] / 1E3
@@ -128,13 +123,13 @@ where the ionosphere becomes negligible.
 end
 
 @inline function compute_ion_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, model::ConstantIonosphere
+    JD::Number, u::AbstractVector, R_prop2bf, model::ConstantIonosphere
 )
-    return model.rho_i
+    return model.rho_i + 0 * JD
 end
 
 @inline function compute_ion_density(
-    JD::Number, u::AbstractVector, eop_data::EopIau1980, model::NoIonosphere
+    JD::Number, u::AbstractVector, R_prop2bf, model::NoIonosphere
 )
     return zero(eltype(u))
 end

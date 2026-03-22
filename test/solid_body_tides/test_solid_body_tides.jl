@@ -18,8 +18,7 @@
 
     @testset "Regression" begin
         model = SolidBodyTidesModel(
-            tide_raising_bodies=(sun_model, moon_model),
-            R_e=AstroForceModels.R_EARTH,
+            tide_raising_bodies=(sun_model, moon_model), R_e=AstroForceModels.R_EARTH
         )
         accel = acceleration(state, p, t, model)
 

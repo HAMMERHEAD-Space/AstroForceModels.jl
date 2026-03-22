@@ -15,6 +15,14 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Usage" => "man/usage.md",
+        "Ephemeris Sources" => "man/ephemeris_sources.md",
+        "Examples" => Any[
+            "Earth LEO Satellite" => "examples/earth_leo.md",
+            "Mars Orbiter" => "examples/mars_orbiter.md",
+            "Small Body (Eros)" => "examples/small_body.md",
+            "Heliocentric Asteroid" => "examples/heliocentric_asteroid.md",
+            "Ephemeris Comparison" => "examples/ephemeris_comparison.md",
+        ],
         "Force Models" => Any[
             "force_models/gravity.md",
             "force_models/drag.md",
@@ -27,6 +35,7 @@ makedocs(;
             "force_models/thermal_emission.md",
             "force_models/magnetic_field.md",
         ],
+        "Troubleshooting" => "man/troubleshooting.md",
         "API Reference" => "man/api.md",
         "Library" => "lib/library.md",
     ],

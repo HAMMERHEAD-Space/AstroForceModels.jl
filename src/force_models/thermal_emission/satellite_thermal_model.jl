@@ -129,7 +129,7 @@ end
 Return the thermal emission coefficient for a fixed thermal emission model.
 """
 @inline function thermal_emission_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::FixedThermalEmission
+    u::AbstractVector, p, t::Number, model::FixedThermalEmission
 )
     return model.thermal_emission_coeff
 end
@@ -140,7 +140,7 @@ end
 Return the pre-computed thermal emission coefficient for a flat plate model.
 """
 @inline function thermal_emission_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::FlatPlateThermalModel
+    u::AbstractVector, p, t::Number, model::FlatPlateThermalModel
 )
     return model.thermal_emission_coeff
 end

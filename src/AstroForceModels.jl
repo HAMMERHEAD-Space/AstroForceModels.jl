@@ -69,7 +69,9 @@ using SatelliteToolboxTransformations
 using SatelliteToolboxGeomagneticField
 using SpaceIndices
 using FrameTransformations
-using Tempo
+using Ephemerides
+using ReferenceFrameRotations: angleaxis_to_dcm
+using Tempo: Tempo, Epoch, j2000s, TDB, BarycentricDynamicalTime, value
 using SmallBodyGravity
 
 """
@@ -115,7 +117,6 @@ Dynamics models provide efficient ways to compute total acceleration from multip
 force sources. The primary implementation is [`CentralBodyDynamicsModel`](@ref).
 """
 abstract type AbstractDynamicsModel end
-
 
 include("frames/frame_utils.jl")
 include("frames/frame_params.jl")
@@ -164,6 +165,9 @@ export acceleration,
     AbstractAstroForceModel,
     AbstractDynamicsModel,
     AbstractNonPotentialBasedForce,
-    AbstractPotentialBasedForce
+    AbstractPotentialBasedForce,
+    ft_time,
+    get_position,
+    get_velocity
 
 end

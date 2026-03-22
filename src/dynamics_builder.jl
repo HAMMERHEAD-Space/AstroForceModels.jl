@@ -6,7 +6,7 @@
 #   Full Dynamics Model and acceleration interface
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export CentralBodyDynamicsModel, build_dynamics_model
+export CentralBodyDynamicsModel, build_dynamics_model, central_body_mu
 
 """
     CentralBodyDynamicsModel{N,GT,PT} <: AbstractDynamicsModel
@@ -73,6 +73,30 @@ struct CentralBodyDynamicsModel{N,GT<:AbstractGravityAstroModel,PT<:Tuple} <:
 end
 
 """
+    central_body_mu(models::CentralBodyDynamicsModel) -> Float64
+
+Extract the central body gravitational parameter μ [km³/s²] from the dynamics model.
+"""
+@inline central_body_mu(models::CentralBodyDynamicsModel) = central_body_mu(
+    models.gravity_model
+)
+
+"""
+    central_body_mu(grav::KeplerianGravityAstroModel) -> Float64
+
+Return μ [km³/s²] from a Keplerian gravity model.
+"""
+@inline central_body_mu(grav::KeplerianGravityAstroModel) = grav.μ
+
+"""
+    central_body_mu(grav::GravityHarmonicsAstroModel) -> Float64
+
+Return μ [km³/s²] from a harmonics gravity model (converts from m³/s²).
+"""
+@inline central_body_mu(grav::GravityHarmonicsAstroModel) =
+    GravityModels.gravity_constant(grav.gravity_model) / 1e9
+
+"""
     CentralBodyDynamicsModel(gravity_model, perturbing_models)
 
 Create a dynamics model with explicit gravity and perturbing force models.
@@ -115,18 +139,18 @@ function CentralBodyDynamicsModel(gravity_model::AbstractGravityAstroModel)
 end
 
 """
-    build_dynamics_model(u::AbstractVector, p::ComponentVector, t::Number, models::CentralBodyDynamicsModel)
+    build_dynamics_model(u::AbstractVector, p, t::Number, models::CentralBodyDynamicsModel)
 
 Compute the total acceleration acting on a spacecraft using a [`CentralBodyDynamicsModel`](@ref).
 
-This function efficiently combines the central body gravity acceleration with all perturbing 
-accelerations to produce the total acceleration vector. It is optimized for use in ODE 
-integration routines and provides better performance than manually summing individual 
+This function efficiently combines the central body gravity acceleration with all perturbing
+accelerations to produce the total acceleration vector. It is optimized for use in ODE
+integration routines and provides better performance than manually summing individual
 force model accelerations.
 
 # Arguments
 - `u::AbstractVector`: Current spacecraft state vector [rx, ry, rz, vx, vy, vz] in km and km/s
-- `p::ComponentVector`: Simulation parameters including time references (JD), spacecraft properties, etc.
+- `p::FrameAwareParams`: Simulation parameters including time references (JD), frame system, epoch, etc.
 - `t::Number`: Current simulation time (typically seconds since epoch)
 - `models::CentralBodyDynamicsModel`: Combined dynamics model containing gravity and perturbing forces
 
@@ -134,7 +158,7 @@ force model accelerations.
 - `SVector{3}`: The 3-dimensional total acceleration vector [ax, ay, az] in km/s²
 
 # Performance Notes
-The function is marked `@inline` for performance and uses compile-time optimizations 
+The function is marked `@inline` for performance and uses compile-time optimizations
 through the tuple-based storage of perturbing models. This approach provides:
 - Zero-cost abstraction over manual force summation
 - Type stability for all force combinations
@@ -147,7 +171,7 @@ dynamics = CentralBodyDynamicsModel(gravity_model, (drag_model, srp_model))
 
 # Compute acceleration at current state
 state = [6678.137, 0.0, 0.0, 0.0, 7.66, 0.0]  # km, km/s
-params = ComponentVector(JD = 2.460310e6)  # Julian Date
+params = create_frame_aware_params(ComponentVector(JD = 2.460310e6))
 time = 0.0
 
 total_accel = build_dynamics_model(state, params, time, dynamics)
@@ -159,7 +183,7 @@ total_accel = build_dynamics_model(state, params, time, dynamics)
 - [`sum_accelerations`](@ref): Internal acceleration summation function
 """
 @inline function build_dynamics_model(
-    u::AbstractVector, p::ComponentVector, t::Number, models::CentralBodyDynamicsModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, models::CentralBodyDynamicsModel
 )
     perturbing_accel = sum_accelerations(u, p, t, models.perturbing_models)
     central_body_accel = acceleration(u, p, t, models.gravity_model)
@@ -171,7 +195,7 @@ total_accel = build_dynamics_model(state, params, time, dynamics)
 end
 
 """
-    sum_accelerations(u::AbstractVector, p::ComponentVector, t::Number, models::Tuple)
+    sum_accelerations(u::AbstractVector, p::FrameAwareParams, t::Number, models::Tuple)
 
 Internal recursive function to efficiently sum accelerations from multiple force models.
 
@@ -181,7 +205,7 @@ unroll the loop and inline all acceleration computations, providing optimal perf
 
 # Arguments
 - `u::AbstractVector`: Current spacecraft state vector
-- `p::ComponentVector`: Simulation parameters  
+- `p::FrameAwareParams`: Simulation parameters
 - `t::Number`: Current simulation time
 - `models::Tuple`: Tuple of force models to sum over
 
@@ -194,7 +218,7 @@ unroll the loop and inline all acceleration computations, providing optimal perf
 - Each recursive call processes one force model and continues with the tail
 """
 @inline function sum_accelerations(
-    u::AbstractVector, p::ComponentVector, t::Number, models::Tuple
+    u::AbstractVector, p::FrameAwareParams, t::Number, models::Tuple
 )
     sum_accel = sum_accelerations(u, p, t, Base.tail(models))
     current_accel = acceleration(u, p, t, first(models))
@@ -207,9 +231,9 @@ end
 
 # Base case: empty tuple returns zero acceleration
 @inline function sum_accelerations(
-    u::AbstractVector{UT}, p::ComponentVector{PT}, t::TT, models::Tuple{}
-) where {UT<:Number,PT,TT<:Number}
-    T = promote_type(UT, PT, TT)
+    u::AbstractVector{UT}, p::FrameAwareParams, t::TT, models::Tuple{}
+) where {UT<:Number,TT<:Number}
+    T = promote_type(UT, TT)
     z = zero(T)
     return SVector{3}(z, z, z)
 end

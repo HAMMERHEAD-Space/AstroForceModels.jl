@@ -66,35 +66,57 @@ The relativistic force model in AstroForceModels provides:
 
 The main struct for relativistic computations:
 
+- **central_body**: `ThirdBodyModel` for the central body (provides μ via `body.μ`). Required.
+- **sun_body**: `ThirdBodyModel` for the Sun (for de Sitter effects, uses `FrameEphemeris`). Required.
+- **J**: Angular momentum per unit mass of the central body in the propagation frame [km²/s] as an `SVector{3}`. If `nothing`, Lense-Thirring is disabled. Default: `nothing`.
+- **c**: Speed of light [km/s] (default: `SPEED_OF_LIGHT`)
+- **γ**, **β**: Post-Newtonian PPN parameters (default: 1.0)
 - **schwarzschild_effect**: Include primary relativistic correction (default: true)
 - **lense_thirring_effect**: Include frame dragging effects (default: true)
 - **de_Sitter_effect**: Include external body effects (default: true)
-- **central_body**: ThirdBodyModel for the central body (default: Earth)
-- **sun_body**: ThirdBodyModel for the Sun (for de Sitter effects)
-- **c**: Speed of light [km/s]
-- **γ**, **β**: PPN parameters (default: 1.0)
 
 ## Usage Example
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxTransformations
+using StaticArrays, Tempo, ComponentArrays
 
-# Load EOP data once and share across sub-models
-eop_data = fetch_iers_eop()
+# Define central body and Sun models explicitly
+earth_body = ThirdBodyModel(
+    body = EarthBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=399, axes=:ICRF)
+)
+sun_body = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF)
+)
 
-# Create relativistic model with all effects using convenience constructor
-rel_model = RelativityModel(eop_data)
+# Earth's angular momentum per unit mass [km²/s] (for Lense-Thirring)
+J_earth = SVector(0.0, 0.0, 9.8e8)
+
+# Create relativistic model with all effects
+rel_model = RelativityModel(
+    central_body = earth_body,
+    sun_body = sun_body,
+    J = J_earth,
+)
 
 # Or selectively enable effects
-rel_schwarzschild_only = RelativityModel(eop_data;
+rel_schwarzschild_only = RelativityModel(
+    central_body = earth_body,
+    sun_body = sun_body,
     schwarzschild_effect = true,
     lense_thirring_effect = false,
     de_Sitter_effect = false
 )
 
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
 # Compute acceleration (typically called within integrator)
-acceleration(state, parameters, time, rel_model)
+acceleration(state, p, time, rel_model)
 ```
 
 ## Magnitude of Effects

@@ -62,6 +62,9 @@ include("test_helpers.jl")
     include("low_thrust/test_thrust_model.jl")
     include("low_thrust/test_low_thrust_accel.jl")
 
+    # Frame Utilities
+    include("frames/test_frame_utils.jl")
+
     # Dynamics Builder
     include("test_dynamics_builder.jl")
 end
@@ -93,10 +96,13 @@ if _DIFF_ENV ∉ ("false", "")
         using Enzyme
         push!(
             _backend_list,
-            ("Enzyme", AutoEnzyme(;
-                mode=Enzyme.set_runtime_activity(Enzyme.Forward),
-                function_annotation=Enzyme.Duplicated,
-            )),
+            (
+                "Enzyme",
+                AutoEnzyme(;
+                    mode=Enzyme.set_runtime_activity(Enzyme.Forward),
+                    function_annotation=Enzyme.Duplicated,
+                ),
+            ),
         )
     end
     if _need("Mooncake")

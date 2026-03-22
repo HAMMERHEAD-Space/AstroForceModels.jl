@@ -5,6 +5,8 @@
 #
 #   Acceleration from Drag
 #
+#   Earth-only. Requires Earth atmosphere model and ITRF frame in FrameSystem.
+#
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # References
@@ -17,95 +19,108 @@
 export DragAstroModel, drag_accel
 
 """
-    DragAstroModel{ST,AT,EoT,RT,PT} <: AbstractNonPotentialBasedForce
+    DragAstroModel
 
 Atmospheric drag force model for spacecraft orbital dynamics.
 
-This model computes the acceleration due to atmospheric drag acting on a spacecraft in 
-Earth's atmosphere. The drag force is proportional to the atmospheric density and the 
-square of the relative velocity between the spacecraft and the atmosphere.
+Earth-only. Requires Earth atmosphere model and an ITRF frame registered in the FrameSystem.
 
-# Type Parameters
-- `ST <: AbstractSatelliteDragModel`: Type of the satellite drag model
-- `AT <: AtmosphericModelType`: Type of the atmospheric model
-- `EoT <: Union{EopIau1980,EopIau2000A}`: Type of Earth Orientation Parameters
-- `RT <: Union{Nothing,AbstractVector}`: Type for RTS (optional)
-- `PT <: Union{Nothing,AbstractMatrix}`: Type for P matrix (optional)
+# Constructor
+    DragAstroModel(; satellite_drag_model, atmosphere_model, body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF, frames=nothing, rts=nothing, P=nothing)
 
-# Fields
-- `satellite_drag_model::ST`: The satellite drag model for computing ballistic coefficient (Cd*A/m)
-- `atmosphere_model::AT`: The atmospheric model for computing density (e.g., JB2008, JR1971, MSIS2000, HarrisPriester, HarrisPriesterModified, ExpAtmo)
-- `eop_data::EoT`: Earth Orientation Parameters for coordinate transformations and atmospheric modeling
-- `rts::RT`: Optional RTS parameter for atmospheric model (defaults to nothing)
-- `P::PT`: Optional P matrix parameter for atmospheric model (defaults to nothing)
-
-# Example
-```julia
-# Create satellite drag model
-sat_drag = CannonballDragModel(
-    area = 10.0,        # [m²]
-    drag_coeff = 2.2,   # dimensionless
-    mass = 1000.0       # [kg]
-)
-
-# Create drag force model
-drag_model = DragAstroModel(
-    satellite_drag_model = sat_drag,
-    atmosphere_model = JB2008(),
-    eop_data = eop_data
-)
-```
-
-# See Also
-- [`acceleration`](@ref): Compute drag acceleration
-- [`ballistic_coefficient`](@ref): Compute ballistic coefficient
-- Atmospheric density computation via SatelliteToolboxAtmosphericModels.jl
+# Arguments
+- `satellite_drag_model`: Satellite drag model providing the ballistic coefficient.
+- `atmosphere_model::AtmosphericModelType`: Atmospheric density model (JB2008, JR1971, etc.).
+- `body_fixed_frame::Symbol`: Body-fixed frame for geodetic conversion (default: `:ITRF`).
+- `propagation_frame::Symbol`: Frame in which the state vector is expressed (default: `:ICRF`).
+- `frames`: Optional `FrameSystem`. When provided, pre-compiles the rotation between
+  `propagation_frame` and `body_fixed_frame` for allocation-free evaluation.
+- `rts`: Optional pre-allocated roots container for atmospheric models.
+- `P`: Optional pre-allocated matrix for atmospheric models.
 """
-Base.@kwdef struct DragAstroModel{
+struct DragAstroModel{
     ST<:AbstractSatelliteDragModel,
     AT<:AtmosphericModelType,
-    EoT<:Union{EopIau1980,EopIau2000A},
     RT<:Union{Nothing,AbstractVector},
     PT<:Union{Nothing,AbstractMatrix},
+    CR3,
 } <: AbstractNonPotentialBasedForce
     satellite_drag_model::ST
     atmosphere_model::AT
-    eop_data::EoT
+    body_fixed_frame::Symbol
+    propagation_frame::Symbol
+    rts::RT
+    P::PT
+    compiled_rotation3::CR3
+end
 
-    rts::RT = nothing
-    P::PT = nothing
+function DragAstroModel(;
+    satellite_drag_model::ST,
+    atmosphere_model::AT,
+    body_fixed_frame::Symbol=:ITRF,
+    propagation_frame::Symbol=:ICRF,
+    frames=nothing,
+    rts::RT=nothing,
+    P::PT=nothing,
+    # Legacy: accept eop_data but ignore it (kept for backward compat during transition)
+    eop_data=nothing,
+) where {ST<:AbstractSatelliteDragModel,AT<:AtmosphericModelType,RT,PT}
+    cr3 = nothing
+    if !isnothing(frames) && propagation_frame != body_fixed_frame
+        cr3 = compile_rotation3(frames, propagation_frame, body_fixed_frame)
+    end
+    return DragAstroModel(
+        satellite_drag_model,
+        atmosphere_model,
+        body_fixed_frame,
+        propagation_frame,
+        rts,
+        P,
+        cr3,
+    )
 end
 
 """
-    acceleration(u::AbstractVector, p::ComponentVector, t::Number, drag_model::DragAstroModel)
+    acceleration(u::AbstractVector, p::FrameAwareParams, t::Number, drag_model::DragAstroModel)
 
-Computes the drag acceleration acting on a spacecraft given a drag model and current state and 
-parameters of an object.
+Computes the drag acceleration acting on a spacecraft.
+
+Earth-only. Uses the FrameSystem to rotate the state into the body-fixed frame for
+geodetic coordinate computation required by atmospheric density models.
 
 # Arguments
-- `u::AbstractVector`: Current State of the simulation.
-- `p::ComponentVector`: Current parameters of the simulation.
-- `t::Number`: Current time of the simulation.
-- `drag_model::DragAstroModel`: Drag model struct containing the relevant information to compute the acceleration.
+- `u::AbstractVector`: Current state [km, km/s].
+- `p::FrameAwareParams`: Parameters with frame system.
+- `t::Number`: Elapsed time since epoch [s].
+- `drag_model::DragAstroModel`: Drag model.
 
 # Returns
-- `acceleration: SVector{3}`: The 3-dimensional drag acceleration acting on the spacecraft.
-
+- `SVector{3}`: Drag acceleration [km/s²].
 """
 @inline function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, drag_model::DragAstroModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, drag_model::DragAstroModel
 )
+    t_ft = ft_time(p, t)
+
+    # Get propagation→body-fixed rotation
+    R_rot = if isnothing(drag_model.compiled_rotation3)
+        rotation3(p.frames, drag_model.propagation_frame, drag_model.body_fixed_frame, t_ft)
+    else
+        drag_model.compiled_rotation3(t_ft)
+    end
+    R_prop2bf = R_rot.m[1]
+
     # Compute density at the satellite's current position
     rho = compute_density(
         current_jd(p, t),
         u,
-        drag_model.eop_data,
+        R_prop2bf,
         drag_model.atmosphere_model;
         roots_container=drag_model.rts,
         P=drag_model.P,
     )
 
-    #TODO: OFFER OPTION TO COMPUTE FROM EOP or SPICE EPHEMERIS 
     ω_vec = SVector{3}(0.0, 0.0, EARTH_ANGULAR_SPEED)
 
     # Compute the ballistic coefficient
@@ -116,9 +131,9 @@ parameters of an object.
 end
 
 """
-    drag_accel(u::AbstractVector, rho::Number, BC::Number, ω_vec::AbstractVector, t::Number, [DragModel]) -> SVector{3}{Number}
+    drag_accel(u::AbstractVector, rho::Number, BC::Number, ω_vec::AbstractVector) -> SVector{3}
 
-Compute the Acceleration Atmospheric Drag
+Compute the Acceleration from Atmospheric Drag.
 
 The atmosphere is treated as a solid revolving with the Earth and the apparent velocity of the satellite is computed
 using the transport theorem
@@ -126,25 +141,19 @@ using the transport theorem
                 𝐯_app = 𝐯 - 𝛚 x 𝐫
 
 The acceleration from drag is then computed with a cannonball model as
-                
+
                 𝐚 = 1/2 * ρ * BC * |𝐯_app|₂^2 * v̂
-
-
-!!! note
-    Currently only fixed cannonball state based ballistic coefficients are supported, custom models can be created for
-    higher fidelity.
 
 # Arguments
 
-- `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame.
+- `u::AbstractVector`: The current state of the spacecraft [km, km/s].
 - `rho::Number`: Atmospheric density at (t, u) [kg/m^3].
-- `BC::Number`: The ballistic coefficient of the satellite -- (area/mass) * drag coefficient [kg/m^2].
-- `ω_vec::AbstractVector`: The angular velocity vector of Earth. Typically approximated as [0.0; 0.0; ω_Earth]
-- `t::Number`: Current time of the simulation.
+- `BC::Number`: The ballistic coefficient (area/mass) * drag coefficient [m^2/kg].
+- `ω_vec::AbstractVector`: The angular velocity vector of Earth [rad/s].
 
 # Returns
 
-- `SVector{3}{Number}`: Inertial acceleration from drag
+- `SVector{3}`: Inertial acceleration from drag [km/s²].
 """
 @inline function drag_accel(
     u::AbstractVector{UT}, rho::RT, BC::BT, ω_vec::AbstractVector{WT}
@@ -156,7 +165,6 @@ The acceleration from drag is then computed with a cannonball model as
 
     # Scaled by 1E3 to convert to km/s
     drag_force = -0.5 * BC * rho * norm(apparent_vel) * 1E3
-    # TODO: HANDLE UNITS BETTER
     accel = SVector{3,AT}(
         drag_force * apparent_vel[1],
         drag_force * apparent_vel[2],

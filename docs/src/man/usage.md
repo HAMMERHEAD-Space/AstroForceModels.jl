@@ -1,216 +1,154 @@
 # Usage
 
-AstroForceModels.jl provides a comprehensive framework for modeling the dominant astrodynamics forces affecting satellite orbital motion. The package is designed to integrate seamlessly with the SatelliteToolbox.jl ecosystem and modern Julia differential equation solvers.
+AstroForceModels.jl provides a comprehensive framework for modeling astrodynamics forces affecting orbital motion around any central body. The package uses FrameTransformations.jl for all coordinate transformations and ephemeris queries, making it fully frame-independent.
 
-## Basic Concepts
+## Quick Start
 
-### Force Models
+`setup_inertial_frames` sets up a complete Earth-centric inertial frame system in one call and returns a `FrameAwareParams` ready to pass straight into `build_dynamics_model`:
 
-Each force model in AstroForceModels implements the common `acceleration` interface:
+```julia
+using AstroForceModels
+using Tempo
+
+epoch = Epoch("2024-01-05T12:00:00 TDB")
+
+# ICRF + Earth + Sun (Vallado) + Moon (Vallado) — enough for most LEO propagations
+p = setup_inertial_frames(epoch)
+
+# Build force models using the frame system from p
+grav = KeplerianGravityAstroModel(; μ = 3.986004415e5)
+sun  = ThirdBodyModel(; body=SunBody(),  ephem_type=FrameEphemeris(; center_point=399, target_point=10,  axes=:ICRF), frames=p.frames)
+moon = ThirdBodyModel(; body=MoonBody(), ephem_type=FrameEphemeris(; center_point=399, target_point=301, axes=:ICRF), frames=p.frames)
+
+dynamics = CentralBodyDynamicsModel(grav, (sun, moon))
+
+function satellite_ode!(du, u, p, t)
+    du[1:3] = u[4:6]
+    du[4:6] = build_dynamics_model(u, p, t, dynamics)
+end
+```
+
+If you do not need third-body perturbations or SRP, omit the Sun and Moon to keep the frame system minimal:
+
+```julia
+p = setup_inertial_frames(epoch; include_sun=false, include_moon=false)
+```
+
+Keyword options:
+
+| Keyword | Default | Description |
+|---------|---------|-------------|
+| `include_sun` | `true` | Add Sun (NAIF 10) via Vallado ephemeris |
+| `include_moon` | `true` | Add Moon (NAIF 301) via Vallado ephemeris |
+| `order` | `2` | Derivative order of the frame system |
+| `numtype` | `Float64` | Numeric type for the frame system |
+
+For Earth propagations that need ITRF (gravity harmonics, drag), use `setup_earth_propagation_frames` instead. For JPL SPK kernel-based ephemeris, use `setup_ephemeris_frames`. See [Ephemeris Sources](@ref) for a detailed comparison of all three tiers.
+
+## Frame-Aware Parameters
+
+All force models accept `FrameAwareParams` as the parameter type. This stores a `FrameSystem`, epoch, propagation frame, and an optional `ComponentVector` of user-defined parameters. JD is derived automatically from the epoch; μ is read from the dynamics model — neither belongs in `FrameAwareParams`:
+
+```julia
+using AstroForceModels
+using FrameTransformations
+using Tempo
+
+# Create a FrameSystem with standard frames
+frames = create_default_frames()
+
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+
+# Minimal construction (no user params needed)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
+# Access
+p.JD          # Julian date (derived from epoch)
+p.frames      # FrameSystem
+p.epoch       # Tempo.Epoch
+```
+
+## Force Model Interface
+
+Each force model implements the common `acceleration` interface:
 
 ```julia
 acceleration(state, parameters, time, force_model)
 ```
 
 Where:
-- `state`: Current spacecraft state vector (position and velocity)
-- `parameters`: Additional parameters (spacecraft properties, etc.)
-- `time`: Current simulation time
+- `state`: Current spacecraft state vector (position and velocity) [km, km/s]
+- `parameters`: `FrameAwareParams` containing frame system, epoch, and numeric params
+- `time`: Current simulation time (seconds since epoch)
 - `force_model`: Specific force model instance
 
-### Combining Force Models
+## Third Body Models (FrameEphemeris)
 
-Multiple force models can be combined using the `CentralBodyDynamicsModel` structure and `build_dynamics_model` function for efficient dynamics computation:
+Third-body positions are obtained from the `FrameSystem` via `FrameEphemeris`, which uses NAIF IDs:
 
 ```julia
-using AstroForceModels
-using ComponentArrays
-using DifferentialEquations
-
-# Create individual force models
-gravity_model = KeplerianGravityAstroModel()  # or GravityHarmonicsAstroModel
-drag_model = DragAstroModel(...)
-srp_model = SRPAstroModel(...)
-third_body = ThirdBodyModel(; body=SunBody(), eop_data=fetch_iers_eop())
-
-# Combine into a dynamics model
-dynamics_model = CentralBodyDynamicsModel(
-    gravity_model,
-    (drag_model, srp_model, third_body)
+# Sun position relative to Earth in ICRF
+sun_model = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF),
 )
 
-# System dynamics function using the dynamics model
+# Moon position relative to Earth
+moon_model = ThirdBodyModel(
+    body = MoonBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=301, axes=:ICRF),
+)
+```
+
+## Compiled Transforms (Allocation-Free Hot Path)
+
+When you pass `frames` to a model constructor, the rotation or translation closures are
+extracted from the `FrameSystem` at construction time and stored in type-parameterized
+structs. This bypasses `FunctionWrapper` dispatch and graph lookups on every call,
+giving allocation-free evaluation that passes `@check_allocs`:
+
+```julia
+# Without compiled transforms (allocates on every call via FunctionWrapper)
+grav = GravityHarmonicsAstroModel(;
+    gravity_model=coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF,
+)
+
+# With compiled transforms (allocation-free)
+grav = GravityHarmonicsAstroModel(;
+    gravity_model=coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF,
+    frames=my_frames,   # pre-compiles ICRF↔ITRF rotation
+)
+```
+
+The `frames` argument requires that the frame pair is a **direct parent-child** connection
+in the frame graph (path length = 2). All standard frame setups satisfy this (ICRF→ITRF,
+ICRF→IAU\_MARS, ICRF→ErosBodyFixed, etc.).
+
+## Combining Force Models
+
+Multiple force models can be combined using `CentralBodyDynamicsModel`:
+
+```julia
+dynamics_model = CentralBodyDynamicsModel(
+    gravity_model,
+    (drag_model, srp_model, sun_model, moon_model)
+)
+
+# System dynamics function for ODE solvers
 function orbital_dynamics!(du, u, p, t)
     du[1:3] = u[4:6]  # velocity
     du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
 end
-
-# Alternative: Manual combination (less efficient)
-function orbital_dynamics_manual!(du, u, p, t)
-    du[1:3] = u[4:6]  # velocity
-    du[4:6] = sum(acceleration(u, p, t, force) for force in [gravity_model, drag_model, srp_model, third_body_model])
-end
 ```
 
-## Complete Example: LEO Satellite
+## Low-Thrust Propulsion
 
-Here's a comprehensive example modeling a Low Earth Orbit satellite with multiple perturbations:
+Low-thrust models are frame-independent (RTN/VNB are orbital frames):
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxAtmosphericModels
-using SatelliteToolboxGravityModels
-using SatelliteToolboxCelestialBodies
-using SatelliteToolboxBase
-using ComponentArrays
-using DifferentialEquations
-
-# Initial conditions (ISS-like orbit)
-r0 = [6378.137 + 408, 0.0, 0.0]  # Position [km]
-v0 = [0.0, 7.660, 0.0]           # Velocity [km/s]
-u0 = [r0; v0]
-
-# Time span (24 hours)
-tspan = (0.0, 86400.0)
-
-# Spacecraft parameters
-spacecraft_mass = 450000.0  # kg (ISS mass)
-spacecraft_params = ComponentArray(
-    mass = spacecraft_mass,
-    Cd = 2.2,    # drag coefficient
-    area = 1500.0, # cross-sectional area [m²]
-    CR = 1.3     # radiation pressure coefficient
-)
-
-JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-p = ComponentVector(; JD=JD)
-
-## 1. Gravity Model (with harmonics)
-gravity_data = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
-eop_data = fetch_iers_eop()
-
-gravity_model = GravityHarmonicsAstroModel(
-    gravity_model = gravity_data,
-    eop_data = eop_data,
-    order = 20,
-    degree = 20
-)
-
-## 2. Atmospheric Drag Model
-satellite_drag = CannonballFixedDrag(
-    area = spacecraft_params.area,
-    drag_coeff = spacecraft_params.Cd,
-    mass = spacecraft_params.mass
-)
-
-drag_model = DragAstroModel(
-    satellite_drag_model = satellite_drag,
-    atmosphere_model = JR1971(),
-    eop_data = eop_data
-)
-
-## 3. Solar Radiation Pressure Model
-satellite_srp = CannonballFixedSRP(
-    radius = sqrt(spacecraft_params.area / π),  # Convert area to radius
-    mass = spacecraft_params.mass,
-    reflectivity_coeff = spacecraft_params.CR
-)
-
-# Create Sun model
-sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-
-srp_model = SRPAstroModel(
-    satellite_srp_model = satellite_srp,
-    sun_data = sun_model,
-    eop_data = eop_data,
-    shadow_model = Conical()
-)
-
-## 4. Third Body Gravity (Sun and Moon)
-# Sun model already created above for SRP
-# Create Moon model  
-moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
-
-## 5. Relativistic Effects
-relativity_model = RelativityModel(eop_data)
-
-## 6. Solid Body Tides (IERS 2010, Step 1)
-tides_model = SolidBodyTidesModel(eop_data)
-
-## 7. Thermal Emission (Thermal Re-Radiation)
-thermal_sat = FlatPlateThermalModel(;
-    area = 10.82,          # solar panel area [m²]
-    mass = spacecraft_mass, # spacecraft mass [kg]
-    ε_front = 0.75,        # front emissivity
-    ε_back = 0.90,         # back emissivity
-    absorptivity = 0.92,   # solar absorptivity
-    ξ = 0.91,              # temperature ratio factor
-    η = 0.12,              # electric efficiency
-)
-
-thermal_model = ThermalEmissionAstroModel(;
-    satellite_thermal_model = thermal_sat,
-    sun_data = sun_model,
-    eop_data = eop_data,
-    shadow_model = Conical(),
-)
-
-## 8. Geomagnetic Lorentz Force
-mag_model = MagneticFieldAstroModel(;
-    spacecraft_charge_model = FixedChargeMassRatio(1e-5),  # q/m [C/kg]
-    geomagnetic_field_model = DipoleMagneticField(),
-    eop_data = eop_data,
-)
-
-## 9. Plasma Drag (Ionospheric Ion Drag)
-# Plasma drag models the momentum transfer from ionospheric O⁺ ions
-# to the spacecraft. At LEO altitudes (300–600 km), this can contribute
-# 5–35% of total aerodynamic force (Lafleur, Acta Astronautica 2023).
-satellite_plasma = CannonballFixedPlasmaDrag(
-    sqrt(spacecraft_params.area / π),   # radius [m]
-    spacecraft_params.mass,             # mass [kg]
-    4.0,                                # ion drag coefficient (2–4 typical)
-)
-
-# Chapman layer model for F2-region ion density
-# Nmax: peak density [m⁻³], hmax: peak altitude [km], Hs: scale height [km]
-iono_model = ChapmanIonosphere(Nmax = 3e11, hmax = 350.0, Hs = 60.0)
-
-plasma_drag_model = PlasmaDragAstroModel(
-    satellite_plasma_drag_model = satellite_plasma,
-    ionosphere_model = iono_model,
-    eop_data = eop_data,
-)
-
-# Create a comprehensive dynamics model
-dynamics_model = CentralBodyDynamicsModel(
-    gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, relativity_model,
-     tides_model, thermal_model, mag_model, plasma_drag_model)
-)
-
-# System dynamics function for ODE solver
-function satellite_dynamics!(du, u, p, t)
-    du[1:3] = u[4:6]  # velocity
-    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
-end
-
-# Solve the orbital dynamics
-prob = ODEProblem(satellite_dynamics!, u0, tspan, p)
-sol = solve(prob, Tsit5(), reltol=1e-9, abstol=1e-12)
-
-# Alternative: Manual acceleration computation
-total_accel = build_dynamics_model(u0, p, 0.0, dynamics_model)
-```
-
-## Low-Thrust Propulsion Example
-
-Low-thrust models can be added as perturbations alongside other force models. Thrust can
-be specified in different reference frames (Inertial, RTN, or VNB):
-
-```julia
-using AstroForceModels
-using StaticArraysCore
+using StaticArrays
 
 # Constant tangential thrust in VNB frame (orbit raising)
 lt_vnb = LowThrustAstroModel(;
@@ -218,42 +156,19 @@ lt_vnb = LowThrustAstroModel(;
     frame = VNBFrame(),
 )
 
-# Piecewise-constant thrust schedule in RTN (Sims-Flanagan style)
+# Piecewise-constant thrust schedule in RTN
 lt_rtn = LowThrustAstroModel(;
     thrust_model = PiecewiseConstantThrust(
-        [0.0, 3600.0, 7200.0],                               # arc start times [s]
-        [SVector{3}(0.0, 1e-7, 0.0),                         # burn 1: transverse
-         SVector{3}(0.0, 0.0, 0.0),                          # coast
-         SVector{3}(0.0, -1e-7, 0.0)],                       # burn 2: reverse
+        [0.0, 3600.0, 7200.0],
+        [SVector{3}(0.0, 1e-7, 0.0),
+         SVector{3}(0.0, 0.0, 0.0),
+         SVector{3}(0.0, -1e-7, 0.0)],
     ),
     frame = RTNFrame(),
 )
 
-# Or use the convenience ConstantTangentialThrust (always inertial)
 # 1 mN thrust on a 500 kg spacecraft
 lt_simple = LowThrustAstroModel(;
     thrust_model = ConstantTangentialThrust(1e-3, 500.0),
 )
-
-# Combine with high-fidelity dynamics
-dynamics_model = CentralBodyDynamicsModel(
-    gravity_model,
-    (drag_model, srp_model, sun_model, moon_model, lt_rtn)
-)
-
-# System dynamics with low-thrust
-function lt_dynamics!(du, u, p, t)
-    du[1:3] = u[4:6]  # velocity
-    du[4:6] = build_dynamics_model(u, p, t, dynamics_model)
-end
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Coordinate System Consistency**: Ensure all models use the same reference frame
-2. **Time System Handling**: Be consistent with time scales (UTC, TT, etc.)
-3. **Unit Consistency**: Verify all quantities use consistent units (SI recommended)
-4. **Numerical Stability**: Use appropriate integration tolerances
-5. **Earth Orientation Parameters**: Keep EOP data current for high-precision work

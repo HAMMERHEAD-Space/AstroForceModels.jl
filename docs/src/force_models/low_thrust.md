@@ -179,12 +179,14 @@ lt_tct = LowThrustAstroModel(;
 ```julia
 using AstroForceModels
 using SatelliteToolboxGravityModels
-using SatelliteToolboxTransformations
 
-eop_data = fetch_iers_eop()
 grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 gravity = GravityHarmonicsAstroModel(;
-    gravity_model=grav_coeffs, eop_data=eop_data, order=20, degree=20
+    gravity_model=grav_coeffs,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
+    order=20,
+    degree=20
 )
 
 lt_model = LowThrustAstroModel(;
@@ -215,7 +217,7 @@ end
 The low-thrust acceleration computation follows two steps:
 
 1. **Thrust model evaluation**: The `AbstractThrustModel` produces a 3-component acceleration vector in the model frame
-2. **Frame transformation**: `transform_to_inertial` rotates the vector from the specified frame (Inertial, RTN, or VNB) to the ECI frame using basis vectors constructed from the spacecraft state
+2. **Frame transformation**: `transform_thrust_to_state_frame` rotates the vector from the specified frame (Inertial, RTN, or VNB) to the ECI frame using basis vectors constructed from the spacecraft state
 
 The frame transformation constructs orthonormal basis vectors directly from `r` and `v`, avoiding intermediate matrix construction for efficiency. All operations use `SVector{3}` for type stability and are marked `@inline` for performance. The `InertialFrame` transformation is a compile-time no-op.
 

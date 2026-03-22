@@ -66,10 +66,12 @@ Two satellite thermal model types are provided:
 The main force model struct:
 
 - **`satellite_thermal_model`**: Satellite thermal model providing the emission coefficient
-- **`sun_data`**: `ThirdBodyModel` for computing the Sun's position
-- **`eop_data`**: Earth Orientation Parameters
+- **`sun_data`**: `ThirdBodyModel` for computing the Sun's position (uses `FrameEphemeris`)
 - **`shadow_model`**: Shadow model type (default: `Conical()`)
-- **`R_Sun`**, **`R_Occulting`**, **`Ψ`**, **`AU`**: Physical constants with sensible defaults
+- **`R_Sun`**: Radius of the Sun [km] (default: 695,700 km)
+- **`R_Occulting`**: Radius of the occulting body [km] (required, no default -- e.g., use `R_EARTH` for Earth-orbiting missions)
+- **`Ψ`**: Solar flux constant at 1 AU [N/m²]
+- **`AU`**: Astronomical Unit [km]
 
 ## Magnitude of Effects
 

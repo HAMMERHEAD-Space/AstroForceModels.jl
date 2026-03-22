@@ -106,7 +106,7 @@ function ConstantCartesianThrust(direction::AbstractVector, thrust::Number, mass
 end
 
 """
-    thrust_acceleration(u::AbstractVector, p::AbstractVector, t::Number, model::ConstantCartesianThrust)
+    thrust_acceleration(u::AbstractVector, p, t::Number, model::ConstantCartesianThrust)
 
 Returns the constant Cartesian thrust acceleration vector [km/s²].
 
@@ -120,7 +120,7 @@ Returns the constant Cartesian thrust acceleration vector [km/s²].
 - `SVector{3}`: Thrust acceleration [km/s²] in the frame specified by the parent model.
 """
 @inline function thrust_acceleration(
-    u::AbstractVector, p::AbstractVector, t::Number, model::ConstantCartesianThrust
+    u::AbstractVector, p, t::Number, model::ConstantCartesianThrust
 )
     return SVector{3}(model.ax, model.ay, model.az)
 end
@@ -176,7 +176,7 @@ function ConstantTangentialThrust(thrust::Number, mass::Number)
 end
 
 """
-    thrust_acceleration(u::AbstractVector, p::AbstractVector, t::Number, model::ConstantTangentialThrust)
+    thrust_acceleration(u::AbstractVector, p, t::Number, model::ConstantTangentialThrust)
 
 Returns the tangential thrust acceleration vector directed along the velocity [km/s²].
 
@@ -192,7 +192,7 @@ The result is always in the inertial frame regardless of the parent model's fram
 - `SVector{3}`: Thrust acceleration in the inertial frame [km/s²].
 """
 @inline function thrust_acceleration(
-    u::AbstractVector{UT}, p::AbstractVector, t::Number, model::ConstantTangentialThrust{MT}
+    u::AbstractVector{UT}, p, t::Number, model::ConstantTangentialThrust{MT}
 ) where {UT,MT}
     RT = promote_type(UT, MT)
 
@@ -204,8 +204,8 @@ The result is always in the inertial frame regardless of the parent model's fram
         return SVector{3}(z, z, z)
     end
 
-    scale = model.magnitude / v_norm
-    return SVector{3,RT}(scale * v[1], scale * v[2], scale * v[3])
+    scale = model.magnitude / v_norm + 0 * t
+    return SVector{3}(scale * v[1], scale * v[2], scale * v[3])
 end
 
 # ======================================================================================== #
@@ -236,7 +236,7 @@ struct StateThrustModel{F} <: AbstractThrustModel
 end
 
 """
-    thrust_acceleration(u::AbstractVector, p::AbstractVector, t::Number, model::StateThrustModel)
+    thrust_acceleration(u::AbstractVector, p, t::Number, model::StateThrustModel)
 
 Returns the thrust acceleration vector computed by the user-provided function [km/s²].
 
@@ -250,7 +250,7 @@ Returns the thrust acceleration vector computed by the user-provided function [k
 - `SVector{3}`: Thrust acceleration [km/s²] in the frame specified by the parent model.
 """
 @inline function thrust_acceleration(
-    u::AbstractVector, p::AbstractVector, t::Number, model::StateThrustModel
+    u::AbstractVector, p, t::Number, model::StateThrustModel
 )
     return SVector{3}(model.f(u, p, t))
 end
@@ -320,7 +320,7 @@ function PiecewiseConstantThrust(
 end
 
 """
-    thrust_acceleration(u::AbstractVector, p::AbstractVector, t::Number, model::PiecewiseConstantThrust)
+    thrust_acceleration(u::AbstractVector, p, t::Number, model::PiecewiseConstantThrust)
 
 Returns the piecewise-constant thrust acceleration for the arc containing time `t` [km/s²].
 
@@ -337,7 +337,7 @@ If `t` is before the first arc, the first arc's acceleration is returned.
 - `SVector{3}`: Thrust acceleration [km/s²] in the frame specified by the parent model.
 """
 @inline function thrust_acceleration(
-    u::AbstractVector, p::AbstractVector, t::Number, model::PiecewiseConstantThrust{N}
+    u::AbstractVector, p, t::Number, model::PiecewiseConstantThrust{N}
 ) where {N}
     idx = 1
     for i in 2:N

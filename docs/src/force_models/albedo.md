@@ -44,10 +44,11 @@ The default values represent commonly accepted Earth-averaged values from the ra
 The main struct that encapsulates albedo radiation pressure parameters:
 
 - **satellite_shape_model**: Spacecraft optical and geometric properties (uses same `AbstractSatelliteSRPModel` as SRP)
-- **sun_data**: Solar position calculation via `ThirdBodyModel`
+- **sun_data**: Solar position calculation via `ThirdBodyModel` (uses `FrameEphemeris`)
 - **body_albedo_model**: Earth albedo model (e.g., `UniformAlbedoModel`)
-- **eop_data**: Earth orientation parameters for ECEF/ECI transformations
-- **solar_flux**: Solar flux at 1 AU [W/m^2]
+- **body_fixed_frame**: Body-fixed frame symbol for rotating surface positions (default: `:ITRF`)
+- **propagation_frame**: Propagation frame symbol (default: `:ICRF`)
+- **solar_irradiance**: Solar irradiance at 1 AU [W/m²]
 - **speed_of_light**: Speed of light [km/s]
 - **lebedev_order**: Order of Lebedev quadrature (default: 125). Higher orders give more integration points and better accuracy at the cost of computation time.
 
@@ -65,14 +66,13 @@ The integration accuracy and computational cost scale with the Lebedev quadratur
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxCelestialBodies
-using SatelliteToolboxTransformations
+using Tempo, ComponentArrays
 
-# Load Earth orientation parameters
-eop_data = fetch_iers_eop()
-
-# Create Sun position model
-sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
+# Create Sun position model using FrameEphemeris
+sun_model = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF)
+)
 
 # Define spacecraft shape model (same as SRP)
 satellite_model = CannonballFixedSRP(0.030)  # m^2/kg
@@ -80,17 +80,23 @@ satellite_model = CannonballFixedSRP(0.030)  # m^2/kg
 # Create uniform albedo model
 uniform_albedo = UniformAlbedoModel(; visible_albedo=0.3, infrared_emissivity=0.7)
 
-# Create albedo force model
+# Create albedo force model (uses frame rotations instead of eop_data)
 albedo_model = AlbedoAstroModel(;
     satellite_shape_model=satellite_model,
     sun_data=sun_model,
     body_albedo_model=uniform_albedo,
-    eop_data=eop_data,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
     lebedev_order=125,  # High accuracy
 )
 
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
 # Compute acceleration (typically called within an integrator)
-acceleration(state, parameters, time, albedo_model)
+acceleration(state, p, time, albedo_model)
 ```
 
 ## Combining with Other Forces

@@ -10,55 +10,43 @@
 export FrameAwareParams
 
 """
-    FrameAwareParams{F,E}
+    FrameAwareParams{F,E,P}
 
 Parameter struct for frame-aware force model propagation.
 
-This struct wraps around a standard `ComponentVector` and adds frame transformation
-capabilities. It's designed to work seamlessly with both new frame-aware code and
-legacy code that doesn't use frames.
+Wraps a `FrameSystem`, epoch, propagation frame, and an optional `ComponentVector`
+for user-defined parameters. The Julian Date is derived from `epoch` automatically.
 
 # Fields
-- `params::ComponentVector`: Standard parameter vector (contains JD and other numeric params)
-- `frames::F`: FrameSystem for coordinate transformations
-- `epoch::E`: Reference epoch (Tempo.Epoch)
-- `propagation_frame::Symbol`: Frame in which the state vector is expressed
+- `params::ComponentVector`: User-defined parameters (can be empty).
+- `frames::F`: FrameSystem for coordinate transformations.
+- `epoch::E`: Reference epoch (Tempo.Epoch). JD is derived from this.
+- `propagation_frame::Symbol`: Frame in which the state vector is expressed.
 
-# Usage
+# Constructors
 ```julia
-using Tempo, FrameTransformations
+# Minimal — just frames, epoch, and propagation frame
+p = FrameAwareParams(frames, epoch, :ICRF)
 
-# Create frames
-frames = create_default_frames()
-
-# Create epoch
-epoch = Epoch("2023-01-01T00:00:00 TDB")
-
-# Create base params
-base_params = ComponentVector(JD = 2460000.5)
-
-# Wrap with frame info
-params = FrameAwareParams(base_params, frames, epoch, :ICRF)
-
-# Access like normal ComponentVector
-params.JD  # Works!
-
-# Access frame info
-params.frames
-params.epoch
-params.propagation_frame
+# With extra user parameters
+p = FrameAwareParams(ComponentVector(; custom=1.0), frames, epoch, :ICRF)
 ```
 
-# Notes
-- Can be indexed like a ComponentVector (delegates to the inner params)
-- Property access first checks frame fields, then delegates to params
-- Fully compatible with ODE solvers
+# Property access
+- `p.frames`, `p.epoch`, `p.propagation_frame` → struct fields
+- `p.JD` → computed from epoch (read-only, never stale)
+- `p.custom` → delegates to inner ComponentVector
 """
 struct FrameAwareParams{F,E,P<:ComponentVector}
     params::P
     frames::F
     epoch::E
     propagation_frame::Symbol
+end
+
+# Convenience: no ComponentVector needed
+function FrameAwareParams(frames::F, epoch::E, propagation_frame::Symbol) where {F,E}
+    return FrameAwareParams(ComponentVector(), frames, epoch, propagation_frame)
 end
 
 # Delegation to inner ComponentVector
@@ -68,30 +56,39 @@ Base.length(p::FrameAwareParams) = length(p.params)
 Base.size(p::FrameAwareParams) = size(p.params)
 Base.iterate(p::FrameAwareParams, args...) = iterate(p.params, args...)
 
-# Property access: check frame fields first, then delegate to params
+# Property access: struct fields and derived JD first, then delegate to params
 function Base.getproperty(p::FrameAwareParams, s::Symbol)
     if s in (:params, :frames, :epoch, :propagation_frame)
         return getfield(p, s)
+    elseif s === :JD
+        # Derive JD from epoch — single source of truth, never stale
+        return 2451545.0 + j2000s(getfield(p, :epoch)) / 86400.0
     else
         return getproperty(getfield(p, :params), s)
     end
 end
 
 function Base.setproperty!(p::FrameAwareParams, s::Symbol, v)
-    if s in (:params, :frames, :epoch, :propagation_frame)
-        error("Cannot modify frame-aware parameter fields directly")
+    if s in (:params, :frames, :epoch, :propagation_frame, :JD)
+        error("Cannot modify FrameAwareParams fields directly")
     else
         return setproperty!(getfield(p, :params), s, v)
     end
 end
 
-Base.propertynames(p::FrameAwareParams) = tuple(:frames, :epoch, :propagation_frame, propertynames(p.params)...)
-Base.eltype(p::FrameAwareParams) = eltype(p.params)
+function Base.propertynames(p::FrameAwareParams)
+    tuple(:frames, :epoch, :propagation_frame, :JD, propertynames(p.params)...)
+end
+Base.eltype(p::FrameAwareParams) = Float64
 Base.keys(p::FrameAwareParams) = keys(p.params)
 Base.values(p::FrameAwareParams) = values(p.params)
 Base.pairs(p::FrameAwareParams) = pairs(p.params)
-Base.similar(p::FrameAwareParams) = FrameAwareParams(similar(p.params), p.frames, p.epoch, p.propagation_frame)
-Base.similar(p::FrameAwareParams, ::Type{T}) where {T} = FrameAwareParams(similar(p.params, T), p.frames, p.epoch, p.propagation_frame)
+function Base.similar(p::FrameAwareParams)
+    FrameAwareParams(similar(p.params), p.frames, p.epoch, p.propagation_frame)
+end
+function Base.similar(p::FrameAwareParams, ::Type{T}) where {T}
+    FrameAwareParams(similar(p.params, T), p.frames, p.epoch, p.propagation_frame)
+end
 Base.axes(p::FrameAwareParams) = axes(p.params)
 Base.IndexStyle(::Type{<:FrameAwareParams}) = IndexLinear()
 
@@ -99,8 +96,8 @@ Base.IndexStyle(::Type{<:FrameAwareParams}) = IndexLinear()
 function Base.show(io::IO, p::FrameAwareParams)
     println(io, "FrameAwareParams:")
     println(io, "  propagation_frame: ", p.propagation_frame)
-    println(io, "  epoch: ", p.epoch)
-    println(io, "  frames: ", typeof(p.frames))
-    println(io, "  params: ", p.params)
+    println(io, "  epoch: ", getfield(p, :epoch))
+    println(io, "  JD: ", p.JD, " (derived from epoch)")
+    println(io, "  frames: ", typeof(getfield(p, :frames)))
+    isempty(p.params) || println(io, "  params: ", p.params)
 end
-

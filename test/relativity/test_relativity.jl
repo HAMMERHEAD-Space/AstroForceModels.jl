@@ -22,7 +22,9 @@
         central_body=earth_model,
         sun_body=sun_model,
         J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
-        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false,
+        schwarzschild_effect=false,
+        lense_thirring_effect=true,
+        de_Sitter_effect=false,
     )
 
     lense_thirring_accel = acceleration(state, p, 0.0, satellite_lense_thirring_model)
@@ -38,7 +40,9 @@
         central_body=earth_model,
         sun_body=sun_model,
         J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
-        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true,
+        schwarzschild_effect=false,
+        lense_thirring_effect=false,
+        de_Sitter_effect=true,
     )
 
     de_sitter_accel = acceleration(state, p, 0.0, satellite_de_sitter_model)
@@ -55,7 +59,9 @@
         central_body=earth_model,
         sun_body=sun_model,
         J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
-        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false,
+        schwarzschild_effect=true,
+        lense_thirring_effect=false,
+        de_Sitter_effect=false,
     )
 
     schwarzschild_accel = acceleration(state, p, 0.0, satellite_schwarzschild_model)

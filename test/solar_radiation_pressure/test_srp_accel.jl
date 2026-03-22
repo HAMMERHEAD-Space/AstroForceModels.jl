@@ -19,7 +19,9 @@
     sun_model = test_sun_model()
 
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
+        satellite_srp_model=satellite_srp_model,
+        sun_data=sun_model,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
 
     srp_accel = acceleration(state, p, 0.0, srp_model)

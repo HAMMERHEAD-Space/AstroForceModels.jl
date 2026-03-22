@@ -48,8 +48,7 @@ The third body force model in AstroForceModels includes:
 The main struct for third body computations and ephemeris provider:
 
 - **body**: `CelestialBody` instance (e.g., `SunBody()`, `MoonBody()`)
-- **eop_data**: Earth orientation parameters for coordinate transformations
-- **ephemeris_type**: Method for computing body position (default: `Vallado()`)
+- **ephem_type**: `FrameEphemeris` specifying how to compute body position via FrameTransformations.jl (center point, target point, and axes)
 
 ### CelestialBody
 
@@ -63,22 +62,38 @@ Defines properties of celestial bodies using a `Name` type parameter for compile
 
 Use `nameof(body)` to retrieve the body name. Pre-built constructors: `SunBody()`, `MoonBody()`, `EarthBody()`.
 
+### FrameEphemeris
+
+Ephemeris type that uses FrameTransformations.jl to compute body positions and velocities via SPK kernels:
+
+- **center_point**: NAIF ID of the center body (e.g., 399 for Earth, 2000433 for Eros)
+- **target_point**: NAIF ID of the target body (e.g., 10 for Sun, 301 for Moon)
+- **axes**: Frame for output (default: `:ICRF`)
+
 ## Usage Example
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxBase
+using Tempo, ComponentArrays
 
-# Load Earth orientation parameters
-eop_data = fetch_iers_eop()
+# Create third body models using FrameEphemeris
+sun_model = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF)
+)
+moon_model = ThirdBodyModel(
+    body = MoonBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=301, axes=:ICRF)
+)
 
-# Create third body models
-sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
 
 # These can be combined with other force models
-acceleration(state, parameters, time, sun_model)
-acceleration(state, parameters, time, moon_model)
+acceleration(state, p, time, sun_model)
+acceleration(state, p, time, moon_model)
 ```
 
 ## Implementation Details

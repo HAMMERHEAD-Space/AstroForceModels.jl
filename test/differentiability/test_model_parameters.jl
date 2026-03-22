@@ -16,7 +16,11 @@ const _p = create_test_params(; JD=_JD, eop_data=_eop_data)
 const _grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
 const _grav_model = GravityHarmonicsAstroModel(;
-    gravity_model=_grav_coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF, order=36, degree=36
+    gravity_model=_grav_coeffs,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
+    order=36,
+    degree=36,
 )
 
 const _ATMOSPHERE_MODELS = (
@@ -39,9 +43,9 @@ const _BC = 0.2
 
 const _ENZYME_RUNTIME_ACTIVITY = ["MSIS2000"]
 
-const _earth_body_model = ThirdBodyModel(
+const _earth_body_model = ThirdBodyModel(;
     body=EarthBody(),
-    ephem_type=FrameEphemeris(center_point=399, target_point=399, axes=:ICRF),
+    ephem_type=FrameEphemeris(; center_point=399, target_point=399, axes=:ICRF),
 )
 
 const _relativity_model = RelativityModel(;
@@ -73,8 +77,7 @@ const _moon_model = test_moon_model()
 const _lt_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
 
 const _tides_model = SolidBodyTidesModel(;
-    tide_raising_bodies=(test_sun_model(), test_moon_model()),
-    R_e=AstroForceModels.R_EARTH,
+    tide_raising_bodies=(test_sun_model(), test_moon_model()), R_e=AstroForceModels.R_EARTH
 )
 
 const _thermal_sat_model = FixedThermalEmission(0.01)

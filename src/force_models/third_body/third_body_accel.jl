@@ -14,25 +14,29 @@
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 """
-    acceleration(u::AbstractVector, p::ComponentVector, t::Number, third_body_model::ThirdBodyModel)
+    acceleration(u::AbstractVector, p::FrameAwareParams, t::Number, third_body_model::ThirdBodyModel)
 
-Computes the third-body gravitational acceleration acting on a spacecraft given a third body model 
-and current state and parameters of an object.
+Computes the third-body gravitational acceleration acting on a spacecraft.
 
 # Arguments
-- `u::AbstractVector`: Current State of the simulation.
-- `p::ComponentVector`: Current parameters of the simulation.
+- `u::AbstractVector`: Current state of the simulation.
+- `p::FrameAwareParams`: Current parameters of the simulation.
 - `t::Number`: Current time of the simulation.
-- `third_body_model::ThirdBodyModel`: Third body model struct containing the relevant information to compute the acceleration.
+- `third_body_model::ThirdBodyModel`: Third body model struct.
 
 # Returns
-- `acceleration: SVector{3}`: The 3-dimensional third-body acceleration acting on the spacecraft.
-
+- `acceleration: SVector{3}`: The 3-dimensional third-body acceleration [km/s²].
 """
 function acceleration(
-    u::AbstractVector, p::ComponentVector, t::TT, third_body::ThirdBodyModel
+    u::AbstractVector, p::FrameAwareParams, t::TT, third_body::ThirdBodyModel
 ) where {TT}
-    body_pos = third_body(current_jd(p, t), Position()) ./ 1E3
+    body_pos = get_position(
+        third_body.ephem_type,
+        third_body.body,
+        p.frames,
+        ft_time(p, t),
+        third_body.compiled_vector3,
+    )
 
     return third_body_accel(u, third_body.body.μ, body_pos)
 end
@@ -40,11 +44,11 @@ end
 export third_body_accel
 
 """
-    third_body_accel(u::AbstractVector, μ_body::Number, body_pos::AbstractVector, h::Number) -> SVector{3}{Number}
+    third_body_accel(u::AbstractVector, μ_body::Number, body_pos::AbstractVector) -> SVector{3}
 
 Compute the Acceleration from a 3rd Body Represented as a Point Mass
 
-Since the central body is also being acted upon by the third body, the acceleration of body 𝐁 acting on 
+Since the central body is also being acted upon by the third body, the acceleration of body 𝐁 acting on
 spacecraft 𝐀 in the orbiting body's 𝐂 is part of the force not acting on the central body
 
                 a = ∇UB(rA) - ∇UB(rC)
@@ -53,11 +57,11 @@ spacecraft 𝐀 in the orbiting body's 𝐂 is part of the force not acting on t
 
 - `u::AbstractVector`: The current state of the spacecraft in the central body's inertial frame.
 - `μ_body`: Gravitation Parameter of the 3rd body.
-- `body_pos::AbstractVector`: The current position of the 3rd body in the central body's inertial frame.
+- `body_pos::AbstractVector`: The current position of the 3rd body in the central body's inertial frame [km].
 
 # Returns
 
-- `SVector{3}{Number}`: Inertial acceleration from the 3rd body
+- `SVector{3}`: Inertial acceleration from the 3rd body [km/s²].
 """
 @inline function third_body_accel(
     u::AbstractVector{PT}, μ_body::Number, body_pos::AbstractVector{BT}

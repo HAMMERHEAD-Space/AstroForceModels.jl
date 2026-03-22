@@ -6,6 +6,15 @@ Compute the current Julian Date from parameters `p` and elapsed time `t` [s].
 @inline current_jd(p, t) = p.JD + t / 86400.0
 
 """
+    ft_time(p::FrameAwareParams, t)
+
+Convert ODE integration time `t` (seconds since epoch) to FrameTransformations time
+(seconds since J2000 TDB). This is the time format expected by `rotation3`, `rotation6`,
+`vector3`, `vector6`, etc.
+"""
+@inline ft_time(p::FrameAwareParams, t) = j2000s(p.epoch) + t
+
+"""
     angle_between_vectors(
         v1::AbstractVector{T1}, v2::AbstractVector{T2}
     ) where {T1<:Number,T2<:Number}

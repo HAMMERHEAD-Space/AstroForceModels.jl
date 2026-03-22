@@ -3,12 +3,14 @@ using BenchmarkTools
 using ComponentArrays
 using LinearAlgebra
 using SatelliteToolboxGravityModels
-using SatelliteToolboxTransformations
+using FrameTransformations
+using Tempo
 using SpaceIndices
 using StaticArraysCore
 
 const SUITE = BenchmarkGroup()
 
+SUITE["frame_setup"] = BenchmarkGroup(["setup"])
 SUITE["gravity"] = BenchmarkGroup(["acceleration"])
 SUITE["drag"] = BenchmarkGroup(["acceleration"])
 SUITE["srp"] = BenchmarkGroup(["acceleration"])
@@ -20,11 +22,24 @@ SUITE["shadow_models"] = BenchmarkGroup(["shadow"])
 SUITE["dynamics_builder"] = BenchmarkGroup(["combined"])
 
 # ---------------------
+# Frame setup
+# ---------------------
+const _eop_data = fetch_iers_eop()
+
+# ---------------------
 # Common test state
 # ---------------------
 const _JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-const _p = ComponentVector(; JD=_JD)
 const _t = 0.0
+const _epoch = Epoch((_JD - 2451545.0) * 86400.0, TDB)
+
+function _create_bench_frames()
+    p = setup_earth_propagation_frames(_epoch, _eop_data)
+    return p.frames
+end
+
+const _frames = _create_bench_frames()
+const _p = FrameAwareParams(_frames, _epoch, :ICRF)
 
 const _state = [
     -1076.225324679696
@@ -35,32 +50,71 @@ const _state = [
     -1.1880157328553503
 ]
 
-const _eop_data = fetch_iers_eop()
+const _sun_model = ThirdBodyModel(;
+    body=SunBody(),
+    ephem_type=FrameEphemeris(; center_point=399, target_point=10, axes=:ICRF),
+    frames=_frames,
+)
+const _moon_model = ThirdBodyModel(;
+    body=MoonBody(),
+    ephem_type=FrameEphemeris(; center_point=399, target_point=301, axes=:ICRF),
+    frames=_frames,
+)
+const _earth_body_model = ThirdBodyModel(;
+    body=EarthBody(),
+    ephem_type=FrameEphemeris(; center_point=399, target_point=399, axes=:ICRF),
+    frames=_frames,
+)
+
+# ---------------------
+# Frame setup
+# ---------------------
+SUITE["frame_setup"]["setup_inertial_frames (Sun+Moon)"] = @benchmarkable setup_inertial_frames(
+    $_epoch
+)
+SUITE["frame_setup"]["setup_inertial_frames (minimal)"] = @benchmarkable setup_inertial_frames(
+    $_epoch; include_sun=false, include_moon=false
+)
 
 # ---------------------
 # Gravity models
 # ---------------------
 const _grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
-const _keplerian_model = KeplerianGravityAstroModel()
+const _keplerian_model = KeplerianGravityAstroModel(; μ=AstroForceModels.μ_EARTH)
 
 const _harmonics_models = [
     (
         "4x4",
         GravityHarmonicsAstroModel(;
-            gravity_model=_grav_coeffs, eop_data=_eop_data, order=4, degree=4
+            gravity_model=_grav_coeffs,
+            body_fixed_frame=:ITRF,
+            propagation_frame=:ICRF,
+            order=4,
+            degree=4,
+            frames=_frames,
         ),
     ),
     (
         "20x20",
         GravityHarmonicsAstroModel(;
-            gravity_model=_grav_coeffs, eop_data=_eop_data, order=20, degree=20
+            gravity_model=_grav_coeffs,
+            body_fixed_frame=:ITRF,
+            propagation_frame=:ICRF,
+            order=20,
+            degree=20,
+            frames=_frames,
         ),
     ),
     (
         "36x36",
         GravityHarmonicsAstroModel(;
-            gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36
+            gravity_model=_grav_coeffs,
+            body_fixed_frame=:ITRF,
+            propagation_frame=:ICRF,
+            order=36,
+            degree=36,
+            frames=_frames,
         ),
     ),
 ]
@@ -93,9 +147,7 @@ const _ATMOSPHERE_MODELS = [
 
 for (label, atmo) in _ATMOSPHERE_MODELS
     drag_model = DragAstroModel(;
-        satellite_drag_model=_satellite_drag_model,
-        atmosphere_model=atmo,
-        eop_data=_eop_data,
+        satellite_drag_model=_satellite_drag_model, atmosphere_model=atmo, frames=_frames
     )
     SUITE["drag"][label] = @benchmarkable acceleration($_state, $_p, $_t, $drag_model)
 end
@@ -104,7 +156,6 @@ end
 # SRP models
 # ---------------------
 const _satellite_srp_model = CannonballFixedSRP(0.2)
-const _sun_model = ThirdBodyModel(; body=SunBody(), eop_data=_eop_data)
 
 const _SHADOW_MODELS = [
     ("Conical", Conical()),
@@ -117,14 +168,15 @@ for (label, shadow) in _SHADOW_MODELS
     srp_model = SRPAstroModel(;
         satellite_srp_model=_satellite_srp_model,
         sun_data=_sun_model,
-        eop_data=_eop_data,
         shadow_model=shadow,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
     SUITE["srp"][label] = @benchmarkable acceleration($_state, $_p, $_t, $srp_model)
 end
 
 # Shadow model micro-benchmarks
-const _sun_pos = _sun_model(_JD, Position()) ./ 1E3
+const _t_ft = ft_time(_p, _t)
+const _sun_pos = get_position(_sun_model.ephem_type, _sun_model.body, _frames, _t_ft)
 const _sat_pos = SVector{3}(_state[1], _state[2], _state[3])
 
 for (label, shadow) in _SHADOW_MODELS
@@ -145,8 +197,10 @@ for (label, order) in _ALBEDO_ORDERS
         satellite_shape_model=_satellite_srp_model,
         sun_data=_sun_model,
         body_albedo_model=_uniform_albedo,
-        eop_data=_eop_data,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
         lebedev_order=order,
+        frames=_frames,
     )
     SUITE["albedo"][label] = @benchmarkable acceleration($_state, $_p, $_t, $albedo_model)
 end
@@ -154,15 +208,17 @@ end
 # ---------------------
 # Third body models
 # ---------------------
-const _moon_model = ThirdBodyModel(; body=MoonBody(), eop_data=_eop_data)
-
 SUITE["third_body"]["Sun"] = @benchmarkable acceleration($_state, $_p, $_t, $_sun_model)
 SUITE["third_body"]["Moon"] = @benchmarkable acceleration($_state, $_p, $_t, $_moon_model)
 
 # ---------------------
 # Relativity model
 # ---------------------
-const _relativity_model = RelativityModel(_eop_data)
+const _relativity_model = RelativityModel(;
+    central_body=_earth_body_model,
+    sun_body=_sun_model,
+    J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+)
 
 SUITE["relativity"]["Full"] = @benchmarkable acceleration(
     $_state, $_p, $_t, $_relativity_model
@@ -171,7 +227,13 @@ SUITE["relativity"]["Schwarzschild only"] = @benchmarkable acceleration(
     $_state,
     $_p,
     $_t,
-    $(RelativityModel(_eop_data; lense_thirring_effect=false, de_Sitter_effect=false)),
+    $(RelativityModel(;
+        central_body=_earth_body_model,
+        sun_body=_sun_model,
+        schwarzschild_effect=true,
+        lense_thirring_effect=false,
+        de_Sitter_effect=false,
+    )),
 )
 
 # ---------------------
@@ -219,18 +281,21 @@ SUITE["low_thrust"]["Piecewise (RTN, 3 arcs)"] = @benchmarkable acceleration(
 # Dynamics builder
 # ---------------------
 const _grav_model_36 = GravityHarmonicsAstroModel(;
-    gravity_model=_grav_coeffs, eop_data=_eop_data, order=36, degree=36
+    gravity_model=_grav_coeffs,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
+    order=36,
+    degree=36,
+    frames=_frames,
 )
 const _drag_model = DragAstroModel(;
-    satellite_drag_model=_satellite_drag_model,
-    atmosphere_model=JB2008(),
-    eop_data=_eop_data,
+    satellite_drag_model=_satellite_drag_model, atmosphere_model=JB2008(), frames=_frames
 )
 const _srp_model = SRPAstroModel(;
     satellite_srp_model=_satellite_srp_model,
     sun_data=_sun_model,
-    eop_data=_eop_data,
     shadow_model=Conical(),
+    R_Occulting=AstroForceModels.R_EARTH,
 )
 
 const _dynamics_keplerian = CentralBodyDynamicsModel(_keplerian_model)

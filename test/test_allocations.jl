@@ -20,7 +20,7 @@
     drag_model = DragAstroModel(;
         satellite_drag_model=satellite_drag_model,
         atmosphere_model=ExpAtmo(),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     @check_allocs dg_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -95,7 +95,9 @@ end
         central_body=earth_body_model,
         sun_body=sun_model,
         J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
-        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false,
+        schwarzschild_effect=false,
+        lense_thirring_effect=true,
+        de_Sitter_effect=false,
     )
 
     @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) = acceleration(
@@ -107,7 +109,9 @@ end
     satellite_de_sitter_model = RelativityModel(;
         central_body=earth_body_model,
         sun_body=sun_model,
-        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true,
+        schwarzschild_effect=false,
+        lense_thirring_effect=false,
+        de_Sitter_effect=true,
     )
 
     @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) = acceleration(
@@ -118,7 +122,9 @@ end
     satellite_schwarzschild_model = RelativityModel(;
         central_body=earth_body_model,
         sun_body=sun_model,
-        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false,
+        schwarzschild_effect=true,
+        lense_thirring_effect=false,
+        de_Sitter_effect=false,
     )
 
     @check_allocs schwartz_accel(state, p, t, satellite_schwarzschild_model) = acceleration(
@@ -148,7 +154,9 @@ end
     sun_model = test_sun_model(; frames=p.frames)
 
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
+        satellite_srp_model=satellite_srp_model,
+        sun_data=sun_model,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
     @check_allocs sr_accel(state, p, t, srp_model) = acceleration(state, p, t, srp_model)
 
@@ -256,7 +264,7 @@ end
     plasma_drag_model = PlasmaDragAstroModel(;
         satellite_plasma_drag_model=satellite_plasma_drag_model,
         ionosphere_model=ChapmanIonosphere(),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     @check_allocs pd_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -265,7 +273,7 @@ end
     plasma_drag_const = PlasmaDragAstroModel(;
         satellite_plasma_drag_model=satellite_plasma_drag_model,
         ionosphere_model=ConstantIonosphere(; rho_i=1e-17),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     @check_allocs pd_const_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -288,7 +296,9 @@ end
     ] #km, km/s
 
     tides_model = SolidBodyTidesModel(
-        tide_raising_bodies=(test_sun_model(; frames=p.frames), test_moon_model(; frames=p.frames)),
+        tide_raising_bodies=(
+            test_sun_model(; frames=p.frames), test_moon_model(; frames=p.frames)
+        ),
         R_e=AstroForceModels.R_EARTH,
     )
 
@@ -315,7 +325,9 @@ end
 
     thermal_sat = FixedThermalEmission(0.01)
     thermal_model = ThermalEmissionAstroModel(;
-        satellite_thermal_model=thermal_sat, sun_data=sun_model, R_Occulting=AstroForceModels.R_EARTH
+        satellite_thermal_model=thermal_sat,
+        sun_data=sun_model,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
 
     @check_allocs thm_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -340,7 +352,7 @@ end
     mag_model = MagneticFieldAstroModel(;
         spacecraft_charge_model=FixedChargeMassRatio(1e-3),
         geomagnetic_field_model=DipoleMagneticField(),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     @check_allocs mag_accel(state, p, t, model) = acceleration(state, p, t, model)
@@ -375,7 +387,9 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    @check_allocs albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
+    @check_allocs albedo_alloc_accel(state, p, t, albedo_model) = acceleration(
+        state, p, t, albedo_model
+    )
 
     @test albedo_alloc_accel(state, p, t, albedo_model) isa SVector
 end
@@ -403,14 +417,16 @@ end
 
     satellite_srp_model = CannonballFixedSRP(0.2)
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_third_body, R_Occulting=AstroForceModels.R_EARTH
+        satellite_srp_model=satellite_srp_model,
+        sun_data=sun_third_body,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)
     drag_model = DragAstroModel(;
         satellite_drag_model=satellite_drag_model,
         atmosphere_model=JB2008(),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     state = [

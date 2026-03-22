@@ -6,7 +6,11 @@
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF, order=36, degree=36
+        gravity_model=grav_coeffs,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
+        order=36,
+        degree=36,
     )
 
     state = [
@@ -37,7 +41,11 @@ end
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF, order=36, degree=36
+        gravity_model=grav_coeffs,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
+        order=36,
+        degree=36,
     )
 
     state = [
@@ -64,7 +72,11 @@ end
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, body_fixed_frame=:ITRF, propagation_frame=:ICRF, order=36, degree=36
+        gravity_model=grav_coeffs,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
+        order=36,
+        degree=36,
     )
 
     state = [

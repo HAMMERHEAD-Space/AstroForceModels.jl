@@ -56,7 +56,7 @@
         model_high = PlasmaDragAstroModel(;
             satellite_plasma_drag_model=sat_model,
             ionosphere_model=iono_high,
-            eop_data=eop_data,
+            frames=p.frames,
         )
         accel_high = acceleration(state, p, 0.0, model_high)
         @test norm(accel_high) > norm(accel)
