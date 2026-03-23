@@ -6,66 +6,7 @@
 #   Third Body Model and Ephemeris Functions
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-export AbstractEphemerisType, FrameEphemeris
-export vallado_sun_state, vallado_moon_state
-
-abstract type AbstractEphemerisType end
-
-# ==========================================================================================
-# Vallado analytical ephemeris helpers
-# ==========================================================================================
-
-"""
-    vallado_sun_state(t) -> SVector{6}
-
-Return the Sun's state (position [km] and velocity [km/s]) relative to Earth in the
-J2000/ICRF frame at time `t` seconds since J2000 TDB, using Vallado's analytical
-ephemeris.
-
-This function is designed to be passed directly to `add_point_dynamical!`:
-
-```julia
-frames = FrameSystem{2, Float64}()
-add_axes_icrf!(frames)
-add_point!(frames, :Earth, 399, :ICRF)
-add_point_dynamical!(frames, :Sun, 10, 399, :ICRF, vallado_sun_state)
-```
-"""
-function vallado_sun_state(t)
-    jd = JD_J2000 + t / 86400.0
-    R = r_eci_to_eci(MOD(), J2000(), jd)
-    pos = R * sun_position_mod(jd) ./ 1e3   # m → km
-    vel = R * sun_velocity_mod(jd) ./ 1e3    # m/s → km/s
-    return vcat(pos, vel)
-end
-
-"""
-    vallado_moon_state(t) -> SVector{6}
-
-Return the Moon's state (position [km] and velocity [km/s]) relative to Earth in the
-J2000/ICRF frame at time `t` seconds since J2000 TDB, using Vallado's analytical
-ephemeris.
-
-Velocity is computed via finite differencing (Vallado does not provide an analytical
-Moon velocity).
-
-This function is designed to be passed directly to `add_point_dynamical!`:
-
-```julia
-add_point_dynamical!(frames, :Moon, 301, 399, :ICRF, vallado_moon_state)
-```
-"""
-function vallado_moon_state(t)
-    jd = JD_J2000 + t / 86400.0
-    R = r_eci_to_eci(MOD(), J2000(), jd)
-    pos = R * moon_position_mod(jd) ./ 1e3   # m → km
-    # Finite-difference velocity (Vallado has no analytical Moon velocity)
-    dt = 1.0
-    jd2 = jd + dt / 86400.0
-    pos2 = r_eci_to_eci(MOD(), J2000(), jd2) * moon_position_mod(jd2) ./ 1e3
-    vel = (pos2 - pos) / dt
-    return vcat(pos, vel)
-end
+export FrameEphemeris
 
 """
     FrameEphemeris <: AbstractEphemerisType
@@ -130,7 +71,7 @@ moon_model = ThirdBodyModel(
 )
 ```
 """
-struct ThirdBodyModel{BT<:CelestialBody,EpT<:AbstractEphemerisType,CT3,CT6} <:
+struct ThirdBodyModel{BT<:AbstractCelestialBody,EpT<:AbstractEphemerisType,CT3,CT6} <:
        AbstractNonPotentialBasedForce
     body::BT
     ephem_type::EpT
@@ -140,7 +81,7 @@ end
 
 function ThirdBodyModel(;
     body::BT, ephem_type::EpT, frames=nothing
-) where {BT<:CelestialBody,EpT<:AbstractEphemerisType}
+) where {BT<:AbstractCelestialBody,EpT<:AbstractEphemerisType}
     ct3 = nothing
     ct6 = nothing
     if !isnothing(frames) &&

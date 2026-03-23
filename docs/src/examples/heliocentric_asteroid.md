@@ -9,7 +9,6 @@ package and a JPL DE440 SPK kernel (`de440.bsp`). The SPK file can be downloaded
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxCelestialBodies
 using ComponentArrays
 using FrameTransformations
 using Tempo

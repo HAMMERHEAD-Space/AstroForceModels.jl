@@ -1,7 +1,7 @@
-# Test helper: creates a FrameSystem with analytical Vallado ephemeris for Sun/Moon
+# Test helper: creates a FrameSystem with Vallado ephemeris for Sun/Moon
 # and wraps parameters in FrameAwareParams for use in all tests.
 
-using SatelliteToolboxCelestialBodies
+using CelestialBodies
 using FrameTransformations
 using Tempo
 using ComponentArrays

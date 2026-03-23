@@ -11,6 +11,7 @@ the `KeplerianGravityAstroModel` with a `GravityHarmonicsAstroModel`.
 
 ```julia
 using AstroForceModels
+using CelestialBodies
 using ComponentArrays
 using FrameTransformations
 using Tempo
@@ -47,14 +48,9 @@ add_small_body_rotating_frame!(
 # Eros as root point, Sun as dynamical child
 add_point!(frames, :Eros, 2000433, :ICRF)
 
-# Approximate Sun position relative to Eros via Vallado Earth-Sun vector.
+# Sun position via Vallado analytical ephemeris
 # In production, use SPK kernels: add_point_ephemeris!(frames, eph, :Sun, 10, 2000433)
-function sun_from_eros_state(t)
-    # Scale Vallado Earth-Sun to approximate Eros-Sun distance (~1.46 AU)
-    earth_sun = vallado_sun_state(t)
-    return vcat(earth_sun[1:3] .* 1.46, earth_sun[4:6] .* 1.46)
-end
-add_point_dynamical!(frames, :Sun, 10, 2000433, :ICRF, sun_from_eros_state)
+add_body_point!(frames, SunBody(), Vallado())
 
 # ── Parameters ───────────────────────────────────────────────────────────────
 epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)

@@ -173,7 +173,6 @@ AstroForceModels is designed to be built off packages in the SatelliteToolbox.jl
 using SatelliteToolboxBase               # Base types and constants
 using SatelliteToolboxGravityModels      # Gravity field models
 using SatelliteToolboxAtmosphericModels  # Atmospheric density models
-using SatelliteToolboxCelestialBodies    # Celestial body ephemeris
 using SatelliteToolboxGeomagneticField   # Geomagnetic field models (IGRF, dipole)
 using SatelliteToolboxTransformations    # Coordinate transformations
 ```

@@ -10,6 +10,7 @@ replace the `KeplerianGravityAstroModel` with a `GravityHarmonicsAstroModel`.
 
 ```julia
 using AstroForceModels
+using CelestialBodies
 using ComponentArrays
 using FrameTransformations
 using Tempo
@@ -46,14 +47,9 @@ add_small_body_rotating_frame!(
     mars_period,
 )
 
-# Approximate Sun position relative to Mars via Vallado Earth-Sun vector.
+# Sun position via Vallado analytical ephemeris
 # In production, use SPK kernels: add_point_ephemeris!(frames, eph, :Sun, 10, 499)
-function sun_from_mars_state(t)
-    # Negate and scale Vallado Earth-Sun to approximate Mars-Sun
-    earth_sun = vallado_sun_state(t)
-    return vcat(-earth_sun[1:3] .* 1.524, -earth_sun[4:6] .* 1.524)
-end
-add_point_dynamical!(frames, :Sun, 10, 499, :ICRF, sun_from_mars_state)
+add_body_point!(frames, SunBody(), Vallado())
 
 # ── Parameters ───────────────────────────────────────────────────────────────
 epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)

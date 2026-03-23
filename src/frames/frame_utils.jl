@@ -198,7 +198,7 @@ function add_small_body_rotating_frame!(
 end
 
 """
-    setup_inertial_frames(epoch; include_sun=true, include_moon=true, order=2, numtype=Float64)
+    setup_inertial_frames(epoch; ephemeris=Vallado(), include_sun=true, include_moon=true, order=2, numtype=Float64)
 
 One-call setup for Earth-centric inertial propagation. Returns a `FrameAwareParams`
 ready to pass directly to `build_dynamics_model` or an ODE integrator.
@@ -206,15 +206,16 @@ ready to pass directly to `build_dynamics_model` or an ODE integrator.
 Builds a `FrameSystem` with:
 - `:ICRF` — root inertial axes
 - `:Earth` (NAIF 399) — root point at the origin of `:ICRF`
-- `:Sun` (NAIF 10) — Vallado analytical ephemeris, if `include_sun=true`
-- `:Moon` (NAIF 301) — Vallado analytical ephemeris, if `include_moon=true`
+- Body points registered via the selected ephemeris backend
 
-The Sun and Moon points are required whenever a `ThirdBodyModel` or `SRPAstroModel`
-is included in the dynamics. If you do not need them, set the corresponding flag to
-`false` to keep the frame system minimal.
+# Ephemeris Backends
+- `Vallado()` (default): Sun + Moon only, moderate accuracy. Requires `SatelliteToolboxCelestialBodies`.
+- `Meeus()`: Sun + all 8 planets, ~1000 km accuracy.
+- `Kepler()`: All bodies with J2000 Keplerian elements, low accuracy.
 
 # Arguments
 - `epoch::Epoch`: Propagation start epoch.
+- `ephemeris::AbstractEphemerisType=Vallado()`: Ephemeris backend for body positions.
 - `include_sun::Bool=true`: Add the Sun as a dynamical point.
 - `include_moon::Bool=true`: Add the Moon as a dynamical point.
 - `order::Int=2`: Derivative order of the frame system (2 = position + velocity).
@@ -229,26 +230,22 @@ using AstroForceModels, Tempo
 
 epoch = Epoch("2024-01-05T12:00:00 TDB")
 
-# Full setup: ICRF + Earth + Sun + Moon
+# Default Vallado: Sun + Moon
 p = setup_inertial_frames(epoch)
 
-# Minimal: ICRF + Earth only (no third-body / SRP)
+# Meeus: Sun + all planets
+p = setup_inertial_frames(epoch; ephemeris=Meeus())
+
+# Kepler: all bodies from J2000 elements
+p = setup_inertial_frames(epoch; ephemeris=Kepler())
+
+# Minimal: ICRF + Earth only
 p = setup_inertial_frames(epoch; include_sun=false, include_moon=false)
-
-# Use directly with build_dynamics_model
-grav    = KeplerianGravityAstroModel(; μ = 3.986004415e5)
-sun     = ThirdBodyModel(; body=SunBody(),  ephem_type=FrameEphemeris(; center_point=399, target_point=10,  axes=:ICRF), frames=p.frames)
-moon    = ThirdBodyModel(; body=MoonBody(), ephem_type=FrameEphemeris(; center_point=399, target_point=301, axes=:ICRF), frames=p.frames)
-dynamics = CentralBodyDynamicsModel(grav, (sun, moon))
-
-function satellite_ode!(du, u, p, t)
-    du[1:3] = u[4:6]
-    du[4:6] = build_dynamics_model(u, p, t, dynamics)
-end
 ```
 """
 function setup_inertial_frames(
     epoch::Epoch;
+    ephemeris::CelestialBodies.AbstractEphemerisType=Vallado(),
     include_sun::Bool=true,
     include_moon::Bool=true,
     order::Int=2,
@@ -256,10 +253,30 @@ function setup_inertial_frames(
 )
     frames = FrameSystem{order,numtype}()
     add_axes_icrf!(frames)
-    add_point!(frames, :Earth, 399, :ICRF)
 
-    include_sun && add_point_dynamical!(frames, :Sun, 10, 399, :ICRF, vallado_sun_state)
-    include_moon && add_point_dynamical!(frames, :Moon, 301, 399, :ICRF, vallado_moon_state)
+    if ephemeris isa Vallado
+        # Earth-centric: Earth as root, Sun + Moon relative to Earth
+        add_point!(frames, :Earth, 399, :ICRF)
+        include_sun && add_body_point!(frames, SunBody(), ephemeris; parent_id=399, axes=:ICRF)
+        include_moon && add_body_point!(frames, MoonBody(), ephemeris; parent_id=399, axes=:ICRF)
+    elseif ephemeris isa Meeus
+        # Heliocentric: Sun as root, planets relative to Sun, Moon relative to Earth
+        add_point!(frames, :Sun, 10, :ICRF)
+        add_body_point!(frames, EarthBody(), ephemeris; parent_id=10, axes=:ICRF)
+        for body_fn in [MercuryBody, VenusBody, MarsBody, JupiterBody, SaturnBody, UranusBody, NeptuneBody]
+            add_body_point!(frames, body_fn(), ephemeris; parent_id=10, axes=:ICRF)
+        end
+        include_moon && add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
+    elseif ephemeris isa Kepler
+        # Heliocentric: Sun as root, all bodies from J2000 Keplerian elements
+        add_point!(frames, :Sun, 10, :ICRF)
+        for body_fn in [MercuryKeplerianBody, VenusKeplerianBody, EarthKeplerianBody, MarsKeplerianBody,
+                        JupiterKeplerianBody, SaturnKeplerianBody, UranusKeplerianBody, NeptuneKeplerianBody,
+                        PlutoKeplerianBody]
+            add_body_point!(frames, body_fn(), ephemeris; parent_id=10, axes=:ICRF)
+        end
+        include_moon && add_body_point!(frames, MoonKeplerianBody(), ephemeris; parent_id=399, axes=:ICRF)
+    end
 
     return FrameAwareParams(frames, epoch, :ICRF)
 end
@@ -356,8 +373,8 @@ function setup_earth_propagation_frames(
 
     add_point!(frames, :Earth, 399, :ICRF)
 
-    include_sun && add_point_dynamical!(frames, :Sun, 10, 399, :ICRF, vallado_sun_state)
-    include_moon && add_point_dynamical!(frames, :Moon, 301, 399, :ICRF, vallado_moon_state)
+    include_sun && add_body_point!(frames, SunBody(), Vallado(); parent_id=399, axes=:ICRF)
+    include_moon && add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
 
     return FrameAwareParams(frames, epoch, :ICRF)
 end
