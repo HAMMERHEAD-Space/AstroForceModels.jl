@@ -56,16 +56,15 @@ Base.length(p::FrameAwareParams) = length(p.params)
 Base.size(p::FrameAwareParams) = size(p.params)
 Base.iterate(p::FrameAwareParams, args...) = iterate(p.params, args...)
 
-# Property access: struct fields and derived JD first, then delegate to params
-function Base.getproperty(p::FrameAwareParams, s::Symbol)
-    if s in (:params, :frames, :epoch, :propagation_frame)
-        return getfield(p, s)
-    elseif s === :JD
-        # Derive JD from epoch — single source of truth, never stale
-        return 2451545.0 + j2000s(getfield(p, :epoch)) / 86400.0
-    else
-        return getproperty(getfield(p, :params), s)
-    end
+# Property access: struct fields and derived JD first, then delegate to params.
+# Uses explicit === checks (not `in`) to avoid tuple allocation and enable constant folding.
+@inline function Base.getproperty(p::FrameAwareParams, s::Symbol)
+    s === :params && return getfield(p, :params)
+    s === :frames && return getfield(p, :frames)
+    s === :epoch && return getfield(p, :epoch)
+    s === :propagation_frame && return getfield(p, :propagation_frame)
+    s === :JD && return 2451545.0 + j2000s(getfield(p, :epoch)) / 86400.0
+    return getproperty(getfield(p, :params), s)
 end
 
 function Base.setproperty!(p::FrameAwareParams, s::Symbol, v)

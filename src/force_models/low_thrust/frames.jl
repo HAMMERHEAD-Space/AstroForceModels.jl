@@ -176,19 +176,12 @@ When the propagation frame is inertial (e.g., `:ICRF`), this is an identity oper
 When propagating in a non-inertial frame (e.g., a rotating body-fixed frame), the
 FrameSystem is used to rotate the inertial thrust vector into the propagation frame.
 """
+# InertialFrame: identity transform. When propagating in a non-inertial frame,
+# the user must rotate the total acceleration externally.
 @inline function transform_thrust_to_state_frame(
     a_inertial::SVector{3}, u::AbstractVector, p::FrameAwareParams, t, ::InertialFrame
 )
-    prop_frame = p.propagation_frame
-    if prop_frame === :ICRF || prop_frame === :GCRF || prop_frame === :EME2000
-        # Common case: propagation frame IS inertial — no rotation needed
-        return a_inertial
-    else
-        # Propagating in a non-inertial frame — rotate from ICRF to propagation frame
-        t_ft = ft_time(p, t)
-        R = rotation3(p.frames, :ICRF, prop_frame, t_ft)
-        return R.m[1] * a_inertial
-    end
+    return a_inertial
 end
 
 # ── 3-arg convenience for impulsive maneuvers (no p/t needed) ────────────────
