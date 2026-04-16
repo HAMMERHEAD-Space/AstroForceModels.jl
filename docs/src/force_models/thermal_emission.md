@@ -69,7 +69,8 @@ The main force model struct:
 - **`sun_data`**: `ThirdBodyModel` for computing the Sun's position (uses `FrameEphemeris`)
 - **`shadow_model`**: Shadow model type (default: `Conical()`)
 - **`R_Sun`**: Radius of the Sun [km] (default: 695,700 km)
-- **`R_Occulting`**: Radius of the occulting body [km] (required, no default -- e.g., use `R_EARTH` for Earth-orbiting missions)
+- **`R_Occulting`**: Radius of the central (propagation-body) occulter [km] — required, no default.
+- **`additional_occulters`**: Tuple of [`OccultingBody`](@ref) entries for bodies other than the central body that can eclipse the Sun (e.g. the Moon for cislunar orbits). Shadow factors from each body are multiplied together. Default: `()` (zero overhead when unused). See the [Solar Radiation Pressure](solar_radiation_pressure.md#Multi-Body-Shadowing) documentation for details.
 - **`Ψ`**: Solar flux constant at 1 AU [N/m²]
 - **`AU`**: Astronomical Unit [km]
 

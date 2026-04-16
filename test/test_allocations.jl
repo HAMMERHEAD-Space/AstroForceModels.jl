@@ -161,6 +161,20 @@ end
     @check_allocs sr_accel(state, p, t, srp_model) = acceleration(state, p, t, srp_model)
 
     @test sr_accel(state, p, t, srp_model) isa SVector
+
+    # Multi-occulter path must also be allocation-free. The tuple-recursive
+    # `_resolve_occulters` / `_shadow_prod` helpers should specialize away.
+    moon_tb = test_moon_model(; frames=p.frames)
+    moon_occulter = OccultingBody(moon_tb, AstroForceModels.R_MOON)
+
+    srp_multi = SRPAstroModel(;
+        satellite_srp_model=satellite_srp_model,
+        sun_data=sun_model,
+        R_Occulting=AstroForceModels.R_EARTH,
+        additional_occulters=(moon_occulter,),
+    )
+    @check_allocs sr_multi_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test sr_multi_accel(state, p, t, srp_multi) isa SVector
 end
 
 @testset "Third Body Allocations" begin
@@ -332,6 +346,17 @@ end
 
     @check_allocs thm_accel(state, p, t, model) = acceleration(state, p, t, model)
     @test thm_accel(state, p, t, thermal_model) isa SVector
+
+    moon_tb = test_moon_model(; frames=p.frames)
+    moon_occulter = OccultingBody(moon_tb, AstroForceModels.R_MOON)
+    thermal_multi = ThermalEmissionAstroModel(;
+        satellite_thermal_model=thermal_sat,
+        sun_data=sun_model,
+        R_Occulting=AstroForceModels.R_EARTH,
+        additional_occulters=(moon_occulter,),
+    )
+    @check_allocs thm_multi_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test thm_multi_accel(state, p, t, thermal_multi) isa SVector
 end
 
 @testset "Magnetic Field Dipole Allocations" begin

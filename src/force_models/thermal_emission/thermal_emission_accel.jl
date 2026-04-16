@@ -35,7 +35,11 @@ Spacecraft thermal emission (thermal re-radiation) force model.
 - `sun_data::ThirdBodyModel`: Model to compute the Sun's position via FrameEphemeris.
 - `shadow_model::ShadowModelType`: Shadow model type — defaults to `Conical()`.
 - `R_Sun::Number`: Radius of the Sun [km].
-- `R_Occulting::Number`: Radius of the occulting body [km]. No default — must be specified.
+- `R_Occulting::Number`: Radius of the central (propagation-body) occulter [km].
+  No default — must be specified.
+- `additional_occulters::Tuple`: Optional tuple of [`OccultingBody`](@ref) providing
+  shadowing from bodies other than the central body. Default: `()`. See the
+  `SRPAstroModel` documentation for details on multi-body shadowing.
 - `Ψ::Number`: Solar flux constant at 1 AU [N/m²].
 - `AU::Number`: Astronomical Unit [km].
 """
@@ -45,6 +49,7 @@ Base.@kwdef struct ThermalEmissionAstroModel{
     SMT<:ShadowModelType,
     RST<:Number,
     ROT<:Number,
+    AOT<:Tuple,
     PT<:Number,
     AUT<:Number,
 } <: AbstractNonPotentialBasedForce
@@ -54,6 +59,7 @@ Base.@kwdef struct ThermalEmissionAstroModel{
 
     R_Sun::RST = R_SUN
     R_Occulting::ROT
+    additional_occulters::AOT = ()
     Ψ::PT = SOLAR_FLUX
     AU::AUT = ASTRONOMICAL_UNIT / 1E3
 end
@@ -69,13 +75,17 @@ Compute the acceleration from spacecraft thermal emission.
 @inline function acceleration(
     u::AbstractVector, p::FrameAwareParams, t::Number, model::ThermalEmissionAstroModel
 )
+    t_ft = ft_time(p, t)
+
     sun_pos = get_position(
         model.sun_data.ephem_type,
         model.sun_data.body,
         p.frames,
-        ft_time(p, t),
+        t_ft,
         model.sun_data.compiled_vector3,
     )
+
+    extra_occulters = _resolve_occulters(model.additional_occulters, p.frames, t_ft)
 
     C_thm = thermal_emission_coefficient(u, p, t, model.satellite_thermal_model)
 
@@ -86,13 +96,15 @@ Compute the acceleration from spacecraft thermal emission.
         ShadowModel=model.shadow_model,
         R_Sun=model.R_Sun,
         R_Occulting=model.R_Occulting,
+        additional_occulters=extra_occulters,
         Ψ=model.Ψ,
         AU=model.AU,
     )
 end
 
 """
-    thermal_emission_accel(u, sun_pos, C_thm; ShadowModel, R_Sun, R_Occulting, Ψ, AU)
+    thermal_emission_accel(u, sun_pos, C_thm; ShadowModel, R_Sun, R_Occulting,
+                           additional_occulters, Ψ, AU)
 
 Compute the acceleration from spacecraft thermal emission (thermal re-radiation).
 
@@ -103,10 +115,13 @@ Compute the acceleration from spacecraft thermal emission (thermal re-radiation)
 
 # Keyword Arguments
 - `ShadowModel::ShadowModelType`: Shadow model. Default: `Conical()`.
-- `R_Sun::Number`: Radius of the Sun [km].
-- `R_Occulting::Number`: Radius of the occulting body [km].
-- `Ψ::Number`: Solar radiation pressure at 1 AU [N/m²].
-- `AU::Number`: Astronomical Unit [km].
+- `R_Sun::Number`: Radius of the Sun [km]. Default: `R_SUN`.
+- `R_Occulting::Number`: Radius of the central occulting body [km]. **Required — no default**
+  (prevents silent misuse for non-Earth missions).
+- `additional_occulters::Tuple`: Pre-resolved tuple of `(body_pos, radius)` pairs for
+  additional shadowing bodies. Default: `()`.
+- `Ψ::Number`: Solar radiation pressure at 1 AU [N/m²]. Default: `SOLAR_FLUX`.
+- `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT / 1E3`.
 
 # Returns
 - `SVector{3}`: Inertial acceleration from thermal emission [km/s²].
@@ -117,13 +132,17 @@ Compute the acceleration from spacecraft thermal emission (thermal re-radiation)
     C_thm::Number;
     ShadowModel::ShadowModelType=Conical(),
     R_Sun::Number=R_SUN,
-    R_Occulting::Number=R_EARTH,
+    R_Occulting::Number,
+    additional_occulters::Tuple=(),
     Ψ::Number=SOLAR_FLUX,
     AU::Number=ASTRONOMICAL_UNIT / 1E3,
 ) where {UT}
     sat_pos = SVector{3,UT}(u[1], u[2], u[3])
 
-    F = shadow_model(sat_pos, sun_pos, ShadowModel; R_Sun=R_Sun, R_Occulting=R_Occulting)
+    F_primary = shadow_model(
+        sat_pos, sun_pos, ShadowModel; R_Sun=R_Sun, R_Occulting=R_Occulting
+    )
+    F = F_primary * _shadow_prod(sat_pos, sun_pos, ShadowModel, R_Sun, additional_occulters)
 
     R_spacecraft_Sun = sat_pos - sun_pos
     R_sc_sun = norm(R_spacecraft_Sun)

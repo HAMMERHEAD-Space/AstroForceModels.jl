@@ -54,12 +54,13 @@
         r_moon = get_position(moon_model.ephem_type, moon_model.body, p.frames, t_ft)
 
         # Isolate Moon contribution by passing only the Moon
+        Re = AstroForceModels.R_EARTH
         accel_moon = solid_body_tides_accel(
-            state, ((r_moon, AstroForceModels.μ_MOON),); include_degree_3=false
+            state, ((r_moon, AstroForceModels.μ_MOON),); R_e=Re, include_degree_3=false
         )
         # Isolate Sun contribution by passing only the Sun
         accel_sun = solid_body_tides_accel(
-            state, ((r_sun, AstroForceModels.μ_SUN),); include_degree_3=false
+            state, ((r_sun, AstroForceModels.μ_SUN),); R_e=Re, include_degree_3=false
         )
 
         ratio = norm(accel_moon) / norm(accel_sun)
@@ -68,12 +69,16 @@
 
         # Acceleration scales linearly with k2
         bodies = ((r_sun, AstroForceModels.μ_SUN), (r_moon, AstroForceModels.μ_MOON))
-        accel_k2_1 = solid_body_tides_accel(state, bodies; k2=0.302, include_degree_3=false)
-        accel_k2_2 = solid_body_tides_accel(state, bodies; k2=0.604, include_degree_3=false)
+        accel_k2_1 = solid_body_tides_accel(
+            state, bodies; R_e=Re, k2=0.302, include_degree_3=false
+        )
+        accel_k2_2 = solid_body_tides_accel(
+            state, bodies; R_e=Re, k2=0.604, include_degree_3=false
+        )
         @test accel_k2_2 ≈ 2.0 * accel_k2_1 rtol = 1e-14
 
         # Zero Love number should give zero acceleration
-        accel_zero = solid_body_tides_accel(state, bodies; k2=0.0, k3=0.0)
+        accel_zero = solid_body_tides_accel(state, bodies; R_e=Re, k2=0.0, k3=0.0)
         @test norm(accel_zero) ≈ 0.0 atol = 1e-30
     end
 
@@ -93,7 +98,7 @@
         expected_ax = -3.0 * k2 * μ_body * Re^5 / (r_body_val^3 * r_sat_val^4)
 
         accel = solid_body_tides_accel(
-            u_simple, ((r_body_vec, μ_body),); k2=k2, include_degree_3=false
+            u_simple, ((r_body_vec, μ_body),); R_e=Re, k2=k2, include_degree_3=false
         )
 
         @test accel[1] ≈ expected_ax rtol = 1e-10
@@ -118,7 +123,7 @@
         expected_ax = -4.0 * k3 * μ_body * Re^7 / (r_body_val^4 * r_sat_val^5)
 
         accel = solid_body_tides_accel(
-            u_simple, ((r_body_vec, μ_body),); k2=0.0, k3=k3, include_degree_3=true
+            u_simple, ((r_body_vec, μ_body),); R_e=Re, k2=0.0, k3=k3, include_degree_3=true
         )
 
         @test accel[1] ≈ expected_ax rtol = 1e-10

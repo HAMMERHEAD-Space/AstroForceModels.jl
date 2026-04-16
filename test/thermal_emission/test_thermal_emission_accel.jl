@@ -40,6 +40,43 @@
         @test thermal_accel ≈ srp_accel_val rtol = 1e-14
     end
 
+    @testset "additional_occulters: empty tuple equals single-body result" begin
+        thermal_sat = FixedThermalEmission(0.03)
+        m1 = ThermalEmissionAstroModel(;
+            satellite_thermal_model=thermal_sat,
+            sun_data=sun_model,
+            shadow_model=NoShadow(),
+            R_Occulting=AstroForceModels.R_EARTH,
+        )
+        m2 = ThermalEmissionAstroModel(;
+            satellite_thermal_model=thermal_sat,
+            sun_data=sun_model,
+            shadow_model=NoShadow(),
+            R_Occulting=AstroForceModels.R_EARTH,
+            additional_occulters=(),
+        )
+        @test acceleration(state, p, 0.0, m1) ≈ acceleration(state, p, 0.0, m2) rtol = 1e-14
+    end
+
+    @testset "additional_occulters: body larger than Sun's disk zeros the acceleration" begin
+        # A body at the Sun's position with radius ≫ R_SUN but ≪ spacecraft-Sun
+        # distance must fully eclipse the Sun via the Conical model. See the
+        # corresponding SRP test for the geometric rationale.
+        thermal_sat = FixedThermalEmission(0.03)
+        sun_tb = test_sun_model(; frames=p.frames)
+        giant = OccultingBody(sun_tb, 1.0e7)
+
+        model = ThermalEmissionAstroModel(;
+            satellite_thermal_model=thermal_sat,
+            sun_data=sun_model,
+            shadow_model=Conical(),
+            R_Occulting=AstroForceModels.R_EARTH,
+            additional_occulters=(giant,),
+        )
+        a = acceleration(state, p, 0.0, model)
+        @test norm(a) ≈ 0.0 atol = 1e-15
+    end
+
     @testset "Direction is along Sun-spacecraft line" begin
         thermal_sat = FixedThermalEmission(0.05)
 

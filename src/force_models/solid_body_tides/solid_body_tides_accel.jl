@@ -102,10 +102,11 @@ Compute the solid body tides acceleration from tide-raising body data.
 - `bodies::Tuple`: Tuple of `(r_body, μ_body)` pairs [km, km³/s²].
 
 # Keyword Arguments
-- `k2::Number`: Degree-2 Love number.
-- `k3::Number`: Degree-3 Love number.
-- `R_e::Number`: Central body equatorial radius [km].
-- `include_degree_3::Bool`: Include degree-3 contribution.
+- `k2::Number`: Degree-2 Love number. Default: `0.30190`.
+- `k3::Number`: Degree-3 Love number. Default: `0.093`.
+- `R_e::Number`: Central body equatorial radius [km]. **Required — no default**
+  (prevents silent misuse for non-Earth missions).
+- `include_degree_3::Bool`: Include degree-3 contribution. Default: `true`.
 
 # Returns
 - `SVector{3}`: Tidal acceleration [km/s²].
@@ -115,7 +116,7 @@ Compute the solid body tides acceleration from tide-raising body data.
     bodies::Tuple;
     k2::K2T=0.30190,
     k3::K3T=0.093,
-    R_e::RET=R_EARTH,
+    R_e::RET,
     include_degree_3::Bool=true,
 ) where {UT,K2T,K3T,RET}
     r_sat = SVector{3,UT}(u[1], u[2], u[3])
