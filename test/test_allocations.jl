@@ -256,6 +256,15 @@ end
     )
     @check_allocs pw_accel(state, p, t, model) = acceleration(state, p, t, model)
     @test pw_accel(state, p, t, pw_model) isa SVector
+
+    # InertialFrame with a non-inertial propagation frame exercises the rotation3
+    # path; it must still be allocation-free.
+    p_itrf = FrameAwareParams(p.frames, p.epoch, :ITRF)
+    inertial_rotating_model = LowThrustAstroModel(;
+        thrust_model=ConstantCartesianThrust(1e-7, 2e-7, 3e-7), frame=InertialFrame()
+    )
+    @check_allocs inertial_rot_accel(state, p, t, model) = acceleration(state, p, t, model)
+    @test inertial_rot_accel(state, p_itrf, t, inertial_rotating_model) isa SVector
 end
 
 @testset "Plasma Drag Allocations" begin

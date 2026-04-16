@@ -43,8 +43,11 @@ reference frame specified by the parent [`LowThrustAstroModel`](@ref)'s `frame` 
 [`AbstractThrustFrame`](@ref)).
 
 !!! note
-    [`ConstantTangentialThrust`](@ref) is an exception — it always returns the acceleration 
-    in the inertial frame and should be used with [`InertialFrame`](@ref) (the default).
+    [`ConstantTangentialThrust`](@ref) is an exception — it always returns the
+    acceleration directed along the spacecraft velocity *in the propagation frame*.
+    It is identical to `ConstantCartesianThrust(magnitude, 0, 0)` paired with
+    [`VNBFrame`](@ref), and pairing it with the default [`InertialFrame`](@ref) is
+    only correct when the propagation frame coincides with that inertial frame.
 """
 abstract type AbstractThrustModel end
 
@@ -138,10 +141,16 @@ When the magnitude is positive, thrust is aligned with the velocity direction (o
 When negative, thrust opposes the velocity direction (orbit lowering).
 
 !!! note
-    This model always computes the velocity-aligned direction internally and returns the
-    acceleration in the **inertial** frame. It should be used with the default
-    [`InertialFrame`](@ref). For velocity-aligned thrust in a different frame, use
-    `ConstantCartesianThrust(magnitude, 0, 0)` with [`VNBFrame`](@ref).
+    This model reads `u[4:6]` directly, which is the velocity **in the propagation
+    frame**. The returned acceleration is therefore expressed in that same
+    propagation frame — it is *not* an inertial-frame vector.
+
+    It is mathematically equivalent to `ConstantCartesianThrust(magnitude, 0, 0)`
+    paired with [`VNBFrame`](@ref), which is the frame-agnostic idiom. When pairing
+    this model with the default [`InertialFrame`](@ref), the result is only correct
+    if the propagation frame coincides with that inertial frame (the common ICRF
+    propagation case). In a non-inertial propagation frame, use `VNBFrame` instead
+    to make the semantics explicit.
 
 # Type Parameters
 - `MT <: Number`: Type of the acceleration magnitude
@@ -180,7 +189,9 @@ end
 
 Returns the tangential thrust acceleration vector directed along the velocity [km/s²].
 
-The result is always in the inertial frame regardless of the parent model's frame setting.
+The result is expressed in the propagation frame (because `u[4:6]` is the velocity
+in the propagation frame). See the [`ConstantTangentialThrust`](@ref) docstring for
+frame pairing guidance.
 
 # Arguments
 - `u::AbstractVector`: Current state of the simulation.
@@ -189,7 +200,7 @@ The result is always in the inertial frame regardless of the parent model's fram
 - `model::ConstantTangentialThrust`: Constant tangential thrust model.
 
 # Returns
-- `SVector{3}`: Thrust acceleration in the inertial frame [km/s²].
+- `SVector{3}`: Thrust acceleration in the propagation frame [km/s²].
 """
 @inline function thrust_acceleration(
     u::AbstractVector{UT}, p, t::Number, model::ConstantTangentialThrust{MT}

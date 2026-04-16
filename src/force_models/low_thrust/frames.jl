@@ -37,16 +37,36 @@ propagation (state) frame.
 abstract type AbstractThrustFrame end
 
 """
-    InertialFrame <: AbstractThrustFrame
+    InertialFrame{S} <: AbstractThrustFrame
 
 Indicates that the thrust acceleration vector is expressed in the inertial frame
-(e.g., ICRF). When the propagation frame equals the inertial frame, no rotation is
-applied. When propagating in a non-inertial frame (e.g., a rotating body-fixed frame),
-the FrameSystem is used to rotate the thrust vector into the propagation frame.
+named `S` (default `:ICRF`). When the propagation frame equals `S`, no rotation is
+applied. When propagating in a different frame (e.g., a body-fixed rotating frame
+or a different inertial frame), the `FrameSystem` on the `FrameAwareParams` is used
+to rotate the thrust vector into the propagation frame at evaluation time.
+
+The source frame `S` must be registered in `p.frames`.
+
+# Constructors
+```julia
+InertialFrame()            # S = :ICRF (default)
+InertialFrame(:J2000)      # or any other inertial frame registered in p.frames
+```
 
 This is the default frame for [`LowThrustAstroModel`](@ref).
+
+!!! note
+    The 3-argument `transform_thrust_to_state_frame` overload (used by impulsive
+    maneuvers that do not carry a `FrameAwareParams`) is an identity. It is only
+    correct when the propagation frame coincides with `S`. Use the 5-argument
+    `FrameAwareParams` method when propagating in a different frame.
 """
-struct InertialFrame <: AbstractThrustFrame end
+struct InertialFrame{S} <: AbstractThrustFrame end
+
+InertialFrame() = InertialFrame{:ICRF}()
+InertialFrame(name::Symbol) = InertialFrame{name}()
+
+@inline _inertial_frame_name(::InertialFrame{S}) where {S} = S
 
 """
     RTNFrame <: AbstractThrustFrame
@@ -165,23 +185,34 @@ Returns `a_V V̂ + a_N N̂ + a_B B̂` in the propagation frame.
     )
 end
 
-# ── InertialFrame: may need rotation when propagating in non-inertial frame ──
+# ── InertialFrame: rotate from source inertial frame to propagation frame ──
 
 """
-    transform_thrust_to_state_frame(a_inertial::SVector{3}, u, p::FrameAwareParams, t, ::InertialFrame)
+    transform_thrust_to_state_frame(
+        a_inertial::SVector{3}, u, p::FrameAwareParams, t, frame::InertialFrame{S}
+    ) where {S}
 
-Transform a thrust acceleration from the inertial frame to the propagation frame.
+Transform a thrust acceleration from the inertial frame `S` (default `:ICRF`) to
+`p.propagation_frame`.
 
-When the propagation frame is inertial (e.g., `:ICRF`), this is an identity operation.
-When propagating in a non-inertial frame (e.g., a rotating body-fixed frame), the
-FrameSystem is used to rotate the inertial thrust vector into the propagation frame.
+When `S === p.propagation_frame`, this short-circuits to the identity and adds no
+overhead. Otherwise a single `rotation3` lookup against `p.frames` produces the
+DCM `R_{S → p.propagation_frame}` and the result is `R * a_inertial`.
 """
-# InertialFrame: identity transform. When propagating in a non-inertial frame,
-# the user must rotate the total acceleration externally.
 @inline function transform_thrust_to_state_frame(
-    a_inertial::SVector{3}, u::AbstractVector, p::FrameAwareParams, t, ::InertialFrame
-)
-    return a_inertial
+    a_inertial::SVector{3},
+    u::AbstractVector,
+    p::FrameAwareParams,
+    t,
+    frame::InertialFrame{S},
+) where {S}
+    if S === p.propagation_frame
+        return a_inertial
+    else
+        t_ft = ft_time(p, t)
+        R = rotation3(p.frames, S, p.propagation_frame, t_ft)
+        return R.m[1] * a_inertial
+    end
 end
 
 # ── 3-arg convenience for impulsive maneuvers (no p/t needed) ────────────────
@@ -189,15 +220,20 @@ end
 # directly to the state and only the orbital-frame rotation matters.
 
 """
-    transform_thrust_to_state_frame(a_local::SVector{3}, u::AbstractVector, frame::AbstractThrustFrame)
+    transform_thrust_to_state_frame(
+        a_local::SVector{3}, u::AbstractVector, frame::AbstractThrustFrame
+    )
 
 3-argument convenience method for transforming thrust/ΔV vectors when frame-aware
-parameters are not available (e.g., impulsive maneuvers). Assumes propagation is in
-an inertial frame.
+parameters are not available (e.g., impulsive maneuvers applied directly to a state
+vector).
 
-For RTN/VNB this is always correct. For InertialFrame this is an identity (correct
-when propagating in inertial). Use the 5-argument method with `FrameAwareParams`
-when propagating in a non-inertial frame with `InertialFrame` thrust.
+- `RTNFrame` / `VNBFrame`: always correct — the orthonormal basis is constructed
+  from `u = [r; v]` in the propagation frame, so the result is automatically in
+  the propagation frame regardless of which frame that is.
+- `InertialFrame{S}`: identity operation. This is **only** correct when the
+  propagation frame coincides with `S`. Use the 5-argument method with
+  `FrameAwareParams` whenever the propagation frame may differ from `S`.
 """
 @inline function transform_thrust_to_state_frame(
     a_local::SVector{3}, u::AbstractVector, frame::RTNFrame
