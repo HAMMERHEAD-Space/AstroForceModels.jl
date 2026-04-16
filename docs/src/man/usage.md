@@ -104,9 +104,10 @@ moon_model = ThirdBodyModel(
 ## Compiled Transforms (Allocation-Free Hot Path)
 
 When you pass `frames` to a model constructor, the rotation or translation closures are
-extracted from the `FrameSystem` at construction time and stored in type-parameterized
-structs. This bypasses `FunctionWrapper` dispatch and graph lookups on every call,
-giving allocation-free evaluation that passes `@check_allocs`:
+extracted from the `FrameSystem` at construction time via `compile_rotation` /
+`compile_translation` and stored in type-parameterized structs. This bypasses
+`FunctionWrapper` dispatch and graph lookups on every call, giving allocation-free
+evaluation that passes `@check_allocs`:
 
 ```julia
 # Without compiled transforms (allocates on every call via FunctionWrapper)
@@ -121,9 +122,11 @@ grav = GravityHarmonicsAstroModel(;
 )
 ```
 
-The `frames` argument requires that the frame pair is a **direct parent-child** connection
-in the frame graph (path length = 2). All standard frame setups satisfy this (ICRF→ITRF,
-ICRF→IAU\_MARS, ICRF→ErosBodyFixed, etc.).
+The compiled callables handle both direct parent-child pairs and multi-hop paths
+through the frame graph, so any connected pair of points or axes works (e.g.
+`ICRF→ITRF`, `ICRF→IAU_MARS`, `ICRF→ErosBodyFixed`, `SSB→Earth` via `EMB`, etc.).
+Construction is guarded with a `try`/`catch`; if compilation fails for any reason
+the model transparently falls back to runtime `rotation3`/`vector3`/`vector6` lookups.
 
 ## Combining Force Models
 
