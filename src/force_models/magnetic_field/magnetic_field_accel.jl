@@ -104,7 +104,7 @@ function MagneticFieldAstroModel(;
 ) where {CT<:AbstractSpacecraftChargeModel,GT<:GeomagneticFieldType,PT,DPT}
     cr3 = nothing
     if !isnothing(frames) && propagation_frame != body_fixed_frame
-        cr3 = compile_rotation3(frames, propagation_frame, body_fixed_frame)
+        cr3 = compile_rotation(frames, propagation_frame, body_fixed_frame, Val(1))
     end
     return MagneticFieldAstroModel(
         spacecraft_charge_model,

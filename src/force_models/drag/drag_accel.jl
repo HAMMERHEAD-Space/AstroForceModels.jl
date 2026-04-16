@@ -68,7 +68,7 @@ function DragAstroModel(;
 ) where {ST<:AbstractSatelliteDragModel,AT<:AtmosphericModelType,RT,PT}
     cr3 = nothing
     if !isnothing(frames) && propagation_frame != body_fixed_frame
-        cr3 = compile_rotation3(frames, propagation_frame, body_fixed_frame)
+        cr3 = compile_rotation(frames, propagation_frame, body_fixed_frame, Val(1))
     end
     return DragAstroModel(
         satellite_drag_model,

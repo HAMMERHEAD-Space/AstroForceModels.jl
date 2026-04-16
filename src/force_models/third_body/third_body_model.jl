@@ -87,18 +87,25 @@ function ThirdBodyModel(;
     if !isnothing(frames) &&
         isa(ephem_type, FrameEphemeris) &&
         ephem_type.center_point != ephem_type.target_point
-        # Try to compile direct translations for allocation-free evaluation.
-        # Falls back to runtime vector3/vector6 if the path is not a direct
-        # parent-child connection (e.g., SPK kernels with barycenter chains).
+        # Pre-compile zero-overhead translations for allocation-free evaluation.
+        # The new FrameTransformations API handles multi-hop paths internally, but
+        # we still guard with try/catch in case the path cannot be resolved.
         try
-            ct3 = compile_vector3(
-                frames, ephem_type.center_point, ephem_type.target_point, ephem_type.axes
+            ct3 = compile_translation(
+                frames,
+                ephem_type.center_point,
+                ephem_type.target_point,
+                ephem_type.axes,
+                Val(1),
             )
-            ct6 = compile_vector6(
-                frames, ephem_type.center_point, ephem_type.target_point, ephem_type.axes
+            ct6 = compile_translation(
+                frames,
+                ephem_type.center_point,
+                ephem_type.target_point,
+                ephem_type.axes,
+                Val(2),
             )
         catch
-            # Compilation not possible for this point pair — use runtime lookups
             ct3 = nothing
             ct6 = nothing
         end
@@ -124,8 +131,8 @@ Compute the position of a celestial body using the FrameSystem.
     ephem::FrameEphemeris, body::CelestialBody, frames, t_j2000, compiled_vector3=nothing
 )
     if !isnothing(compiled_vector3)
-        tr = compiled_vector3(t_j2000)
-        v = tr[1]
+        # CompiledTranslation{1} returns a flat SVector{3} directly
+        v = compiled_vector3(t_j2000)
         return SVector{3}(v[1], v[2], v[3])
     end
     return vector3(frames, ephem.center_point, ephem.target_point, ephem.axes, t_j2000)
@@ -149,10 +156,9 @@ Compute the position and velocity of a celestial body using the FrameSystem.
     ephem::FrameEphemeris, body::CelestialBody, frames, t_j2000, compiled_vector6=nothing
 )
     if !isnothing(compiled_vector6)
-        tr = compiled_vector6(t_j2000)
-        pos = tr[1]
-        vel = tr[2]
-        return SVector{3}(pos[1], pos[2], pos[3]), SVector{3}(vel[1], vel[2], vel[3])
+        # CompiledTranslation{2} returns a flat SVector{6} = [pos; vel]
+        sv = compiled_vector6(t_j2000)
+        return SVector{3}(sv[1], sv[2], sv[3]), SVector{3}(sv[4], sv[5], sv[6])
     end
     sv = vector6(frames, ephem.center_point, ephem.target_point, ephem.axes, t_j2000)
     return SVector{3}(sv[1], sv[2], sv[3]), SVector{3}(sv[4], sv[5], sv[6])

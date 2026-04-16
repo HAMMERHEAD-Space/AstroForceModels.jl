@@ -84,8 +84,8 @@ function GravityHarmonicsAstroModel(;
     cr6 = nothing
     if !isnothing(frames) && propagation_frame != body_fixed_frame
         try
-            cr3 = compile_rotation3(frames, propagation_frame, body_fixed_frame)
-            cr6 = compile_rotation6(frames, propagation_frame, body_fixed_frame)
+            cr3 = compile_rotation(frames, propagation_frame, body_fixed_frame, Val(1))
+            cr6 = compile_rotation(frames, propagation_frame, body_fixed_frame, Val(2))
         catch
             cr3 = nothing
             cr6 = nothing

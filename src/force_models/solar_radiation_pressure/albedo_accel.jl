@@ -128,7 +128,7 @@ function AlbedoAstroModel(;
 
     cr3 = nothing
     if !isnothing(frames) && body_fixed_frame != propagation_frame
-        cr3 = compile_rotation3(frames, body_fixed_frame, propagation_frame)
+        cr3 = compile_rotation(frames, body_fixed_frame, propagation_frame, Val(1))
     end
 
     return AlbedoAstroModel{

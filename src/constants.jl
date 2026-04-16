@@ -2,10 +2,7 @@
 # are provided by CelestialBodies.jl — do not redefine here.
 
 export SPEED_OF_LIGHT,
-    SOLAR_FLUX,
-    SOLAR_IRRADIANCE,
-    EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS,
-    MASS_O_PLUS
+    SOLAR_FLUX, SOLAR_IRRADIANCE, EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS, MASS_O_PLUS
 
 # Speed of Light [km/s]
 const SPEED_OF_LIGHT::Float64 = 2.99792458E5

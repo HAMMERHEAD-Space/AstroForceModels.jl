@@ -257,25 +257,46 @@ function setup_inertial_frames(
     if ephemeris isa Vallado
         # Earth-centric: Earth as root, Sun + Moon relative to Earth
         add_point!(frames, :Earth, 399, :ICRF)
-        include_sun && add_body_point!(frames, SunBody(), ephemeris; parent_id=399, axes=:ICRF)
-        include_moon && add_body_point!(frames, MoonBody(), ephemeris; parent_id=399, axes=:ICRF)
+        include_sun &&
+            add_body_point!(frames, SunBody(), ephemeris; parent_id=399, axes=:ICRF)
+        include_moon &&
+            add_body_point!(frames, MoonBody(), ephemeris; parent_id=399, axes=:ICRF)
     elseif ephemeris isa Meeus
         # Heliocentric: Sun as root, planets relative to Sun, Moon relative to Earth
         add_point!(frames, :Sun, 10, :ICRF)
         add_body_point!(frames, EarthBody(), ephemeris; parent_id=10, axes=:ICRF)
-        for body_fn in [MercuryBody, VenusBody, MarsBody, JupiterBody, SaturnBody, UranusBody, NeptuneBody]
+        for body_fn in [
+            MercuryBody,
+            VenusBody,
+            MarsBody,
+            JupiterBody,
+            SaturnBody,
+            UranusBody,
+            NeptuneBody,
+        ]
             add_body_point!(frames, body_fn(), ephemeris; parent_id=10, axes=:ICRF)
         end
-        include_moon && add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
+        include_moon &&
+            add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
     elseif ephemeris isa Kepler
         # Heliocentric: Sun as root, all bodies from J2000 Keplerian elements
         add_point!(frames, :Sun, 10, :ICRF)
-        for body_fn in [MercuryKeplerianBody, VenusKeplerianBody, EarthKeplerianBody, MarsKeplerianBody,
-                        JupiterKeplerianBody, SaturnKeplerianBody, UranusKeplerianBody, NeptuneKeplerianBody,
-                        PlutoKeplerianBody]
+        for body_fn in [
+            MercuryKeplerianBody,
+            VenusKeplerianBody,
+            EarthKeplerianBody,
+            MarsKeplerianBody,
+            JupiterKeplerianBody,
+            SaturnKeplerianBody,
+            UranusKeplerianBody,
+            NeptuneKeplerianBody,
+            PlutoKeplerianBody,
+        ]
             add_body_point!(frames, body_fn(), ephemeris; parent_id=10, axes=:ICRF)
         end
-        include_moon && add_body_point!(frames, MoonKeplerianBody(), ephemeris; parent_id=399, axes=:ICRF)
+        include_moon && add_body_point!(
+            frames, MoonKeplerianBody(), ephemeris; parent_id=399, axes=:ICRF
+        )
     end
 
     return FrameAwareParams(frames, epoch, :ICRF)
@@ -345,12 +366,16 @@ function setup_earth_propagation_frames(
 
     # Add ITRF as rotating frame using SatelliteToolboxTransformations EOP data
     add_axes_rotating!(
-        frames, :ITRF, 2, 1,
+        frames,
+        :ITRF,
+        2,
+        1,
         t -> SatelliteToolboxTransformations.r_eci_to_ecef(
             SatelliteToolboxTransformations.DCM,
             SatelliteToolboxTransformations.J2000(),
             SatelliteToolboxTransformations.ITRF(),
-            2451545.0 + t / 86400.0, eop_data,
+            2451545.0 + t / 86400.0,
+            eop_data,
         ),
         t -> begin
             jd = 2451545.0 + t / 86400.0
@@ -359,13 +384,15 @@ function setup_earth_propagation_frames(
                 SatelliteToolboxTransformations.DCM,
                 SatelliteToolboxTransformations.J2000(),
                 SatelliteToolboxTransformations.ITRF(),
-                jd, eop_data,
+                jd,
+                eop_data,
             )
             R2 = SatelliteToolboxTransformations.r_eci_to_ecef(
                 SatelliteToolboxTransformations.DCM,
                 SatelliteToolboxTransformations.J2000(),
                 SatelliteToolboxTransformations.ITRF(),
-                jd + dt / 86400.0, eop_data,
+                jd + dt / 86400.0,
+                eop_data,
             )
             return (R2 - R1) / dt
         end,
@@ -374,7 +401,8 @@ function setup_earth_propagation_frames(
     add_point!(frames, :Earth, 399, :ICRF)
 
     include_sun && add_body_point!(frames, SunBody(), Vallado(); parent_id=399, axes=:ICRF)
-    include_moon && add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
+    include_moon &&
+        add_body_point!(frames, MoonBody(), Vallado(); parent_id=399, axes=:ICRF)
 
     return FrameAwareParams(frames, epoch, :ICRF)
 end
@@ -483,12 +511,16 @@ function setup_ephemeris_frames(
     # Add ITRF if requested via EOP data
     if !isnothing(eop_data)
         add_axes_rotating!(
-            frames, :ITRF, 2, 1,
+            frames,
+            :ITRF,
+            2,
+            1,
             t -> SatelliteToolboxTransformations.r_eci_to_ecef(
                 SatelliteToolboxTransformations.DCM,
                 SatelliteToolboxTransformations.J2000(),
                 SatelliteToolboxTransformations.ITRF(),
-                2451545.0 + t / 86400.0, eop_data,
+                2451545.0 + t / 86400.0,
+                eop_data,
             ),
             t -> begin
                 jd = 2451545.0 + t / 86400.0
@@ -497,13 +529,15 @@ function setup_ephemeris_frames(
                     SatelliteToolboxTransformations.DCM,
                     SatelliteToolboxTransformations.J2000(),
                     SatelliteToolboxTransformations.ITRF(),
-                    jd, eop_data,
+                    jd,
+                    eop_data,
                 )
                 R2 = SatelliteToolboxTransformations.r_eci_to_ecef(
                     SatelliteToolboxTransformations.DCM,
                     SatelliteToolboxTransformations.J2000(),
                     SatelliteToolboxTransformations.ITRF(),
-                    jd + dt / 86400.0, eop_data,
+                    jd + dt / 86400.0,
+                    eop_data,
                 )
                 return (R2 - R1) / dt
             end,
@@ -558,12 +592,26 @@ end
 
 const _NAIF_POINT_NAMES = Dict{Int,Symbol}(
     0 => :SSB,
-    1 => :MercuryBarycenter, 2 => :VenusBarycenter, 3 => :EarthBarycenter,
-    4 => :MarsBarycenter, 5 => :JupiterBarycenter, 6 => :SaturnBarycenter,
-    7 => :UranusBarycenter, 8 => :NeptuneBarycenter, 9 => :PlutoBarycenter,
-    10 => :Sun, 199 => :Mercury, 299 => :Venus, 301 => :Moon, 399 => :Earth,
-    499 => :Mars, 599 => :Jupiter, 699 => :Saturn,
-    799 => :Uranus, 899 => :Neptune, 999 => :Pluto,
+    1 => :MercuryBarycenter,
+    2 => :VenusBarycenter,
+    3 => :EarthBarycenter,
+    4 => :MarsBarycenter,
+    5 => :JupiterBarycenter,
+    6 => :SaturnBarycenter,
+    7 => :UranusBarycenter,
+    8 => :NeptuneBarycenter,
+    9 => :PlutoBarycenter,
+    10 => :Sun,
+    199 => :Mercury,
+    299 => :Venus,
+    301 => :Moon,
+    399 => :Earth,
+    499 => :Mars,
+    599 => :Jupiter,
+    699 => :Saturn,
+    799 => :Uranus,
+    899 => :Neptune,
+    999 => :Pluto,
 )
 
 const _NAIF_AXES_NAMES = Dict{Int,Tuple{Symbol,Symbol}}(

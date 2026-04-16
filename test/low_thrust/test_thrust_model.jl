@@ -1,6 +1,8 @@
 @testset "Thrust Model" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = setup_inertial_frames(Epoch((JD - 2451545.0) * 86400.0, TDB); include_sun=false, include_moon=false)
+    p = setup_inertial_frames(
+        Epoch((JD - 2451545.0) * 86400.0, TDB); include_sun=false, include_moon=false
+    )
     t = 0.0
 
     state = [

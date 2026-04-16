@@ -171,17 +171,51 @@ export acceleration,
 
 # Re-export CelestialBodies types and constructors
 export AbstractCelestialBody, CelestialBody, KeplerianCelestialBody
-export SunBody, MercuryBody, VenusBody, EarthBody, MarsBody,
-    JupiterBody, SaturnBody, UranusBody, NeptuneBody, PlutoBody, MoonBody
-export MercuryKeplerianBody, VenusKeplerianBody, EarthKeplerianBody, MarsKeplerianBody,
-    JupiterKeplerianBody, SaturnKeplerianBody, UranusKeplerianBody, NeptuneKeplerianBody,
-    PlutoKeplerianBody, MoonKeplerianBody
+export SunBody,
+    MercuryBody,
+    VenusBody,
+    EarthBody,
+    MarsBody,
+    JupiterBody,
+    SaturnBody,
+    UranusBody,
+    NeptuneBody,
+    PlutoBody,
+    MoonBody
+export MercuryKeplerianBody,
+    VenusKeplerianBody,
+    EarthKeplerianBody,
+    MarsKeplerianBody,
+    JupiterKeplerianBody,
+    SaturnKeplerianBody,
+    UranusKeplerianBody,
+    NeptuneKeplerianBody,
+    PlutoKeplerianBody,
+    MoonKeplerianBody
 export Meeus, Kepler, Vallado, add_body_point!
 
 # Re-export CelestialBodies constants
-export R_SUN, R_EARTH, R_MOON, R_MERCURY, R_VENUS, R_MARS,
-    R_JUPITER, R_SATURN, R_URANUS, R_NEPTUNE, R_PLUTO
-export μ_SUN, μ_EARTH, μ_MOON, μ_MERCURY, μ_VENUS, μ_MARS,
-    μ_JUPITER, μ_SATURN, μ_URANUS, μ_NEPTUNE, μ_PLUTO
+export R_SUN,
+    R_EARTH,
+    R_MOON,
+    R_MERCURY,
+    R_VENUS,
+    R_MARS,
+    R_JUPITER,
+    R_SATURN,
+    R_URANUS,
+    R_NEPTUNE,
+    R_PLUTO
+export μ_SUN,
+    μ_EARTH,
+    μ_MOON,
+    μ_MERCURY,
+    μ_VENUS,
+    μ_MARS,
+    μ_JUPITER,
+    μ_SATURN,
+    μ_URANUS,
+    μ_NEPTUNE,
+    μ_PLUTO
 
 end
