@@ -72,7 +72,6 @@ using FrameTransformations
 using Ephemerides
 using ReferenceFrameRotations: angleaxis_to_dcm
 using Tempo: Tempo, Epoch, j2000s, TDB, BarycentricDynamicalTime, value
-using SmallBodyGravity
 
 """
     AbstractAstroForceModel
