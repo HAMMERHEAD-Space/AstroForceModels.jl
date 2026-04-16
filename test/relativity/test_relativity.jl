@@ -1,8 +1,7 @@
 @testset "Relativity Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
-
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -13,8 +12,19 @@
         -1.1880157328553503
     ] #km, km/s
 
+    sun_model = test_sun_model()
+    earth_model = ThirdBodyModel(
+        body=EarthBody(),
+        ephem_type=FrameEphemeris(center_point=399, target_point=399, axes=:ICRF),
+    )
+
     satellite_lense_thirring_model = RelativityModel(;
-        schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
+        central_body=earth_model,
+        sun_body=sun_model,
+        J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+        schwarzschild_effect=false,
+        lense_thirring_effect=true,
+        de_Sitter_effect=false,
     )
 
     lense_thirring_accel = acceleration(state, p, 0.0, satellite_lense_thirring_model)
@@ -27,7 +37,12 @@
     @test lense_thirring_accel ≈ expected_acceleration atol = 1e-13
 
     satellite_de_sitter_model = RelativityModel(;
-        schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
+        central_body=earth_model,
+        sun_body=sun_model,
+        J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+        schwarzschild_effect=false,
+        lense_thirring_effect=false,
+        de_Sitter_effect=true,
     )
 
     de_sitter_accel = acceleration(state, p, 0.0, satellite_de_sitter_model)
@@ -41,7 +56,12 @@
     @test de_sitter_accel ≈ expected_acceleration atol = 1E-13
 
     satellite_schwarzschild_model = RelativityModel(;
-        schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
+        central_body=earth_model,
+        sun_body=sun_model,
+        J=SVector{3}(0.0, 0.0, AstroForceModels.EARTH_ANGULAR_MOMENTUM_PER_UNIT_MASS),
+        schwarzschild_effect=true,
+        lense_thirring_effect=false,
+        de_Sitter_effect=false,
     )
 
     schwarzschild_accel = acceleration(state, p, 0.0, satellite_schwarzschild_model)

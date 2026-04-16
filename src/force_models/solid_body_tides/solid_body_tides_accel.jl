@@ -22,42 +22,19 @@
 #       Springer, 2000. Section 3.2.5: Solid Earth Tides.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#TODO: SPIN THIS OUT INTO ITS OWN PACKAGE WITH FULL OCEAN TIDES, POLE TIDES, ECT.
 export SolidBodyTidesModel, solid_body_tides_accel
 
 """
-    SolidBodyTidesModel{N,TBT,K2T,K3T,KP2T,RET,BT} <: AbstractNonPotentialBasedForce
+    SolidBodyTidesModel
 
 Solid body tides acceleration model following IERS Conventions (2010), Section 6.2.
 
-Models the perturbation to the geopotential caused by the tidal deformation of a central
-body due to the gravitational attraction of tide-raising bodies. Implements Step 1 of the
-IERS procedure using frequency-independent Love numbers and the Legendre polynomial
-addition theorem for efficient computation directly in the inertial frame.
-
-The formulation is general and works for any central body (Earth, Mars, etc.) with
-any number of tide-raising bodies. For Earth, the dominant tide raisers are the Moon
-and Sun; for Mars they would be the Sun, Phobos, and Deimos.
-
-The tidal perturbation potential at satellite position ``\\mathbf{r}`` from a tide-raising
-body ``j`` at degree ``n`` is:
-
-```math
-\\Delta V_j^{(n)} = k_n \\frac{GM_j R_e^{2n+1}}{r_j^{n+1} r^{n+1}} P_n(\\cos\\gamma_j)
-```
-
-where ``k_n`` is the Love number, ``R_e`` is the central body's equatorial radius, ``r_j``
-is the distance to body ``j``, and ``\\gamma_j`` is the geocentric angle between the
-satellite and body ``j``.
-
 # Fields
-- `tide_raising_bodies::NTuple{N,ThirdBodyModel}`: Tuple of `ThirdBodyModel`s for each
-  tide-raising body. Gravitational parameters are obtained from each body's `CelestialBody`.
-- `k2::Number`: Degree-2 Love number (default: 0.30190, IERS 2010 Table 6.3, anelastic).
-- `k3::Number`: Degree-3 Love number (default: 0.093, IERS 2010 Table 6.3).
-- `k2_plus::Number`: Degree-2 → degree-4 coupling Love number ``k_2^{(+)}``
-  (default: -0.00089, IERS 2010 Table 6.3, anelastic m=0). Set to 0 to disable.
-- `R_e::Number`: Central body equatorial radius in km (default: `R_EARTH`).
+- `tide_raising_bodies::NTuple{N,ThirdBodyModel}`: Tide-raising body models (use FrameEphemeris).
+- `k2::Number`: Degree-2 Love number (default: 0.30190).
+- `k3::Number`: Degree-3 Love number (default: 0.093).
+- `k2_plus::Number`: Degree-2 → degree-4 coupling Love number (default: 0.0).
+- `R_e::Number`: Central body equatorial radius [km]. No default — must be specified.
 - `include_degree_3::Bool`: Include degree-3 tidal contribution (default: true).
 """
 Base.@kwdef struct SolidBodyTidesModel{
@@ -73,51 +50,29 @@ Base.@kwdef struct SolidBodyTidesModel{
     k2::K2T = 0.30190
     k3::K3T = 0.093
     k2_plus::KP2T = 0.0
-    R_e::RET = R_EARTH
+    R_e::RET
     include_degree_3::BT = true
-end
-
-"""
-    SolidBodyTidesModel(eop_data; kwargs...)
-
-Convenience constructor for Earth that creates Sun and Moon tide-raising body models
-sharing a single EOP dataset.
-
-# Arguments
-- `eop_data::Union{EopIau1980,EopIau2000A}`: Earth Orientation Parameter data.
-
-# Keyword Arguments
-All fields of [`SolidBodyTidesModel`](@ref) may be overridden.
-"""
-function SolidBodyTidesModel(eop_data::Union{EopIau1980,EopIau2000A}; kwargs...)
-    defaults = (
-        tide_raising_bodies=(
-            ThirdBodyModel(; body=SunBody(), eop_data=eop_data),
-            ThirdBodyModel(; body=MoonBody(), eop_data=eop_data),
-        ),
-    )
-    return SolidBodyTidesModel(; merge(defaults, kwargs)...)
 end
 
 """
     acceleration(u, p, t, model::SolidBodyTidesModel) -> SVector{3}
 
-Compute the solid body tides acceleration perturbation on a satellite.
+Compute the solid body tides acceleration perturbation.
 
 # Arguments
-- `u::AbstractVector`: Spacecraft state [rx, ry, rz, vx, vy, vz] in km and km/s (J2000 ECI).
-- `p::ComponentVector`: Simulation parameters (must contain `JD`).
+- `u::AbstractVector`: Spacecraft state [km, km/s].
+- `p::FrameAwareParams`: Parameters with frame system.
 - `t::Number`: Elapsed time since epoch [s].
-- `model::SolidBodyTidesModel`: Solid body tides model configuration.
+- `model::SolidBodyTidesModel`: Solid body tides model.
 
 # Returns
-- `SVector{3}`: Acceleration perturbation [km/s²] in J2000 ECI.
+- `SVector{3}`: Tidal acceleration perturbation [km/s²].
 """
 @inline function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, model::SolidBodyTidesModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, model::SolidBodyTidesModel
 )
-    jd = current_jd(p, t)
-    bodies = _collect_body_data(jd, model.tide_raising_bodies)
+    t_ft = ft_time(p, t)
+    bodies = _collect_body_data(p.frames, t_ft, model.tide_raising_bodies)
     return solid_body_tides_accel(
         u,
         bodies;
@@ -128,51 +83,30 @@ Compute the solid body tides acceleration perturbation on a satellite.
     )
 end
 
-@inline function _collect_body_data(jd, bodies::Tuple)
+@inline function _collect_body_data(frames, t_ft, bodies::Tuple)
     body = first(bodies)
-    r = body(jd, Position()) ./ 1E3
+    r = get_position(body.ephem_type, body.body, frames, t_ft, body.compiled_vector3)
     μ = body.body.μ
-    return ((r, μ), _collect_body_data(jd, Base.tail(bodies))...)
+    return ((r, μ), _collect_body_data(frames, t_ft, Base.tail(bodies))...)
 end
 
-@inline _collect_body_data(jd, ::Tuple{}) = ()
+@inline _collect_body_data(frames, t_ft, ::Tuple{}) = ()
 
 """
-    solid_body_tides_accel(
-        u, bodies;
-        k2=0.30190, k3=0.093,
-        R_e=R_EARTH, include_degree_3=true,
-    ) -> SVector{3}
+    solid_body_tides_accel(u, bodies; k2, k3, R_e, include_degree_3) -> SVector{3}
 
-Compute the solid body tides acceleration on a satellite from tide-raising body data.
-
-Uses the gradient of the tidal perturbation potential derived from IERS Conventions (2010)
-Equation 6.6 with the Legendre polynomial addition theorem.
-
-**Degree 2** acceleration from body ``j``:
-```math
-\\mathbf{a}_j^{(2)} = \\frac{3 k_2 GM_j R_e^5}{r_j^3 r^4}
-\\left[\\frac{1 - 5\\xi^2}{2}\\hat{\\mathbf{r}} + \\xi\\hat{\\mathbf{r}}_j\\right]
-```
-
-**Degree 3** acceleration from body ``j``:
-```math
-\\mathbf{a}_j^{(3)} = \\frac{k_3 GM_j R_e^7}{2 r_j^4 r^5}
-\\left[(15\\xi - 35\\xi^3)\\hat{\\mathbf{r}} + (15\\xi^2 - 3)\\hat{\\mathbf{r}}_j\\right]
-```
-
-where ``\\xi = \\hat{\\mathbf{r}} \\cdot \\hat{\\mathbf{r}}_j``.
+Compute the solid body tides acceleration from tide-raising body data.
 
 # Arguments
-- `u::AbstractVector`: Spacecraft state vector [rx, ry, rz, vx, vy, vz] in km, km/s.
-- `bodies::Tuple`: Tuple of `(r_body, μ_body)` pairs, where `r_body` is the body position
-  [km] and `μ_body` is the gravitational parameter [km³/s²].
+- `u::AbstractVector`: Spacecraft state [km, km/s].
+- `bodies::Tuple`: Tuple of `(r_body, μ_body)` pairs [km, km³/s²].
 
 # Keyword Arguments
-- `k2::Number`: Degree-2 Love number (default: 0.30190).
-- `k3::Number`: Degree-3 Love number (default: 0.093).
-- `R_e::Number`: Central body equatorial radius in km (default: `R_EARTH`).
-- `include_degree_3::Bool`: Include degree-3 contribution (default: true).
+- `k2::Number`: Degree-2 Love number. Default: `0.30190`.
+- `k3::Number`: Degree-3 Love number. Default: `0.093`.
+- `R_e::Number`: Central body equatorial radius [km]. **Required — no default**
+  (prevents silent misuse for non-Earth missions).
+- `include_degree_3::Bool`: Include degree-3 contribution. Default: `true`.
 
 # Returns
 - `SVector{3}`: Tidal acceleration [km/s²].
@@ -182,7 +116,7 @@ where ``\\xi = \\hat{\\mathbf{r}} \\cdot \\hat{\\mathbf{r}}_j``.
     bodies::Tuple;
     k2::K2T=0.30190,
     k3::K3T=0.093,
-    R_e::RET=R_EARTH,
+    R_e::RET,
     include_degree_3::Bool=true,
 ) where {UT,K2T,K3T,RET}
     r_sat = SVector{3,UT}(u[1], u[2], u[3])
@@ -228,12 +162,6 @@ end
 
 # -- Single-body tidal acceleration computations --
 
-"""
-Degree-2 tidal acceleration from a single perturbing body.
-
-Gradient of the degree-2 tidal perturbation potential:
-  ``\\Delta V^{(2)} = k_2 GM_j R_e^5 / (r_j^3 r^3) \\cdot P_2(\\cos\\gamma)``
-"""
 @inline function _tidal_degree2(
     r_hat::SVector{3},
     r_norm::Number,
@@ -254,12 +182,6 @@ Gradient of the degree-2 tidal perturbation potential:
     return coeff * (radial * r_hat + body_dir * r_body_hat)
 end
 
-"""
-Degree-3 tidal acceleration from a single perturbing body.
-
-Gradient of the degree-3 tidal perturbation potential:
-  ``\\Delta V^{(3)} = k_3 GM_j R_e^7 / (r_j^4 r^4) \\cdot P_3(\\cos\\gamma)``
-"""
 @inline function _tidal_degree3(
     r_hat::SVector{3},
     r_norm::Number,

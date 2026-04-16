@@ -54,7 +54,7 @@ end
 Return the fixed charge-to-mass ratio [C/kg].
 """
 @inline function charge_mass_ratio(
-    u::AbstractVector, p::AbstractVector, t::Number, model::FixedChargeMassRatio
+    u::AbstractVector, p, t::Number, model::FixedChargeMassRatio
 )
     return model.q_over_m
 end
@@ -64,8 +64,6 @@ end
 
 Evaluate the state-dependent charge-to-mass ratio function [C/kg].
 """
-@inline function charge_mass_ratio(
-    u::AbstractVector, p::AbstractVector, t::Number, model::StateChargeModel
-)
+@inline function charge_mass_ratio(u::AbstractVector, p, t::Number, model::StateChargeModel)
     return model.charge_function(u, p, t)
 end

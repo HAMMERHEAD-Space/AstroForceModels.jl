@@ -18,7 +18,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 export AbstractThrustFrame, InertialFrame, RTNFrame, VNBFrame
-export transform_to_inertial
+export transform_thrust_to_state_frame
 
 """
     AbstractThrustFrame
@@ -27,24 +27,46 @@ Abstract base type for thrust reference frame specifications.
 
 The frame determines how the 3-component acceleration vector produced by an
 [`AbstractThrustModel`](@ref) is interpreted before being transformed into the
-inertial (ECI) frame.
+propagation (state) frame.
 
 # Subtypes
-- [`InertialFrame`](@ref): Components are inertial (ECI) — no rotation needed
+- [`InertialFrame`](@ref): Components are in the inertial frame (e.g., ICRF)
 - [`RTNFrame`](@ref): Radial / Transverse / Normal (orbit-fixed)
 - [`VNBFrame`](@ref): Velocity / Normal / Binormal (velocity-fixed)
 """
 abstract type AbstractThrustFrame end
 
 """
-    InertialFrame <: AbstractThrustFrame
+    InertialFrame{S} <: AbstractThrustFrame
 
-Indicates that the thrust acceleration vector is expressed in the inertial (ECI/J2000)
-frame. No rotation is applied.
+Indicates that the thrust acceleration vector is expressed in the inertial frame
+named `S` (default `:ICRF`). When the propagation frame equals `S`, no rotation is
+applied. When propagating in a different frame (e.g., a body-fixed rotating frame
+or a different inertial frame), the `FrameSystem` on the `FrameAwareParams` is used
+to rotate the thrust vector into the propagation frame at evaluation time.
+
+The source frame `S` must be registered in `p.frames`.
+
+# Constructors
+```julia
+InertialFrame()            # S = :ICRF (default)
+InertialFrame(:J2000)      # or any other inertial frame registered in p.frames
+```
 
 This is the default frame for [`LowThrustAstroModel`](@ref).
+
+!!! note
+    The 3-argument `transform_thrust_to_state_frame` overload (used by impulsive
+    maneuvers that do not carry a `FrameAwareParams`) is an identity. It is only
+    correct when the propagation frame coincides with `S`. Use the 5-argument
+    `FrameAwareParams` method when propagating in a different frame.
 """
-struct InertialFrame <: AbstractThrustFrame end
+struct InertialFrame{S} <: AbstractThrustFrame end
+
+InertialFrame() = InertialFrame{:ICRF}()
+InertialFrame(name::Symbol) = InertialFrame{name}()
+
+@inline _inertial_frame_name(::InertialFrame{S}) where {S} = S
 
 """
     RTNFrame <: AbstractThrustFrame
@@ -52,15 +74,16 @@ struct InertialFrame <: AbstractThrustFrame end
 Indicates that the thrust acceleration vector is expressed in the RTN
 (Radial–Transverse–Normal) frame, also known as RIC (Radial–In-track–Cross-track).
 
-The RTN basis vectors are defined as:
+The RTN basis vectors are constructed from the spacecraft state in the propagation frame,
+so this frame works correctly regardless of which reference frame is used for propagation.
 
 - **R̂** (Radial): Along the position vector, away from the central body: `r / |r|`
 - **N̂** (Normal): Along the orbital angular momentum: `(r × v) / |r × v|`
 - **T̂** (Transverse): Completes the right-handed triad: `N̂ × R̂`
 
-The acceleration components `[a_R, a_T, a_N]` are converted to inertial via:
+The acceleration components `[a_R, a_T, a_N]` are converted to the state frame via:
 
-    a_inertial = a_R R̂ + a_T T̂ + a_N N̂
+    a_state = a_R R̂ + a_T T̂ + a_N N̂
 """
 struct RTNFrame <: AbstractThrustFrame end
 
@@ -70,15 +93,16 @@ struct RTNFrame <: AbstractThrustFrame end
 Indicates that the thrust acceleration vector is expressed in the VNB
 (Velocity–Normal–Binormal) frame.
 
-The VNB basis vectors are defined as:
+The VNB basis vectors are constructed from the spacecraft state in the propagation frame,
+so this frame works correctly regardless of which reference frame is used for propagation.
 
 - **V̂** (Velocity): Along the velocity vector: `v / |v|`
 - **N̂** (Normal): In the orbital plane, perpendicular to V̂: `B̂ × V̂`
 - **B̂** (Binormal): Along the orbital angular momentum: `(r × v) / |r × v|`
 
-The acceleration components `[a_V, a_N, a_B]` are converted to inertial via:
+The acceleration components `[a_V, a_N, a_B]` are converted to the state frame via:
 
-    a_inertial = a_V V̂ + a_N N̂ + a_B B̂
+    a_state = a_V V̂ + a_N N̂ + a_B B̂
 
 !!! note
     For circular orbits the VNB frame coincides with the RTN frame (V̂ ≈ T̂).
@@ -87,32 +111,23 @@ The acceleration components `[a_V, a_N, a_B]` are converted to inertial via:
 """
 struct VNBFrame <: AbstractThrustFrame end
 
-"""
-    transform_to_inertial(a_local::SVector{3}, u::AbstractVector, frame::InertialFrame)
-
-Identity transformation — the acceleration is already in the inertial frame.
-"""
-@inline function transform_to_inertial(
-    a_local::SVector{3}, u::AbstractVector, ::InertialFrame
-)
-    return a_local
-end
+# ── RTN / VNB: orbital frames derived from state ─────────────────────────────
+# These are correct in any propagation frame because the basis vectors are
+# constructed from the state vector, which is already in the propagation frame.
 
 """
-    transform_to_inertial(a_local::SVector{3}, u::AbstractVector, frame::RTNFrame)
+    transform_thrust_to_state_frame(a_local::SVector{3}, u, p, t, ::RTNFrame)
 
-Transform a thrust acceleration from the RTN frame to the inertial frame.
+Transform a thrust acceleration from the RTN frame to the propagation (state) frame.
 
-The RTN basis is constructed from the spacecraft state `u = [r; v]` as:
+The RTN basis is constructed from the spacecraft state `u = [r; v]`:
 
-    R̂ = r / |r|
-    N̂ = (r × v) / |r × v|
-    T̂ = N̂ × R̂
+    R̂ = r / |r|,  N̂ = (r × v) / |r × v|,  T̂ = N̂ × R̂
 
-The inertial acceleration is: `a_R R̂ + a_T T̂ + a_N N̂`.
+Returns `a_R R̂ + a_T T̂ + a_N N̂` in the propagation frame.
 """
-@inline function transform_to_inertial(
-    a_local::SVector{3,AT}, u::AbstractVector{UT}, ::RTNFrame
+@inline function transform_thrust_to_state_frame(
+    a_local::SVector{3,AT}, u::AbstractVector{UT}, p, t, ::RTNFrame
 ) where {AT,UT}
     RT = promote_type(AT, UT)
 
@@ -136,20 +151,18 @@ The inertial acceleration is: `a_R R̂ + a_T T̂ + a_N N̂`.
 end
 
 """
-    transform_to_inertial(a_local::SVector{3}, u::AbstractVector, frame::VNBFrame)
+    transform_thrust_to_state_frame(a_local::SVector{3}, u, p, t, ::VNBFrame)
 
-Transform a thrust acceleration from the VNB frame to the inertial frame.
+Transform a thrust acceleration from the VNB frame to the propagation (state) frame.
 
-The VNB basis is constructed from the spacecraft state `u = [r; v]` as:
+The VNB basis is constructed from the spacecraft state `u = [r; v]`:
 
-    V̂ = v / |v|
-    B̂ = (r × v) / |r × v|
-    N̂ = B̂ × V̂
+    V̂ = v / |v|,  B̂ = (r × v) / |r × v|,  N̂ = B̂ × V̂
 
-The inertial acceleration is: `a_V V̂ + a_N N̂ + a_B B̂`.
+Returns `a_V V̂ + a_N N̂ + a_B B̂` in the propagation frame.
 """
-@inline function transform_to_inertial(
-    a_local::SVector{3,AT}, u::AbstractVector{UT}, ::VNBFrame
+@inline function transform_thrust_to_state_frame(
+    a_local::SVector{3,AT}, u::AbstractVector{UT}, p, t, ::VNBFrame
 ) where {AT,UT}
     RT = promote_type(AT, UT)
 
@@ -170,4 +183,72 @@ The inertial acceleration is: `a_V V̂ + a_N N̂ + a_B B̂`.
         a_local[1] * V̂[2] + a_local[2] * N̂[2] + a_local[3] * B̂[2],
         a_local[1] * V̂[3] + a_local[2] * N̂[3] + a_local[3] * B̂[3],
     )
+end
+
+# ── InertialFrame: rotate from source inertial frame to propagation frame ──
+
+"""
+    transform_thrust_to_state_frame(
+        a_inertial::SVector{3}, u, p::FrameAwareParams, t, frame::InertialFrame{S}
+    ) where {S}
+
+Transform a thrust acceleration from the inertial frame `S` (default `:ICRF`) to
+`p.propagation_frame`.
+
+When `S === p.propagation_frame`, this short-circuits to the identity and adds no
+overhead. Otherwise a single `rotation3` lookup against `p.frames` produces the
+DCM `R_{S → p.propagation_frame}` and the result is `R * a_inertial`.
+"""
+@inline function transform_thrust_to_state_frame(
+    a_inertial::SVector{3},
+    u::AbstractVector,
+    p::FrameAwareParams,
+    t,
+    frame::InertialFrame{S},
+) where {S}
+    if S === p.propagation_frame
+        return a_inertial
+    else
+        t_ft = ft_time(p, t)
+        R = rotation3(p.frames, S, p.propagation_frame, t_ft)
+        return R.m[1] * a_inertial
+    end
+end
+
+# ── 3-arg convenience for impulsive maneuvers (no p/t needed) ────────────────
+# These are used by AstroPropagators impulsive_burn! where the ΔV is applied
+# directly to the state and only the orbital-frame rotation matters.
+
+"""
+    transform_thrust_to_state_frame(
+        a_local::SVector{3}, u::AbstractVector, frame::AbstractThrustFrame
+    )
+
+3-argument convenience method for transforming thrust/ΔV vectors when frame-aware
+parameters are not available (e.g., impulsive maneuvers applied directly to a state
+vector).
+
+- `RTNFrame` / `VNBFrame`: always correct — the orthonormal basis is constructed
+  from `u = [r; v]` in the propagation frame, so the result is automatically in
+  the propagation frame regardless of which frame that is.
+- `InertialFrame{S}`: identity operation. This is **only** correct when the
+  propagation frame coincides with `S`. Use the 5-argument method with
+  `FrameAwareParams` whenever the propagation frame may differ from `S`.
+"""
+@inline function transform_thrust_to_state_frame(
+    a_local::SVector{3}, u::AbstractVector, frame::RTNFrame
+)
+    return transform_thrust_to_state_frame(a_local, u, nothing, nothing, frame)
+end
+
+@inline function transform_thrust_to_state_frame(
+    a_local::SVector{3}, u::AbstractVector, frame::VNBFrame
+)
+    return transform_thrust_to_state_frame(a_local, u, nothing, nothing, frame)
+end
+
+@inline function transform_thrust_to_state_frame(
+    a_local::SVector{3}, u::AbstractVector, ::InertialFrame
+)
+    return a_local
 end

@@ -1,6 +1,7 @@
 @testset "Low Thrust Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
+    eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     t = 0.0
 
     state = [
@@ -163,7 +164,7 @@
 
     @testset "LowThrustAstroModel in CentralBodyDynamicsModel" begin
         # Verify low thrust can be composed with gravity in the dynamics builder
-        keplerian = KeplerianGravityAstroModel()
+        keplerian = KeplerianGravityAstroModel(μ=AstroForceModels.μ_EARTH)
         thrust_model = ConstantCartesianThrust(1e-7, 0.0, 0.0)
         lt_model = LowThrustAstroModel(; thrust_model=thrust_model)
 
@@ -176,8 +177,44 @@
         @test total_accel ≈ grav_accel + lt_accel rtol = 1e-14
     end
 
+    @testset "InertialFrame: default is identity in ICRF propagation" begin
+        # Default InertialFrame() == InertialFrame{:ICRF}() and p.propagation_frame
+        # is :ICRF, so the transform must short-circuit to identity.
+        thrust = ConstantCartesianThrust(1e-7, 2e-7, 3e-7)
+        lt = LowThrustAstroModel(; thrust_model=thrust, frame=InertialFrame())
+        @test acceleration(state, p, t, lt) ≈ SVector{3}(1e-7, 2e-7, 3e-7)
+    end
+
+    @testset "InertialFrame: rotates ICRF thrust into non-inertial propagation frame" begin
+        # Build a FrameAwareParams that propagates in :ITRF (registered by
+        # setup_earth_propagation_frames). Passing InertialFrame() (=:ICRF) with an
+        # ICRF-expressed thrust must rotate that thrust into :ITRF via p.frames.
+        p_itrf = FrameAwareParams(p.frames, p.epoch, :ITRF)
+
+        a_icrf = SVector{3}(1e-7, 0.0, 0.0)
+        thrust = ConstantCartesianThrust(a_icrf[1], a_icrf[2], a_icrf[3])
+        lt = LowThrustAstroModel(; thrust_model=thrust, frame=InertialFrame())
+
+        accel = acceleration(state, p_itrf, t, lt)
+
+        # Reference: compute the DCM directly the same way the force model does.
+        t_ft = AstroForceModels.ft_time(p_itrf, t)
+        R = rotation3(p_itrf.frames, :ICRF, :ITRF, t_ft)
+        expected = R.m[1] * a_icrf
+
+        @test accel ≈ expected rtol = 1e-14
+        @test !(accel ≈ a_icrf)  # must not be the identity — proves rotation fired
+    end
+
+    @testset "InertialFrame(:ICRF) explicit name matches default()" begin
+        thrust = ConstantCartesianThrust(1e-7, 2e-7, 3e-7)
+        lt_default = LowThrustAstroModel(; thrust_model=thrust, frame=InertialFrame())
+        lt_icrf    = LowThrustAstroModel(; thrust_model=thrust, frame=InertialFrame(:ICRF))
+        @test acceleration(state, p, t, lt_default) ≈ acceleration(state, p, t, lt_icrf)
+    end
+
     @testset "LowThrustAstroModel RTN in CentralBodyDynamicsModel" begin
-        keplerian = KeplerianGravityAstroModel()
+        keplerian = KeplerianGravityAstroModel(μ=AstroForceModels.μ_EARTH)
         lt_rtn = LowThrustAstroModel(;
             thrust_model=ConstantCartesianThrust(0.0, 1e-7, 0.0), frame=RTNFrame()
         )

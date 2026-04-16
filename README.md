@@ -47,5 +47,11 @@ If you use `AstroForceModels.jl` in your work, please consider citing it.
 }
 ```
 
+## Acknowledgments
+
+- **[SatelliteToolbox.jl](https://github.com/JuliaSpace/SatelliteToolbox.jl)**: Atmospheric models, gravity models, geomagnetic field models, and base utilities
+- **[JuliaSpaceMissionDesign](https://github.com/JuliaSpaceMissionDesign)**: FrameTransformations.jl, Tempo.jl, Ephemerides.jl, and the JSMD ecosystem for high-fidelity frame transformations and ephemeris handling
+- **Classical Literature**: Montenbruck & Gill, Vallado, Petit & Luzum (IERS Conventions), and others
+
 [docs-dev-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/
 [docs-stable-url]: https://HAMMERHEAD-Space.github.io/AstroForceModels.jl/stable/

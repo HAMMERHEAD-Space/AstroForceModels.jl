@@ -1,10 +1,10 @@
 @testset "Third Body Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     eop_data = fetch_iers_eop()
-    p = ComponentVector(; JD=JD)
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
-    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-    moon_third_body = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+    sun_third_body = test_sun_model()
+    moon_third_body = test_moon_model()
 
     state = [
         -1076.225324679696
@@ -23,6 +23,7 @@
     expected_lunar_accel =
         [-7.507182245381024e-07, 1.2454140260475816e-07, -1.7206122388643457e-07] ./ 1E3
 
-    @test sun_accel ≈ expected_solar_accel rtol = 1E-3
-    @test moon_accel ≈ expected_lunar_accel rtol = 1E-3
+    # Slightly wider tolerance due to Vallado analytical ephemeris (no EOP) vs reference (with EOP)
+    @test sun_accel ≈ expected_solar_accel rtol = 5E-3
+    @test moon_accel ≈ expected_lunar_accel rtol = 5E-3
 end

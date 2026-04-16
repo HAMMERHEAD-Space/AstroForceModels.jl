@@ -129,17 +129,23 @@ All force models implement the common `acceleration(state, params, time, model)`
 
 ## Type Definitions
 
-### Component Arrays
+### Frame-Aware Parameters
 
-The package uses ComponentArrays.jl for structured parameter handling:
+Parameters are passed as `FrameAwareParams`, which bundles the frame system, epoch, and propagation frame. JD is derived from the epoch automatically:
 
 ```julia
-using ComponentArrays
-using SatelliteToolboxBase
+using FrameTransformations, Tempo
 
 JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-p = ComponentVector(; JD=JD)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
 ```
+
+### Frame Setup Utilities
+
+- `setup_inertial_frames(epoch; include_sun, include_moon, order, numtype)` — one-call setup for Earth-centric inertial propagation: creates an ICRF frame system with Earth, optional Sun and Moon (Vallado analytical ephemeris), and returns a `FrameAwareParams` ready to use.
+- `create_default_frames(; order, numtype)` — creates a bare `FrameSystem` with ICRF, GCRF, and EME2000 axes (no points).
+- `add_small_body_rotating_frame!(frames, name, naif_id, parent_frame_id, rotation_axis, rotation_period)` — adds a constant-rate rotating body-fixed frame for small body propagations.
 
 ### State Vectors
 
@@ -167,7 +173,6 @@ AstroForceModels is designed to be built off packages in the SatelliteToolbox.jl
 using SatelliteToolboxBase               # Base types and constants
 using SatelliteToolboxGravityModels      # Gravity field models
 using SatelliteToolboxAtmosphericModels  # Atmospheric density models
-using SatelliteToolboxCelestialBodies    # Celestial body ephemeris
 using SatelliteToolboxGeomagneticField   # Geomagnetic field models (IGRF, dipole)
 using SatelliteToolboxTransformations    # Coordinate transformations
 ```

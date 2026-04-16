@@ -94,7 +94,7 @@ end
 Returns the fixed ion ballistic coefficient C_D,i × A / m [m²/kg].
 """
 @inline function ion_ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::CannonballFixedPlasmaDrag
+    u::AbstractVector, p, t::Number, model::CannonballFixedPlasmaDrag
 )
     return model.ballistic_coeff
 end
@@ -117,7 +117,7 @@ StatePlasmaDragModel() = StatePlasmaDragModel(7)
 Returns the ion ballistic coefficient from the state vector at `model.state_index`.
 """
 @inline function ion_ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::StatePlasmaDragModel
+    u::AbstractVector, p, t::Number, model::StatePlasmaDragModel
 )
     return u[model.state_index]
 end

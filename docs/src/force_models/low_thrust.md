@@ -30,7 +30,21 @@ Thrust can be specified in three reference frames via the `frame` field on `LowT
 
 ### InertialFrame (default)
 
-Components are expressed in the ECI/J2000 inertial frame. No rotation is applied.
+Components are expressed in the inertial frame `S` (default `:ICRF`). Construct with
+`InertialFrame()` for ICRF or `InertialFrame(:J2000)` (or any other inertial frame
+registered in `p.frames`) to name a different source frame.
+
+When `S === p.propagation_frame`, the transform is a compile-time no-op. Otherwise
+a single `rotation3` lookup against the `FrameSystem` in `p.frames` produces the DCM
+`R_{S → p.propagation_frame}` and the thrust vector is rotated into the propagation
+frame at evaluation time. This lets you keep a thrust vector fixed in ICRF while
+propagating in a rotating body-fixed frame without writing any frame code yourself.
+
+!!! note
+    For impulsive maneuvers that do not carry a `FrameAwareParams` (3-argument
+    `transform_thrust_to_state_frame` call), `InertialFrame` is an identity and is
+    only correct when the propagation frame coincides with `S`. Use `RTNFrame` or
+    `VNBFrame` for impulsive ΔV applied in a non-inertial propagation frame.
 
 ### RTNFrame (Radial–Transverse–Normal)
 
@@ -81,7 +95,13 @@ A fixed 3-component acceleration vector, interpreted in the frame specified by `
 
 #### ConstantTangentialThrust
 
-Constant-magnitude thrust directed along the velocity vector. Always returns the acceleration in the inertial frame (should be used with `InertialFrame()`). For velocity-aligned thrust in other frames, use `ConstantCartesianThrust(magnitude, 0, 0)` with `VNBFrame()`.
+Constant-magnitude thrust directed along the velocity vector. Reads `u[4:6]` directly
+and therefore returns the acceleration in the **propagation frame**, not the inertial
+frame. It is equivalent to `ConstantCartesianThrust(magnitude, 0, 0)` paired with
+`VNBFrame()`, which is the fully frame-agnostic idiom and is the recommended form for
+propagation in a non-inertial frame. Pairing this model with the default
+`InertialFrame()` is only correct when the propagation frame coincides with that
+inertial frame (the common ICRF propagation case).
 
 **Constructors:**
 - `ConstantTangentialThrust(magnitude)`: Direct acceleration magnitude [km/s²]
@@ -179,12 +199,14 @@ lt_tct = LowThrustAstroModel(;
 ```julia
 using AstroForceModels
 using SatelliteToolboxGravityModels
-using SatelliteToolboxTransformations
 
-eop_data = fetch_iers_eop()
 grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 gravity = GravityHarmonicsAstroModel(;
-    gravity_model=grav_coeffs, eop_data=eop_data, order=20, degree=20
+    gravity_model=grav_coeffs,
+    body_fixed_frame=:ITRF,
+    propagation_frame=:ICRF,
+    order=20,
+    degree=20
 )
 
 lt_model = LowThrustAstroModel(;
@@ -215,9 +237,14 @@ end
 The low-thrust acceleration computation follows two steps:
 
 1. **Thrust model evaluation**: The `AbstractThrustModel` produces a 3-component acceleration vector in the model frame
-2. **Frame transformation**: `transform_to_inertial` rotates the vector from the specified frame (Inertial, RTN, or VNB) to the ECI frame using basis vectors constructed from the spacecraft state
+2. **Frame transformation**: `transform_thrust_to_state_frame` rotates the vector from the specified frame (Inertial, RTN, or VNB) to the ECI frame using basis vectors constructed from the spacecraft state
 
-The frame transformation constructs orthonormal basis vectors directly from `r` and `v`, avoiding intermediate matrix construction for efficiency. All operations use `SVector{3}` for type stability and are marked `@inline` for performance. The `InertialFrame` transformation is a compile-time no-op.
+The RTN and VNB transformations construct orthonormal basis vectors directly from `r`
+and `v`, avoiding any frame-system lookup: they are correct in any propagation frame
+by construction. All operations use `SVector{3}` for type stability and are marked
+`@inline` for performance. The `InertialFrame` transformation is a compile-time no-op
+when `S === p.propagation_frame`, and otherwise performs a single `rotation3` lookup
+followed by a 3×3 matrix–vector product — still allocation-free.
 
 ## References
 

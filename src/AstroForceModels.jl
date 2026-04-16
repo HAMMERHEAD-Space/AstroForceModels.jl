@@ -61,13 +61,17 @@ module AstroForceModels
 using ComponentArrays, StaticArraysCore
 using LinearAlgebra
 using Lebedev
+using CelestialBodies
 using SatelliteToolboxBase
-using SatelliteToolboxCelestialBodies
 using SatelliteToolboxGravityModels
 using SatelliteToolboxAtmosphericModels
 using SatelliteToolboxTransformations
 using SatelliteToolboxGeomagneticField
 using SpaceIndices
+using FrameTransformations
+using Ephemerides
+using ReferenceFrameRotations: angleaxis_to_dcm
+using Tempo: Tempo, Epoch, j2000s, TDB, BarycentricDynamicalTime, value
 
 """
     AbstractAstroForceModel
@@ -113,6 +117,8 @@ force sources. The primary implementation is [`CentralBodyDynamicsModel`](@ref).
 """
 abstract type AbstractDynamicsModel end
 
+include("frames/frame_utils.jl")
+include("frames/frame_params.jl")
 include("constants.jl")
 include("utils.jl")
 
@@ -120,7 +126,6 @@ include("force_models/drag/satellite_shape_model.jl")
 include("force_models/drag/density_calculator.jl")
 include("force_models/drag/drag_accel.jl")
 
-include("force_models/third_body/celestial_body.jl")
 include("force_models/third_body/third_body_model.jl")
 include("force_models/third_body/third_body_accel.jl")
 
@@ -158,6 +163,58 @@ export acceleration,
     AbstractAstroForceModel,
     AbstractDynamicsModel,
     AbstractNonPotentialBasedForce,
-    AbstractPotentialBasedForce
+    AbstractPotentialBasedForce,
+    ft_time,
+    get_position,
+    get_velocity
+
+# Re-export CelestialBodies types and constructors
+export AbstractCelestialBody, CelestialBody, KeplerianCelestialBody
+export SunBody,
+    MercuryBody,
+    VenusBody,
+    EarthBody,
+    MarsBody,
+    JupiterBody,
+    SaturnBody,
+    UranusBody,
+    NeptuneBody,
+    PlutoBody,
+    MoonBody
+export MercuryKeplerianBody,
+    VenusKeplerianBody,
+    EarthKeplerianBody,
+    MarsKeplerianBody,
+    JupiterKeplerianBody,
+    SaturnKeplerianBody,
+    UranusKeplerianBody,
+    NeptuneKeplerianBody,
+    PlutoKeplerianBody,
+    MoonKeplerianBody
+export Meeus, Kepler, Vallado, add_body_point!
+
+# Re-export CelestialBodies constants
+export R_SUN,
+    R_EARTH,
+    R_MOON,
+    R_MERCURY,
+    R_VENUS,
+    R_MARS,
+    R_JUPITER,
+    R_SATURN,
+    R_URANUS,
+    R_NEPTUNE,
+    R_PLUTO
+export μ_SUN,
+    μ_EARTH,
+    μ_MOON,
+    μ_MERCURY,
+    μ_VENUS,
+    μ_MARS,
+    μ_JUPITER,
+    μ_SATURN,
+    μ_URANUS,
+    μ_NEPTUNE,
+    μ_PLUTO
 
 end

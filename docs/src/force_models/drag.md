@@ -203,8 +203,13 @@ drag_model_jb2008 = DragAstroModel(
     eop_data = eop_data
 )
 
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
 # Compute acceleration (typically called within integrator)
-acceleration(state, parameters, time, drag_model_jb2008)
+acceleration(state, p, time, drag_model_jb2008)
 ```
 
 ### Comparing Different Atmospheric Models
@@ -216,18 +221,19 @@ using ComponentArrays
 # Test state (ISS-like orbit)
 state = [6378.137 + 408.0, 0.0, 0.0, 0.0, 7.6600, 0.0]  # [km, km/s]
 JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-p = ComponentVector(; JD=JD)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
 time = 0.0
 
 # Create models with different atmospheres
 models = [
-    DragAstroModel(satellite_model, JB2008(), eop_data),
-    DragAstroModel(satellite_model, JR1971(), eop_data), 
-    DragAstroModel(satellite_model, MSIS2000(), eop_data),
-    DragAstroModel(satellite_model, HarrisPriester(), eop_data),
-    DragAstroModel(satellite_model, HarrisPriesterModified(), eop_data),
-    DragAstroModel(satellite_model, ExpAtmo(), eop_data),
-    DragAstroModel(satellite_model, NoAtmosphere(), eop_data)
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=JB2008(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=JR1971(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=MSIS2000(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=HarrisPriester(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=HarrisPriesterModified(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=ExpAtmo(), frames=frames),
+    DragAstroModel(satellite_drag_model=satellite_model, atmosphere_model=NoAtmosphere(), frames=frames)
 ]
 
 model_names = ["JB2008", "JR1971", "MSIS2000", "HarrisPriester", "HarrisPriesterModified", "ExpAtmo", "NoAtmosphere"]

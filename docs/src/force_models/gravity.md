@@ -41,14 +41,17 @@ The gravity force model in AstroForceModels provides two main implementations:
 A comprehensive model that includes spherical harmonic terms:
 
 - **gravity_model**: Contains the harmonic coefficients and reference data
-- **eop_data**: Earth orientation parameters for coordinate transformations
+- **body_fixed_frame**: The body-fixed frame symbol (e.g., `:ITRF` for Earth, `:ErosBodyFixed` for a small body)
+- **propagation_frame**: The propagation/inertial frame symbol (default: `:ICRF`)
 - **order**: Maximum order of harmonics to compute (-1 for maximum available)
 - **degree**: Maximum degree of harmonics to compute (-1 for maximum available)
+- **P**, **dP**: Optional pre-allocated Legendre polynomial buffers
 
-### KeplerianGravityAstroModel  
+### KeplerianGravityAstroModel
 
 A simplified point-mass gravity model for comparison or computational efficiency:
 
+- **μ**: Gravitational parameter of the central body [km³/s²] (required, no default)
 - Assumes perfectly spherical, uniform central body
 - Only includes the μ/r² term
 - Useful for initial orbit determination or when high precision isn't required
@@ -58,24 +61,29 @@ A simplified point-mass gravity model for comparison or computational efficiency
 ```julia
 using AstroForceModels
 using SatelliteToolboxGravityModels
-using SatelliteToolboxBase
 
 # Load a gravity model (e.g., EGM96)
 grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
-# Load Earth orientation parameters
-eop_data = fetch_iers_eop()
-
-# Create high-fidelity gravity model
+# Create high-fidelity gravity model (Earth)
 gravity_model = GravityHarmonicsAstroModel(
     gravity_model = grav_coeffs,
-    eop_data = eop_data,
+    body_fixed_frame = :ITRF,
+    propagation_frame = :ICRF,
     order = 20,    # Use up to degree/order 20
     degree = 20
 )
 
+# Create Keplerian (point-mass) gravity model
+kepler_gravity = KeplerianGravityAstroModel(μ = 398600.4415)
+
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
 # Compute acceleration (typically called within integrator)
-acceleration(state, parameters, time, gravity_model)
+acceleration(state, p, time, gravity_model)
 ```
 
 ## Gravity Models Available

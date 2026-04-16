@@ -34,3 +34,9 @@ If you use `AstroForceModels.jl` in your work, please consider citing it.
   url          = {https://doi.org/10.5281/zenodo.16954386},
 }
 ```
+
+## Acknowledgments
+
+- **SatelliteToolbox**: Atmospheric models, gravity models, geomagnetic field models, and base utilities
+- **JuliaSpaceMissionDesign**: FrameTransformations.jl, Tempo.jl, Ephemerides.jl, and the JSMD ecosystem for high-fidelity frame transformations and ephemeris handling
+- **Classical Literature**: Montenbruck & Gill, Vallado, Petit & Luzum (IERS Conventions), and others

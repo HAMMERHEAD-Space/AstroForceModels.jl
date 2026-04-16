@@ -9,7 +9,7 @@
                 thermal_model = ThermalEmissionAstroModel(;
                     satellite_thermal_model=_thermal_sat_model,
                     sun_data=_sun_model,
-                    eop_data=_eop_data,
+                    R_Occulting=AstroForceModels.R_EARTH,
                     shadow_model=shadow[2],
                 )
 
@@ -39,7 +39,7 @@ end
                 thermal_model = ThermalEmissionAstroModel(;
                     satellite_thermal_model=_thermal_sat_model,
                     sun_data=_sun_model,
-                    eop_data=_eop_data,
+                    R_Occulting=AstroForceModels.R_EARTH,
                     shadow_model=shadow[2],
                 )
 
@@ -71,7 +71,7 @@ end
                         ThermalEmissionAstroModel(;
                             satellite_thermal_model=FixedThermalEmission(x),
                             sun_data=_sun_model,
-                            eop_data=_eop_data,
+                            R_Occulting=AstroForceModels.R_EARTH,
                             shadow_model=shadow[2],
                         ),
                     ),
@@ -88,7 +88,7 @@ end
                             ThermalEmissionAstroModel(;
                                 satellite_thermal_model=FixedThermalEmission(x),
                                 sun_data=_sun_model,
-                                eop_data=_eop_data,
+                                R_Occulting=AstroForceModels.R_EARTH,
                                 shadow_model=shadow[2],
                             ),
                         ),

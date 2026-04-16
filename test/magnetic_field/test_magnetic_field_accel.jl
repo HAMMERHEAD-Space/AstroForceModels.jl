@@ -1,8 +1,7 @@
 @testset "Magnetic Field Acceleration" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
-
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
 
     state = [
         -1076.225324679696
@@ -19,7 +18,7 @@
         mag_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=charge_model,
             geomagnetic_field_model=IGRFField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel = acceleration(state, p, 0.0, mag_model)
@@ -34,7 +33,7 @@
         mag_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=charge_model,
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel = acceleration(state, p, 0.0, mag_model)
@@ -49,13 +48,13 @@
         igrf_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=charge_model,
             geomagnetic_field_model=IGRFField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         dipole_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=charge_model,
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel_igrf = acceleration(state, p, 0.0, igrf_model)
@@ -71,7 +70,7 @@
         mag_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=charge_model,
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel = acceleration(state, p, 0.0, mag_model)
@@ -92,13 +91,13 @@
         model_1 = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(q_m_1),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         model_2 = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(q_m_2),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel_1 = acceleration(state, p, 0.0, model_1)
@@ -111,7 +110,7 @@
         model = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(0.0),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel = acceleration(state, p, 0.0, model)
@@ -122,13 +121,13 @@
         model_pos = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(1e-3),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         model_neg = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(-1e-3),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel_pos = acceleration(state, p, 0.0, model_pos)
@@ -142,13 +141,13 @@
         state_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=StateChargeModel((u, p, t) -> const_q_m),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         fixed_model = MagneticFieldAstroModel(;
             spacecraft_charge_model=FixedChargeMassRatio(const_q_m),
             geomagnetic_field_model=DipoleMagneticField(),
-            eop_data=eop_data,
+            frames=p.frames,
         )
 
         accel_state = acceleration(state, p, 0.0, state_model)

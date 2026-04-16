@@ -46,14 +46,45 @@ Where `ξ = r̂ · r̂_j` is the cosine of the geocentric angle.
 
 The main struct for solid body tides computations:
 
-- **tide_raising_bodies**: Tuple of `ThirdBodyModel`s for each tide-raising body. Gravitational parameters are obtained from each body's `CelestialBody` definition.
+- **tide_raising_bodies**: Tuple of `ThirdBodyModel`s for each tide-raising body (uses `FrameEphemeris`). Gravitational parameters are obtained from each body's `CelestialBody` definition.
 - **k2**: Degree-2 Love number (default: 0.30190, IERS 2010 anelastic)
 - **k3**: Degree-3 Love number (default: 0.093, IERS 2010)
 - **k2_plus**: Degree-2 to degree-4 coupling Love number (default: 0.0)
-- **R_e**: Central body equatorial radius in km (default: Earth)
+- **R_e**: Central body equatorial radius in km (required, no default -- must be specified explicitly)
 - **include_degree_3**: Include degree-3 contribution (default: true)
 
-The model accepts any number of tide-raising bodies as a tuple of `ThirdBodyModel`s, enabling use with any central body — not just Earth.
+The model accepts any number of tide-raising bodies as a tuple of `ThirdBodyModel`s, enabling use with any central body -- not just Earth. Each `ThirdBodyModel` uses a `FrameEphemeris` to compute body positions via the FrameSystem.
+
+## Usage Example
+
+```julia
+using AstroForceModels
+using Tempo, ComponentArrays
+
+# Create tide-raising body models
+moon = ThirdBodyModel(
+    body = MoonBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=301, axes=:ICRF)
+)
+sun = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF)
+)
+
+# Create solid body tides model (R_e must be specified explicitly)
+tides_model = SolidBodyTidesModel(
+    tide_raising_bodies = (moon, sun),
+    R_e = R_EARTH,        # Central body equatorial radius [km]
+)
+
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
+# Compute acceleration
+acceleration(state, p, time, tides_model)
+```
 
 ## Magnitude of Effects
 

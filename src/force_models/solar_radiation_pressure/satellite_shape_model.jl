@@ -109,7 +109,7 @@ Returns the ballistic coefficient for a SRP model given the model and current st
 
 """
 @inline function reflectivity_ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::CannonballFixedSRP
+    u::AbstractVector, p, t::Number, model::CannonballFixedSRP
 )
     return model.reflectivity_ballistic_coeff
 end
@@ -136,7 +136,7 @@ StateSRPModel() = StateSRPModel(8)
 Returns the reflectivity ballistic coefficient from the state vector at `model.state_index`.
 """
 @inline function reflectivity_ballistic_coefficient(
-    u::AbstractVector, p::AbstractVector, t::Number, model::StateSRPModel
+    u::AbstractVector, p, t::Number, model::StateSRPModel
 )
     return u[model.state_index]
 end

@@ -9,7 +9,7 @@
                 srp_model = SRPAstroModel(;
                     satellite_srp_model=_satellite_srp_model,
                     sun_data=_sun_model,
-                    eop_data=_eop_data,
+                    R_Occulting=AstroForceModels.R_EARTH,
                     shadow_model=shadow[2],
                 )
 
@@ -39,7 +39,7 @@ end
                 srp_model = SRPAstroModel(;
                     satellite_srp_model=_satellite_srp_model,
                     sun_data=_sun_model,
-                    eop_data=_eop_data,
+                    R_Occulting=AstroForceModels.R_EARTH,
                     shadow_model=shadow[2],
                 )
 
@@ -71,7 +71,7 @@ end
                         SRPAstroModel(;
                             satellite_srp_model=CannonballFixedSRP(x),
                             sun_data=_sun_model,
-                            eop_data=_eop_data,
+                            R_Occulting=AstroForceModels.R_EARTH,
                             shadow_model=shadow[2],
                         ),
                     ),
@@ -88,7 +88,7 @@ end
                             SRPAstroModel(;
                                 satellite_srp_model=CannonballFixedSRP(x),
                                 sun_data=_sun_model,
-                                eop_data=_eop_data,
+                                R_Occulting=AstroForceModels.R_EARTH,
                                 shadow_model=shadow[2],
                             ),
                         ),

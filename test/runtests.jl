@@ -8,11 +8,18 @@ using SatelliteToolboxGravityModels
 using SatelliteToolboxTransformations
 using SpaceIndices
 using StaticArraysCore
+using FrameTransformations
+using Tempo
 using Test
+
+# Resolve J2000 ambiguity between SatelliteToolboxTransformations and Tempo
+const J2000 = SatelliteToolboxTransformations.J2000
 
 using AllocCheck
 using Aqua
 using JET
+
+include("test_helpers.jl")
 
 @testset "AstroForceModels.jl" begin
     # Drag Tests
@@ -55,6 +62,9 @@ using JET
     include("low_thrust/test_thrust_model.jl")
     include("low_thrust/test_low_thrust_accel.jl")
 
+    # Frame Utilities
+    include("frames/test_frame_utils.jl")
+
     # Dynamics Builder
     include("test_dynamics_builder.jl")
 end
@@ -86,7 +96,13 @@ if _DIFF_ENV ∉ ("false", "")
         using Enzyme
         push!(
             _backend_list,
-            ("Enzyme", AutoEnzyme(; mode=Enzyme.set_runtime_activity(Enzyme.Forward))),
+            (
+                "Enzyme",
+                AutoEnzyme(;
+                    mode=Enzyme.set_runtime_activity(Enzyme.Forward),
+                    function_annotation=Enzyme.Duplicated,
+                ),
+            ),
         )
     end
     if _need("Mooncake")

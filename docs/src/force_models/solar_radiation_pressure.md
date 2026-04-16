@@ -90,13 +90,46 @@ The SRP force model in AstroForceModels includes several components:
 The main struct that encapsulates SRP parameters:
 
 - **satellite_srp_model**: Spacecraft optical and geometric properties
-- **sun_data**: Solar position calculation methods  
-- **eop_data**: Earth orientation parameters
-- **shadow_model**: Eclipse/shadow calculation method
-- **R_Sun**: Solar radius (default: 695,700 km)
-- **R_Occulting**: Occulting body radius (default: Earth radius)
-- **Ψ**: Solar flux constant (default: 1361 W/m²)
-- **AU**: Astronomical unit for distance scaling
+- **sun_data**: `ThirdBodyModel` for computing the Sun's position (uses `FrameEphemeris`)
+- **shadow_model**: Eclipse/shadow calculation method (default: `Conical()`)
+- **R_Sun**: Solar radius [km] (default: 695,700 km)
+- **R_Occulting**: Radius of the central (propagation-body) occulter [km] — required, no default. Use `R_EARTH` for Earth-orbiting missions, `R_mars` for Mars orbiters, etc.
+- **additional_occulters**: Tuple of [`OccultingBody`](@ref) entries for bodies *other than* the central body that can eclipse the Sun (e.g. the Moon for a cislunar / NRHO / Lunar Gateway orbit, Jupiter for a Jovian-moon orbiter). Default: `()` (no extra occulters, zero overhead).
+- **Ψ**: Solar flux constant at 1 AU [N/m²] (default: 1361 W/m²)
+- **AU**: Astronomical unit [km]
+
+### Multi-Body Shadowing
+
+By default the shadow model assumes the **central** (propagation-origin) body is the
+only occulter. For mission geometries where a second body can also eclipse the Sun —
+cislunar orbits, binary-asteroid systems, Jovian-moon spacecraft — populate
+`additional_occulters` with one [`OccultingBody`](@ref) per extra body:
+
+```julia
+# Propagating around Earth, with the Moon as an additional occulter.
+moon_tb = ThirdBodyModel(;
+    body = MoonBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=301, axes=:ICRF),
+    frames = frames,   # pre-compiles Earth→Moon translation for alloc-free eval
+)
+
+srp = SRPAstroModel(;
+    satellite_srp_model = CannonballFixedSRP(0.03),
+    sun_data            = sun_model,
+    shadow_model        = Conical(),
+    R_Occulting         = R_EARTH,
+    additional_occulters = (OccultingBody(moon_tb, R_MOON),),
+)
+```
+
+**Combination rule.** The spacecraft lighting factor is the *product* of per-body
+shadow factors: `F = F_central * ∏ F_i`. This yields the correct limits (any full
+eclipse → 0, all-clear → 1), is smooth (AD-friendly — important for
+`SmoothedConical`), and has zero overhead when `additional_occulters = ()` thanks to
+compile-time tuple recursion (`@check_allocs` passes).
+
+**Use for `ThermalEmissionAstroModel` as well.** The thermal-emission model exposes
+an identical `additional_occulters` field and honors the same combination rule.
 
 ### Satellite Shape Models
 
@@ -124,7 +157,7 @@ Relationship: α + ρ_s + ρ_d = 1
 
 ```julia
 using AstroForceModels
-using SatelliteToolboxCelestialBodies
+using Tempo, ComponentArrays
 
 # Define spacecraft optical properties using fixed reflectivity coefficient
 satellite_model = CannonballFixedSRP(
@@ -133,24 +166,28 @@ satellite_model = CannonballFixedSRP(
     reflectivity_coeff = 1.3  # radiation pressure coefficient
 )
 
-# Load Earth orientation parameters  
-eop_data = fetch_iers_eop()
+# Create Sun position model using FrameEphemeris
+sun_model = ThirdBodyModel(
+    body = SunBody(),
+    ephem_type = FrameEphemeris(center_point=399, target_point=10, axes=:ICRF)
+)
 
-# Create Sun position model
-sun_model = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-
-# Create SRP models with different shadow models
-
-# High-precision model with penumbra effects
+# Create SRP model with conical shadow model
+# R_Occulting must be specified explicitly (no default)
 srp_model_conical = SRPAstroModel(
     satellite_srp_model = satellite_model,
     sun_data = sun_model,
-    eop_data = eop_data,
     shadow_model = Conical(),    # Most accurate shadow model
+    R_Occulting = R_EARTH,       # Occulting body radius for Earth
 )
 
+# Set up frame-aware parameters (see examples for full frame setup)
+JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
+epoch = Epoch((JD - 2451545.0) * 86400.0, TDB)
+p = FrameAwareParams(frames, epoch, :ICRF)
+
 # Compute acceleration (typically called within integrator)
-acceleration(state, parameters, time, srp_model_conical)
+acceleration(state, p, time, srp_model_conical)
 ```
 
 ## Implementation Details

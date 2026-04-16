@@ -5,19 +5,22 @@
 #
 #   Acceleration from Earth Albedo Radiation Pressure
 #
+#   NOTE: This model is inherently Earth-specific. The albedo coefficients, surface
+#   positions, and quadrature are designed for Earth. Use only for Earth-orbiting spacecraft.
+#
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #
 # References
 # ==========================================================================================
 #
-#   [1] Knocke, P. C., Ries, J. C., and Tapley, B. D. (1988). "Earth radiation pressure 
+#   [1] Knocke, P. C., Ries, J. C., and Tapley, B. D. (1988). "Earth radiation pressure
 #       effects on satellites." Proceedings of AIAA/AAS Astrodynamics Conference, pp. 577-587.
-#   [2] Borderies, N., & Longaretti, P. Y. (1990). "A new treatment of the albedo radiation 
-#       pressure in the case of a uniform albedo and of a spherical satellite." 
+#   [2] Borderies, N., & Longaretti, P. Y. (1990). "A new treatment of the albedo radiation
+#       pressure in the case of a uniform albedo and of a spherical satellite."
 #       Celestial Mechanics and Dynamical Astronomy, 49(1), 69-98.
-#   [3] Rubincam, D. P., & Weiss, N. R. (1986). "Earth albedo and the orbit of Lageos." 
+#   [3] Rubincam, D. P., & Weiss, N. R. (1986). "Earth albedo and the orbit of Lageos."
 #       Celestial Mechanics, 38(3), 233-296.
-#   [4] Vielberg, K., & Kusche, J. (2020). "Extended forward and inverse modeling of 
+#   [4] Vielberg, K., & Kusche, J. (2020). "Extended forward and inverse modeling of
 #       radiation pressure accelerations for LEO satellites." Journal of Geodesy, 94(4), 1-29.
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -31,49 +34,44 @@ Abstract type for albedo radiation models used in albedo force calculations.
 abstract type AbstractAlbedoModel{AT<:Number,ET<:Number} end
 
 """
-Uniform Albedo Model struct
+    UniformAlbedoModel
+
 Simple uniform albedo model with constant reflection and emission coefficients.
 
 # Fields
-- `visible_albedo::Number`: Visible light albedo coefficient (0-1)
-- `infrared_emissivity::Number`: Infrared emissivity coefficient (0-1)
-
-# Default Values
-The default values (visible_albedo=0.3, infrared_emissivity=0.7) represent commonly 
-accepted Earth-averaged values used in astrodynamics literature. These are based on 
-Earth radiation budget studies and are referenced in works such as Knocke et al. (1988), 
-Borderies & Longaretti (1990), and other albedo radiation pressure studies. The 0.3 
-value represents approximately 30% of incoming solar radiation being reflected, while 
-0.7 represents Earth's average thermal emission characteristics.
+- `visible_albedo::Number`: Visible light albedo coefficient (0-1). Default: 0.3.
+- `infrared_emissivity::Number`: Infrared emissivity coefficient (0-1). Default: 0.7.
 """
 Base.@kwdef struct UniformAlbedoModel{AT,ET} <: AbstractAlbedoModel{AT,ET}
-    visible_albedo::AT = 0.3      # Earth's average visible albedo (literature consensus)
-    infrared_emissivity::ET = 0.7 # Earth's average infrared emissivity (literature consensus)
+    visible_albedo::AT = 0.3
+    infrared_emissivity::ET = 0.7
 end
 
 """
-Albedo Astro Model struct
-Contains information to compute the acceleration from Earth albedo radiation pressure.
+    AlbedoAstroModel
 
-Surface positions are pre-computed at construction time on a spherical Earth using Lebedev
-quadrature points, eliminating expensive geodetic conversions from the integration loop.
+Earth albedo radiation pressure force model.
+
+Earth-only: requires ITRF frame in FrameSystem for ECEF↔ECI rotation.
+Surface positions are pre-computed at construction time using Lebedev quadrature.
 
 # Fields
-- `satellite_shape_model::AbstractSatelliteSRPModel`: The satellite shape model for computing the ballistic coefficient.
-- `sun_data::ThirdBodyModel`: The data to compute the Sun's position.
-- `body_albedo_model::AbstractAlbedoModel{<:Number, <:Number}`: The Earth albedo radiation model.
-- `eop_data::EopIau1980`: Earth orientation parameters.
+- `satellite_shape_model`: Satellite SRP model for reflectivity coefficient.
+- `sun_data::ThirdBodyModel`: Sun position model.
+- `body_albedo_model`: Earth albedo radiation model.
+- `body_fixed_frame::Symbol`: Body-fixed frame for rotating surface positions (e.g., `:ITRF`).
+- `propagation_frame::Symbol`: Propagation frame (e.g., `:ICRF`).
 - `solar_irradiance::Number`: Solar irradiance at 1 AU [W/m²].
 - `speed_of_light::Number`: Speed of light [km/s].
-- `surface_positions_ecef::Vector{SVector{3,Float64}}`: Pre-computed surface element positions in ECEF [km].
-- `weights::Vector{Float64}`: Scaled Lebedev quadrature weights.
+- `AU::Number`: Astronomical Unit [km].
+- `surface_positions_ecef`: Pre-computed ECEF surface positions [km].
+- `weights`: Scaled Lebedev quadrature weights.
 """
-struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,PT,WT} <:
+struct AlbedoAstroModel{ST,SDT,EAT,SFT,CT,AUT,PT,WT,CR3} <:
        AbstractNonPotentialBasedForce where {
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
     EAT<:AbstractAlbedoModel,
-    EoT<:EopIau1980,
     SFT<:Number,
     CT<:Number,
     AUT<:Number,
@@ -83,15 +81,17 @@ struct AlbedoAstroModel{ST,SDT,EAT,EoT,SFT,CT,AUT,PT,WT} <:
     satellite_shape_model::ST
     sun_data::SDT
     body_albedo_model::EAT
-    eop_data::EoT
+    body_fixed_frame::Symbol
+    propagation_frame::Symbol
 
     solar_irradiance::SFT
     speed_of_light::CT
     AU::AUT
 
     # Pre-computed at construction time
-    surface_positions_ecef::PT  # Surface element positions in ECEF [km]
-    weights::WT                 # Scaled integration weights (4π × Lebedev weights)
+    surface_positions_ecef::PT
+    weights::WT
+    compiled_rotation3::CR3
 end
 
 # Constructor
@@ -99,17 +99,18 @@ function AlbedoAstroModel(;
     satellite_shape_model::ST,
     sun_data::SDT,
     body_albedo_model::EAT,
-    eop_data::EoT,
+    body_fixed_frame::Symbol=:ITRF,
+    propagation_frame::Symbol=:ICRF,
     solar_irradiance::SFT=SOLAR_IRRADIANCE,
     speed_of_light::CT=SPEED_OF_LIGHT,
     AU::AUT=ASTRONOMICAL_UNIT / 1E3,
     lebedev_order::Int=125,
     radius::T=R_EARTH,
+    frames=nothing,
 ) where {
     ST<:AbstractSatelliteSRPModel,
     SDT<:ThirdBodyModel,
     EAT<:AbstractAlbedoModel,
-    EoT<:EopIau1980,
     SFT<:Number,
     CT<:Number,
     AUT<:Number,
@@ -118,9 +119,6 @@ function AlbedoAstroModel(;
     x_coords, y_coords, z_coords, lebedev_weights = lebedev_by_order(lebedev_order)
     n_points = length(lebedev_weights)
 
-    # Pre-compute surface positions in ECEF using spherical Earth approximation.
-    # Lebedev (x,y,z) are unit vectors on the sphere, so R_EARTH * point gives
-    # the surface position directly -- no geodetic conversion needed at runtime.
     surface_positions_ecef = [
         SVector{3,T}(radius * x_coords[i], radius * y_coords[i], radius * z_coords[i]) for
         i in 1:n_points
@@ -128,43 +126,59 @@ function AlbedoAstroModel(;
 
     scaled_weights = 4π .* lebedev_weights
 
+    cr3 = nothing
+    if !isnothing(frames) && body_fixed_frame != propagation_frame
+        cr3 = compile_rotation(frames, body_fixed_frame, propagation_frame, Val(1))
+    end
+
     return AlbedoAstroModel{
-        ST,SDT,EAT,EoT,SFT,CT,AUT,typeof(surface_positions_ecef),typeof(scaled_weights)
+        ST,
+        SDT,
+        EAT,
+        SFT,
+        CT,
+        AUT,
+        typeof(surface_positions_ecef),
+        typeof(scaled_weights),
+        typeof(cr3),
     }(
         satellite_shape_model,
         sun_data,
         body_albedo_model,
-        eop_data,
+        body_fixed_frame,
+        propagation_frame,
         solar_irradiance,
         speed_of_light,
         AU,
         surface_positions_ecef,
         scaled_weights,
+        cr3,
     )
 end
 
 """
-    acceleration(u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel)
+    acceleration(u::AbstractVector, p::FrameAwareParams, t::Number, albedo_model::AlbedoAstroModel)
 
-Computes the albedo acceleration acting on a spacecraft given an albedo model and current state and 
-parameters of an object.
+Computes the albedo acceleration acting on a spacecraft.
 
-# Arguments
-- `u::AbstractVector`: Current State of the simulation.
-- `p::ComponentVector`: Current parameters of the simulation.
-- `t::Number`: Current time of the simulation.
-- `albedo_model::AlbedoAstroModel`: Albedo model struct containing the relevant information to compute the acceleration.
+Earth-only. Requires ITRF frame in the FrameSystem.
 
 # Returns
-- `acceleration: SVector{3}`: The 3-dimensional albedo acceleration acting on the spacecraft.
+- `SVector{3}`: Albedo acceleration [km/s²].
 """
 function acceleration(
-    u::AbstractVector, p::ComponentVector, t::Number, albedo_model::AlbedoAstroModel
+    u::AbstractVector, p::FrameAwareParams, t::Number, albedo_model::AlbedoAstroModel
 )
-    jd = current_jd(p, t)
+    t_ft = ft_time(p, t)
 
-    # Compute the Sun's position (convert from m to km)
-    sun_pos = albedo_model.sun_data(jd, Position()) ./ 1E3
+    # Get Sun position from FrameSystem
+    sun_pos = get_position(
+        albedo_model.sun_data.ephem_type,
+        albedo_model.sun_data.body,
+        p.frames,
+        t_ft,
+        albedo_model.sun_data.compiled_vector3,
+    )
 
     # Compute the reflectivity ballistic coefficient
     RC = reflectivity_ballistic_coefficient(u, p, t, albedo_model.satellite_shape_model)
@@ -174,60 +188,26 @@ function acceleration(
         u,
         sun_pos,
         RC,
-        jd,
+        p.frames,
+        t_ft,
         albedo_model.body_albedo_model,
-        albedo_model.eop_data,
+        albedo_model.body_fixed_frame,
+        albedo_model.propagation_frame,
         albedo_model.surface_positions_ecef,
         albedo_model.weights;
         solar_irradiance=albedo_model.solar_irradiance,
         AU=albedo_model.AU,
         speed_of_light=albedo_model.speed_of_light,
+        compiled_rotation3=albedo_model.compiled_rotation3,
     )
 end
 
 """
-    albedo_accel(
-        u::AbstractVector, 
-        sun_pos::AbstractVector, 
-        RC::Number, 
-        current_time::Number,
-        body_albedo_model::AbstractAlbedoModel,
-        eop_data::EopIau1980,
-        surface_positions_ecef::AbstractVector,
-        weights::AbstractVector;
-        solar_irradiance::Number=SOLAR_IRRADIANCE,
-        speed_of_light::Number=SPEED_OF_LIGHT,
-        AU::Number=ASTRONOMICAL_UNIT / 1E3
-    )
+    albedo_accel(u, sun_pos, RC, frames, t_ft, body_albedo_model, body_fixed_frame, propagation_frame, surface_positions_ecef, weights; kwargs...)
 
 Compute the acceleration from Earth albedo radiation pressure using Lebedev quadrature.
 
-Earth albedo radiation pressure arises from two sources:
-1. Solar radiation reflected by Earth's surface (shortwave, albedo component)
-2. Thermal radiation emitted by Earth (longwave, infrared component)
-
-The total acceleration is computed by integrating over the Earth's surface visible 
-to the satellite (field of view), considering both reflected and emitted radiation.
-Surface element positions are pre-computed in ECEF at construction time and rotated
-to ECI once per evaluation step, using dot products for all angle computations.
-
-Mathematical formulation based on Knocke et al. (1988):
-    a_albedo = RC * ∫∫ [F_SW + F_LW] * cos(α) * dΩ / (π * c * r²) / 1E3
-
-# Arguments
-- `u::AbstractVector`: The current state of the spacecraft in the central body inertial frame [km, km/s].
-- `sun_pos::AbstractVector`: The current position of the Sun [km].
-- `RC::Number`: The reflectivity ballistic coefficient of the satellite [m²/kg].
-- `current_time::Number`: The current Julian date.
-- `body_albedo_model::AbstractAlbedoModel`: Earth albedo radiation model.
-- `eop_data::EopIau1980`: Earth orientation parameters.
-- `surface_positions_ecef::AbstractVector`: Pre-computed ECEF surface element positions [km].
-- `weights::AbstractVector`: Pre-computed scaled integration weights.
-
-# Keyword Arguments
-- `solar_irradiance::Number`: Solar irradiance at 1 AU [W/m²]. Default: `SOLAR_IRRADIANCE`.
-- `speed_of_light::Number`: Speed of light [km/s]. Default: `SPEED_OF_LIGHT`.
-- `AU::Number`: Astronomical Unit [km]. Default: `ASTRONOMICAL_UNIT / 1E3`.
+Earth-only. Uses FrameSystem rotation instead of EOP data.
 
 # Returns
 - `SVector{3}`: Inertial acceleration from albedo radiation pressure [km/s²].
@@ -236,21 +216,23 @@ function albedo_accel(
     u::AbstractVector{UT},
     sun_pos::AbstractVector{ST},
     RC::RCT,
-    current_time::TT,
+    frames,
+    t_ft::TT,
     body_albedo_model::BAM,
-    eop_data::EoT,
+    body_fixed_frame::Symbol,
+    propagation_frame::Symbol,
     surface_positions_ecef::SPT,
     weights::WT;
     solar_irradiance::SFT=SOLAR_IRRADIANCE,
     AU::AUT=ASTRONOMICAL_UNIT / 1E3,
     speed_of_light::CT=SPEED_OF_LIGHT,
+    compiled_rotation3=nothing,
 ) where {
     UT<:Number,
     ST<:Number,
     RCT<:Number,
     TT<:Number,
     BAM<:AbstractAlbedoModel,
-    EoT<:EopIau1980,
     SPT<:AbstractVector{<:AbstractVector{<:Number}},
     WT<:AbstractVector{<:Number},
     SFT<:Number,
@@ -261,7 +243,13 @@ function albedo_accel(
 
     sat_pos = SVector{3,RT}(u[1], u[2], u[3])
 
-    R_ECEF2ECI = r_ecef_to_eci(ITRF(), J2000(), current_time, eop_data)
+    # Get rotation from body-fixed to propagation frame
+    R_rot = if isnothing(compiled_rotation3)
+        rotation3(frames, body_fixed_frame, propagation_frame, t_ft)
+    else
+        compiled_rotation3(t_ft)
+    end
+    R_ECEF2ECI = R_rot.m[1]
 
     inv_c_mps = 1 / (speed_of_light * 1E3)
     inv_pi = 1 / π
@@ -333,18 +321,9 @@ end
 end
 
 """
-    compute_earth_radiation_fluxes(
-        body_albedo_model::UniformAlbedoModel, 
-        cos_solar_zenith::Number, 
-        irradiance_at_earth::Number
-    )
+    compute_earth_radiation_fluxes(body_albedo_model::UniformAlbedoModel, cos_solar_zenith, irradiance_at_earth)
 
 Compute the total radiation flux (shortwave + longwave) from a surface element.
-
-# Arguments
-- `body_albedo_model::UniformAlbedoModel`: Earth albedo model with uniform coefficients.
-- `cos_solar_zenith::Number`: Cosine of solar zenith angle at surface element.
-- `irradiance_at_earth::Number`: Solar irradiance at Earth's distance [W/m²].
 
 # Returns
 - `Number`: Total outgoing flux [W/m²].

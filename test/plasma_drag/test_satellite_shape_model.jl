@@ -1,4 +1,6 @@
 @testset "Plasma Drag Satellite Shape Models" begin
+    p = setup_inertial_frames(Epoch(0.0, TDB); include_sun=false, include_moon=false)
+
     @testset "CannonballFixedPlasmaDrag" begin
         # From precomputed ballistic coefficient
         model = CannonballFixedPlasmaDrag(0.025)
@@ -13,7 +15,6 @@
 
         # Ballistic coefficient accessor
         u = zeros(6)
-        p = ComponentVector(; JD=0.0)
         @test ion_ballistic_coefficient(u, p, 0.0, model2) ≈ model2.ballistic_coeff
 
         # Argument validation
@@ -26,7 +27,6 @@
     @testset "StatePlasmaDragModel" begin
         model = StatePlasmaDragModel()
         u = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05]
-        p = ComponentVector(; JD=0.0)
         @test ion_ballistic_coefficient(u, p, 0.0, model) ≈ 0.05
 
         # Custom index

@@ -1,27 +1,33 @@
 @testset "Dynamics Builder" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
-    p = ComponentVector(; JD=JD)
 
     SpaceIndices.init()
     eop_data = fetch_iers_eop()
+    p = create_test_params(; JD=JD, eop_data=eop_data)
     grav_coeffs = GravityModels.load(IcgemFile, fetch_icgem_file(:EGM96))
 
     grav_model = GravityHarmonicsAstroModel(;
-        gravity_model=grav_coeffs, eop_data=eop_data, order=36, degree=36
+        gravity_model=grav_coeffs,
+        body_fixed_frame=:ITRF,
+        propagation_frame=:ICRF,
+        order=36,
+        degree=36,
     )
-    sun_third_body = ThirdBodyModel(; body=SunBody(), eop_data=eop_data)
-    moon_third_body = ThirdBodyModel(; body=MoonBody(), eop_data=eop_data)
+    sun_third_body = test_sun_model()
+    moon_third_body = test_moon_model()
 
     satellite_srp_model = CannonballFixedSRP(0.2)
     srp_model = SRPAstroModel(;
-        satellite_srp_model=satellite_srp_model, sun_data=sun_third_body, eop_data=eop_data
+        satellite_srp_model=satellite_srp_model,
+        sun_data=sun_third_body,
+        R_Occulting=AstroForceModels.R_EARTH,
     )
 
     satellite_drag_model = CannonballFixedDrag(0.2)
     drag_model = DragAstroModel(;
         satellite_drag_model=satellite_drag_model,
         atmosphere_model=JB2008(),
-        eop_data=eop_data,
+        frames=p.frames,
     )
 
     state = [
