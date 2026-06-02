@@ -4,7 +4,7 @@
 # and then stalls. The package's runtime code itself analyzes/tests cleanly, so this
 # is a JET/LoweredCodeUtils-vs-Julia-1.12 limitation. Run the static analysis on
 # 1.10/1.11 and skip it on 1.12+ until the upstream issue is resolved.
-const _SKIP_JET = VERSION == v"1.12"
+const _SKIP_JET = VERSION >= v"1.12"
 
 if _SKIP_JET
     @info "Skipping JET.test_package on Julia $(VERSION): JET/LoweredCodeUtils definition scan hangs on 1.12+."
