@@ -1,3 +1,34 @@
+# AllocCheck reports spurious `jl_get_pgcstack_static` "allocating runtime
+# call"s on macOS aarch64 with Julia 1.12+. These are not real heap allocations:
+# the analyzed code is allocation-free on every other platform/version (Linux,
+# Windows, and macOS on Julia 1.10/1.11). This is a known AllocCheck/Julia
+# limitation, so the checks are skipped on the affected platform.
+# Ref: https://github.com/SciML/SciMLStructures.jl/issues/59
+const _SKIP_ALLOCCHECK = Sys.isapple() && Sys.ARCH === :aarch64 && VERSION >= v"1.12"
+
+if _SKIP_ALLOCCHECK
+    @info "Skipping AllocCheck allocation tests (spurious jl_get_pgcstack_static reports on macOS aarch64 + Julia 1.12+; see SciML/SciMLStructures.jl#59)."
+end
+
+# Wrapper around `check_allocs` that honors the platform skip and, when real
+# allocations are detected, dumps the full vector (with backtraces) to stdout so
+# CI logs reveal exactly what is allocating.
+function checked_allocs(f, types)
+    _SKIP_ALLOCCHECK && return ()
+    allocs = check_allocs(f, types)
+    if !isempty(allocs)
+        printstyled(stdout, "\n[ALLOC] "; color=:red, bold=true)
+        println(stdout, f, " with ", types, " => ", length(allocs), " allocation(s)")
+        for (i, a) in enumerate(allocs)
+            println(stdout, "  ──────── allocation ", i, " ────────")
+            show(stdout, MIME"text/plain"(), a)
+            println(stdout)
+        end
+        flush(stdout)
+    end
+    return allocs
+end
+
 @testset "Drag Allocations" begin
     JD = date_to_jd(2024, 1, 5, 12, 0, 0.0)
     p = ComponentVector(; JD=JD)
@@ -23,8 +54,11 @@
         eop_data=eop_data,
     )
 
-    @check_allocs dg_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test dg_accel(state, p, t, drag_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(drag_model))
+        ),
+    ) == 0
 end
 
 @testset "Gravitational Allocations" begin
@@ -53,19 +87,11 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    @check_allocs zon_accel(state, p, t, grav_model) = acceleration(state, p, t, grav_model)
+    grav_types = (typeof(state), typeof(p), typeof(t), typeof(grav_model))
 
-    @test zon_accel(state, p, t, grav_model) isa SVector
-
-    @check_allocs pot_accel(state, p, t, grav_model) = potential(state, p, t, grav_model)
-
-    @test pot_accel(state, p, t, grav_model) isa Number
-
-    @check_allocs pot_time_accel(state, p, t, grav_model) = potential_time_derivative(
-        state, p, t, grav_model
-    )
-
-    @test pot_time_accel(state, p, t, grav_model) isa Number
+    @test length(checked_allocs(acceleration, grav_types)) == 0
+    @test length(checked_allocs(potential, grav_types)) == 0
+    @test length(checked_allocs(potential_time_derivative, grav_types)) == 0
 end
 
 @testset "Relativity Allocations" begin
@@ -87,29 +113,34 @@ end
         schwarzschild_effect=false, lense_thirring_effect=true, de_Sitter_effect=false
     )
 
-    @check_allocs lense_thirr_accel(state, p, t, satellite_lense_thirring_model) = acceleration(
-        state, p, t, satellite_lense_thirring_model
-    )
-
-    @test lense_thirr_accel(state, p, t, satellite_lense_thirring_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration,
+            (typeof(state), typeof(p), typeof(t), typeof(satellite_lense_thirring_model)),
+        ),
+    ) == 0
 
     satellite_de_sitter_model = RelativityModel(;
         schwarzschild_effect=false, lense_thirring_effect=false, de_Sitter_effect=true
     )
 
-    @check_allocs de_sitt_accel(state, p, t, satellite_de_sitter_model) = acceleration(
-        state, p, t, satellite_de_sitter_model
-    )
-    @test de_sitt_accel(state, p, t, satellite_de_sitter_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration,
+            (typeof(state), typeof(p), typeof(t), typeof(satellite_de_sitter_model)),
+        ),
+    ) == 0
 
     satellite_schwarzschild_model = RelativityModel(;
         schwarzschild_effect=true, lense_thirring_effect=false, de_Sitter_effect=false
     )
 
-    @check_allocs schwartz_accel(state, p, t, satellite_schwarzschild_model) = acceleration(
-        state, p, t, satellite_schwarzschild_model
-    )
-    @test schwartz_accel(state, p, t, satellite_schwarzschild_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration,
+            (typeof(state), typeof(p), typeof(t), typeof(satellite_schwarzschild_model)),
+        ),
+    ) == 0
 end
 
 @testset "SRP Allocations" begin
@@ -135,9 +166,11 @@ end
     srp_model = SRPAstroModel(;
         satellite_srp_model=satellite_srp_model, sun_data=sun_model, eop_data=eop_data
     )
-    @check_allocs sr_accel(state, p, t, srp_model) = acceleration(state, p, t, srp_model)
-
-    @test sr_accel(state, p, t, srp_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(srp_model))
+        ),
+    ) == 0
 end
 
 @testset "Third Body Allocations" begin
@@ -158,15 +191,17 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    @check_allocs sun_3body_accel(state, p, t, sun_third_body) = acceleration(
-        state, p, t, sun_third_body
-    )
-    @check_allocs moon_3body_accel(state, p, t, moon_third_body) = acceleration(
-        state, p, t, moon_third_body
-    )
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(sun_third_body))
+        ),
+    ) == 0
 
-    @test sun_3body_accel(state, p, t, sun_third_body) isa SVector
-    @test moon_3body_accel(state, p, t, moon_third_body) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(moon_third_body))
+        ),
+    ) == 0
 end
 
 @testset "Low Thrust Allocations" begin
@@ -186,24 +221,36 @@ end
     cartesian_model = LowThrustAstroModel(;
         thrust_model=ConstantCartesianThrust(1e-7, 2e-7, 3e-7)
     )
-    @check_allocs cart_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test cart_accel(state, p, t, cartesian_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(cartesian_model))
+        ),
+    ) == 0
 
     tangential_model = LowThrustAstroModel(; thrust_model=ConstantTangentialThrust(1e-7))
-    @check_allocs tang_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test tang_accel(state, p, t, tangential_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(tangential_model))
+        ),
+    ) == 0
 
     rtn_model = LowThrustAstroModel(;
         thrust_model=ConstantCartesianThrust(0.0, 1e-7, 0.0), frame=RTNFrame()
     )
-    @check_allocs rtn_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test rtn_accel(state, p, t, rtn_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(rtn_model))
+        ),
+    ) == 0
 
     vnb_model = LowThrustAstroModel(;
         thrust_model=ConstantCartesianThrust(1e-7, 0.0, 0.0), frame=VNBFrame()
     )
-    @check_allocs vnb_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test vnb_accel(state, p, t, vnb_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(vnb_model))
+        ),
+    ) == 0
 
     pw_model = LowThrustAstroModel(;
         thrust_model=PiecewiseConstantThrust(
@@ -216,8 +263,11 @@ end
         ),
         frame=RTNFrame(),
     )
-    @check_allocs pw_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test pw_accel(state, p, t, pw_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(pw_model))
+        ),
+    ) == 0
 end
 
 @testset "Plasma Drag Allocations" begin
@@ -243,8 +293,11 @@ end
         eop_data=eop_data,
     )
 
-    @check_allocs pd_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test pd_accel(state, p, t, plasma_drag_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(plasma_drag_model))
+        ),
+    ) == 0
 
     plasma_drag_const = PlasmaDragAstroModel(;
         satellite_plasma_drag_model=satellite_plasma_drag_model,
@@ -252,8 +305,11 @@ end
         eop_data=eop_data,
     )
 
-    @check_allocs pd_const_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test pd_const_accel(state, p, t, plasma_drag_const) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(plasma_drag_const))
+        ),
+    ) == 0
 end
 
 @testset "Solid Earth Tides Allocations" begin
@@ -273,8 +329,11 @@ end
 
     tides_model = SolidBodyTidesModel(eop_data)
 
-    @check_allocs tides_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test tides_accel(state, p, t, tides_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(tides_model))
+        ),
+    ) == 0
 end
 
 @testset "Thermal Emission Allocations" begin
@@ -299,8 +358,11 @@ end
         satellite_thermal_model=thermal_sat, sun_data=sun_model, eop_data=eop_data
     )
 
-    @check_allocs thm_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test thm_accel(state, p, t, thermal_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(thermal_model))
+        ),
+    ) == 0
 end
 
 @testset "Magnetic Field Dipole Allocations" begin
@@ -324,8 +386,11 @@ end
         eop_data=eop_data,
     )
 
-    @check_allocs mag_accel(state, p, t, model) = acceleration(state, p, t, model)
-    @test mag_accel(state, p, t, mag_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(mag_model))
+        ),
+    ) == 0
 end
 
 @testset "Albedo Allocations" begin
@@ -354,9 +419,11 @@ end
         -1.1880157328553503
     ] #km, km/s
 
-    albedo_alloc_accel(state, p, t, albedo_model) = acceleration(state, p, t, albedo_model)
-
-    @test albedo_alloc_accel(state, p, t, albedo_model) isa SVector
+    @test length(
+        checked_allocs(
+            acceleration, (typeof(state), typeof(p), typeof(t), typeof(albedo_model))
+        ),
+    ) == 0
 end
 
 @testset "Dynamics Builder Allocations" begin
@@ -404,6 +471,9 @@ end
         grav_model, (sun_third_body, moon_third_body, srp_model, drag_model)
     )
 
-    @check_allocs accel(u, p, t, models) = build_dynamics_model(u, p, t, models)
-    @test accel(state, p, t, model_list) isa SVector
+    @test length(
+        checked_allocs(
+            build_dynamics_model, (typeof(state), typeof(p), typeof(t), typeof(model_list))
+        ),
+    ) == 0
 end
