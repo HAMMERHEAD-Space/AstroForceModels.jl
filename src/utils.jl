@@ -24,13 +24,13 @@ Computes the angle between two vectors in a more numerically stable way than dot
 ) where {T1<:Number,T2<:Number}
     T = promote_type(T1, T2)
 
-    unitv1 = normalize(v1)
-    unitv2 = normalize(v2)
+    unitv1 = v1 ./ _euclidean_norm(v1)
+    unitv2 = v2 ./ _euclidean_norm(v2)
 
     y = unitv1 - unitv2
     x = unitv1 + unitv2
 
-    a = 2.0 * atan(norm(y), norm(x))
+    a = 2.0 * atan(_euclidean_norm(y), _euclidean_norm(x))
 
     angle::T = if !(sign(a) == -1.0 || sign(T(π) - a) == -1.0)
         a
@@ -39,4 +39,17 @@ Computes the angle between two vectors in a more numerically stable way than dot
     end
 
     return angle
+end
+
+# Euclidean (2-) norm computed with an explicit reduction. This intentionally
+# avoids `LinearAlgebra.norm`/`normalize`, whose `StridedVector{<:Union{...}}`
+# methods route through `ReinterpretArray` padding code that hits a Base bug on
+# Julia 1.12 when analyzed against the generic `AbstractVector{<:Number}`
+# signature used here.
+@inline function _euclidean_norm(v::AbstractVector{T}) where {T<:Number}
+    s = abs2(zero(T))
+    @inbounds for i in eachindex(v)
+        s += abs2(v[i])
+    end
+    return sqrt(s)
 end
